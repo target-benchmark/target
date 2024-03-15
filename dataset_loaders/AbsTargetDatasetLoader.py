@@ -10,7 +10,7 @@ class AbsTargetDatasetLoader(ABC):
     '''
     The abstrack super class of target dataset loaders.
     This class contains implementations of utility functions shared by subclasses,
-    but the loading functions are left as abstrack so the subclasses will need to implement them separately. 
+    but the loading functions are left as abstract so the subclasses will need to implement them separately. 
     '''
     def __init__(self,
                  dataset_name: str,
