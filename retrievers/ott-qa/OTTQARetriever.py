@@ -7,6 +7,7 @@
 """Interactive mode for the tfidf DrQA retriever module."""
 
 from drqa import retriever
+from utils import convert_table_representation, TFIDFBuilder
 import json
 from AbsTargetDirectRetriever import AbsTargetDirectRetriever
 from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
@@ -21,6 +22,7 @@ class OTTQARetriever(AbsTargetDirectRetriever):
         ):
         super().__init__(expected_corpus_format)
         self.rankers: dict[str, retriever.TfidfDocRanker] = {}
+        self.out_dir = 'title_sectitle_schema/'
 
     def retrieve(
         self,
@@ -41,5 +43,10 @@ class OTTQARetriever(AbsTargetDirectRetriever):
         dataset_name: str,
         corpus: dict[str, object]
     ):
+        converted_corpus = {}
+        for key, value in corpus.items():
+            converted_corpus[key] = convert_table_representation(key, value)
 
-        self.rankers[dataset_name] = retriever.get_class('tfidf')(tfidf_path=path_str)
+        builder = TFIDFBuilder()
+        out_path = builder.build_tfidf(self.out_dir, converted_corpus)
+        self.rankers[dataset_name] = retriever.get_class('tfidf')(tfidf_path=out_path)

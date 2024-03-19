@@ -1,10 +1,24 @@
+import math
 from nltk.tokenize import word_tokenize, sent_tokenize
 import urllib.parse
 import sys
 import json
 import gzip
+import os
+import drqa.retriever
+import drqa.drqa_tokenizers
 from dateutil.parser import parse
 import re
+from multiprocessing import Pool as ProcessPool
+from multiprocessing.util import Finalize
+from functools import partial
+from collections import Counter
+import sqlite3
+import importlib.util
+from tqdm import tqdm
+import numpy as np
+import scipy.sparse as sp
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -143,10 +157,8 @@ def is_year(string):
     else:
       return False
   
-def build_corpus(tmp_file):
+def build_corpus(tables: dict, tmp_file: str):
     fw = open(tmp_file, 'w')
-    with open('../data/all_plain_tables.json', 'r') as f:
-      tables = json.load(f)
     for _, table in tables.items():
         title = table['title']
         section_title = table['section_title']
@@ -158,3 +170,272 @@ def build_corpus(tmp_file):
         fw.write(json.dumps({'id': table['uid'], 'text': content}) + '\n')
 
     fw.close()
+
+def convert_table_representation(table_id: str, table_contents: list[list]) -> dict[str, object]:
+    table_headers = table_contents[0]
+    table_data = table_contents[1:]
+    return {
+        'uid': table_id,
+        'title': table_id,
+        'header': table_headers,
+        'data': table_data
+    }
+
+default_hash_size = math.pow(2, 24)
+
+
+class TFIDFBuilder():
+
+    def __init__(self):
+        self.PREPROCESS_FN = None
+        self.DOC2IDX = None
+        self.PROCESS_TOK = None
+        self.PROCESS_DB = None
+
+
+    def build_tfidf(
+        self,
+        out_dir: str,
+        corpus: dict[str, object],
+        tmp_file: str='/tmp/tf-idf-input.json',
+        tmp_db_file: str='/tmp/db.json',
+        preprocess: str = None,
+        num_workers: int = None,
+        build_option: str = 'title_sectitle_schema ',
+        option: str = 'tfidf',
+        ngram: int = 2,
+        hash_size: int = default_hash_size,
+        tokenizer:str = 'simple',
+
+    ):
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+
+        build_corpus(corpus, tmp_file)
+
+        self.store_contents(
+            tmp_file, tmp_db_file, preprocess, num_workers)
+
+        count_matrix, doc_dict = self.get_count_matrix(
+            tokenizer, 
+            num_workers,
+            ngram,
+            hash_size, 
+            'sqlite', 
+            {'db_path': tmp_db_file}
+        )
+
+        tfidf = self.get_tfidf_matrix(count_matrix, count_matrix, option=option)
+
+        freqs = self.get_doc_freqs(count_matrix)
+
+        basename = 'index'
+        basename += ('-%s-ngram=%d-hash=%d-tokenizer=%s' %
+                    (option, ngram, hash_size, tokenizer))
+        filename = os.path.join(out_dir, basename)
+
+        metadata = {
+            'doc_freqs': freqs,
+            'tokenizer': tokenizer,
+            'hash_size': hash_size,
+            'ngram': ngram,
+            'doc_dict': doc_dict
+        }
+        drqa.retriever.utils.save_sparse_csr(filename, tfidf, metadata)
+        return filename
+
+
+
+    def store_contents(self, data_path, save_path, preprocess, num_workers=None):
+        """Preprocess and store a corpus of documents in sqlite.
+
+        Args:
+            data_path: Root path to directory (or directory of directories) of files
+            containing json encoded documents (must have `id` and `text` fields).
+            save_path: Path to output sqlite db.
+            preprocess: Path to file defining a custom `preprocess` function. Takes
+            in and outputs a structured doc.
+            num_workers: Number of parallel processes to use when reading docs.
+        """
+        if os.path.isfile(save_path):
+            os.remove(save_path)
+            #raise RuntimeError('%s already exists! Not overwriting.' % save_path)
+
+        conn = sqlite3.connect(save_path)
+        c = conn.cursor()
+        c.execute("CREATE TABLE documents (id PRIMARY KEY, text);")
+
+        workers = ProcessPool(num_workers, initializer=self.init_preprocess, initargs=(preprocess,))
+        files = [f for f in self.iter_files(data_path)]
+        count = 0
+        with tqdm(total=len(files)) as pbar:
+            for pairs in tqdm(workers.imap_unordered(self.get_contents, files)):
+                count += len(pairs)
+                c.executemany("INSERT INTO documents VALUES (?,?)", pairs)
+                pbar.update()
+
+        conn.commit()
+        conn.close()
+
+    def iter_files(self, path):
+        """Walk through all files located under a root path."""
+        if os.path.isfile(path):
+            yield path
+        elif os.path.isdir(path):
+            for dirpath, _, filenames in os.walk(path):
+                for f in filenames:
+                    yield os.path.join(dirpath, f)
+        else:
+            raise RuntimeError('Path %s is invalid' % path)
+        
+
+
+
+    def init_preprocess(self, filename):
+        if filename:
+            self.PREPROCESS_FN = self.import_module(filename).preprocess
+
+
+    def import_module(self, filename):
+        """Import a module given a full path to the file."""
+        spec = importlib.util.spec_from_file_location('doc_filter', filename)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module    
+
+
+
+    def get_contents(self, filename):
+        """Parse the contents of a file. Each line is a JSON encoded document."""
+        documents = []
+        with open(filename) as f:
+            for line in f:
+                # Parse document
+                doc = json.loads(line)
+                # Maybe preprocess the document with custom function
+                if self.PREPROCESS_FN:
+                    doc = self.PREPROCESS_FN(doc)
+                # Skip if it is empty or None
+                if not doc:
+                    continue
+                # Add the document
+                documents.append((doc['id'], doc['text']))
+        return documents
+
+    def init(self, tokenizer_class, db_class, db_opts):
+        self.PROCESS_TOK = tokenizer_class()
+        Finalize(self.PROCESS_TOK, self.PROCESS_TOK.shutdown, exitpriority=100)
+        self.PROCESS_DB = db_class(**db_opts)
+        Finalize(self.PROCESS_DB, self.PROCESS_DB.close, exitpriority=100)    
+
+    def get_count_matrix(
+            self, 
+            tokenizer, 
+            num_workers,
+            ngram,
+            hash_size,
+            db, 
+            db_opts):
+        """Form a sparse word to document count matrix (inverted index).
+
+        M[i, j] = # times word i appears in document j.
+        """
+        # Map doc_ids to indexes
+        db_class = drqa.retriever.get_class(db)
+        with db_class(**db_opts) as doc_db:
+            doc_ids = doc_db.get_doc_ids()
+        self.DOC2IDX = {doc_id: i for i, doc_id in enumerate(doc_ids)}
+
+        # Setup worker pool
+        tok_class = drqa.drqa_tokenizers.get_class(tokenizer)
+        workers = ProcessPool(
+            num_workers,
+            initializer=self.init,
+            initargs=(tok_class, db_class, db_opts)
+        )
+
+        # Compute the count matrix in steps (to keep in memory)
+        row, col, data = [], [], []
+        step = max(int(len(doc_ids) / 10), 1)
+        batches = [doc_ids[i:i + step] for i in range(0, len(doc_ids), step)]
+        _count = partial(self.count, ngram, hash_size)
+        for i, batch in enumerate(batches):
+            for b_row, b_col, b_data in workers.imap_unordered(_count, batch):
+                row.extend(b_row)
+                col.extend(b_col)
+                data.extend(b_data)
+        workers.close()
+        workers.join()
+
+        count_matrix = sp.csr_matrix(
+            (data, (row, col)), shape=(hash_size, len(doc_ids))
+        )
+        count_matrix.sum_duplicates()
+        return count_matrix, (self.DOC2IDX, doc_ids)
+
+    def fetch_text(self, doc_id):
+        return self.PROCESS_DB.get_doc_text(doc_id)
+
+
+    def tokenize(self, text):
+        return self.PROCESS_TOK.tokenize(text)
+    
+    def count(self, ngram, hash_size, doc_id):
+        """Fetch the text of a document and compute hashed ngrams counts."""
+        row, col, data = [], [], []
+        # Tokenize
+        tokens = tokenize(drqa.retriever.utils.normalize(self.fetch_text(doc_id)))
+
+        # Get ngrams from tokens, with stopword/punctuation filtering.
+        ngrams = tokens.ngrams(
+            n=ngram, uncased=True, filter_fn=drqa.retriever.utils.filter_ngram
+        )
+
+        # Hash ngrams and count occurences
+        counts = Counter([drqa.retriever.utils.hash(gram, hash_size) for gram in ngrams])
+
+        # Return in sparse matrix data format.
+        row.extend(counts.keys())
+        col.extend([self.DOC2IDX[doc_id]] * len(counts))
+        data.extend(counts.values())
+        return row, col, data
+    
+    def get_doc_freqs(self, cnts):
+        """Return word --> # of docs it appears in."""
+        binary = (cnts > 0).astype(int)
+        freqs = np.array(binary.sum(1)).squeeze()
+        return freqs
+
+    def get_tfidf_matrix(self, cnts, idf_cnts, option='tf-idf'):
+        """Convert the word count matrix into tfidf one.
+
+        tfidf = log(tf + 1) * log((N - Nt + 0.5) / (Nt + 0.5))
+        * tf = term frequency in document
+        * N = number of documents
+        * Nt = number of occurences of term in all documents
+        """
+        # Computing the IDF parameters
+        Ns = self.get_doc_freqs(idf_cnts)
+        idfs = np.log((idf_cnts.shape[1] - Ns + 0.5) / (Ns + 0.5))
+        idfs[idfs < 0] = 0
+        idfs = sp.diags(idfs, 0)
+        if option == 'tfidf':
+            # Computing the TF parameters
+            tfs = cnts.log1p()
+        elif option == 'bm25':
+            k1 = 1.5
+            b = 0.75
+            # Computing the saturation parameters
+            doc_length = np.array(cnts.sum(0)).squeeze()
+            doc_length_ratio = k1 * (1 - b + b * doc_length / doc_length.mean())
+            doc_length_ratio = sp.diags(doc_length_ratio, 0)
+            binary = (cnts > 0).astype(int) 
+            masked_length_ratio = binary.dot(doc_length_ratio)
+            denom = cnts.copy()
+            denom.data = denom.data + masked_length_ratio.data
+            tfs = cnts * (1 + k1)
+            tfs.data = tfs.data / denom.data
+        else:
+            raise NotImplementedError
+        tfidfs = idfs.dot(tfs)
+        return tfidfs
