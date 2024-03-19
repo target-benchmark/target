@@ -34,7 +34,7 @@ class OTTQARetriever(AbsTargetDirectRetriever):
         ranker = self.rankers[dataset_name]
         for query_id, query_str in queries.items():
             doc_names, doc_scores = ranker.closest_docs(query_str, top_k)
-            retrieval_results[query_id, doc_names]
+            retrieval_results[query_id] = doc_names
         return retrieval_results
     
     def embed_corpus(
