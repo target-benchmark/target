@@ -1,3 +1,4 @@
+from typing import Iterable
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
@@ -51,7 +52,7 @@ class AbsTargetRetrieverWithEmbedding(AbsTargetRetrieverBase):
     def embed_corpus(
         self,
         dataset_name: str,
-        corpus: dict[str, object]
+        corpus: Iterable[dict]
     ) -> dict[str, ArrayLike]:
         '''
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.

@@ -6,9 +6,11 @@
 # LICENSE file in the root directory of this source tree.
 """Interactive mode for the tfidf DrQA retriever module."""
 
+from typing import Iterable, Iterator
 from .drqa import retriever
 from .utils import convert_table_representation, TFIDFBuilder
 from ..AbsTargetDirectRetriever import AbsTargetDirectRetriever
+import json
 import os
 
 class OTTQARetriever(AbsTargetDirectRetriever):
@@ -38,12 +40,17 @@ class OTTQARetriever(AbsTargetDirectRetriever):
     def embed_corpus(
         self,
         dataset_name: str,
-        corpus: dict[str, object]
+        corpus: Iterable[dict]
     ):
         converted_corpus = {}
-        for key, value in corpus.items():
-            converted_corpus[key] = convert_table_representation(key, value)
+        for corpus_dict in corpus:
+            for key, value in corpus_dict.items():
+                converted_corpus[key] = convert_table_representation(key, value)
+        file_name = 'fetaqa_data.json'
 
+        # Write the dictionary to a file in JSON format
+        with open(file_name, 'w') as f:
+            json.dump(converted_corpus, f)                
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
         self.rankers[dataset_name] = retriever.get_class('tfidf')(tfidf_path=out_path)

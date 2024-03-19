@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 import csv
 from dataset_loaders.utils import str_representation_to_array, str_representation_to_pandas_df
-from typing import Iterator
+from typing import Iterable, Iterator
 
 class AbsTargetDatasetLoader(ABC):
     '''
@@ -139,7 +139,7 @@ class AbsTargetDatasetLoader(ABC):
                 
 
     
-    def convert_corpus_table_to(self, output_class: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterator[dict]:
+    def convert_corpus_table_to(self, output_class: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterable[dict]:
         '''
         convert the corpus table to a specific format in memory. 
         
