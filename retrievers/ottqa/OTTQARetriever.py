@@ -6,23 +6,20 @@
 # LICENSE file in the root directory of this source tree.
 """Interactive mode for the tfidf DrQA retriever module."""
 
-from drqa import retriever
-from utils import convert_table_representation, TFIDFBuilder
-import json
-from AbsTargetDirectRetriever import AbsTargetDirectRetriever
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
-
-
-path_str = "retriever/title_sectitle_schema/index-tfidf-ngram\=2-hash\=16777216-tokenizer\=simple.npz"
+from .drqa import retriever
+from .utils import convert_table_representation, TFIDFBuilder
+from ..AbsTargetDirectRetriever import AbsTargetDirectRetriever
+import os
 
 class OTTQARetriever(AbsTargetDirectRetriever):
     def __init__(
             self,
-            expected_corpus_format: str = 'nested array'
+            script_dir: str,
+            expected_corpus_format: str = 'nested array',
         ):
         super().__init__(expected_corpus_format)
         self.rankers: dict[str, retriever.TfidfDocRanker] = {}
-        self.out_dir = 'title_sectitle_schema/'
+        self.out_dir = os.path.join(script_dir, 'title_sectitle_schema/')
 
     def retrieve(
         self,

@@ -5,8 +5,8 @@ import sys
 import json
 import gzip
 import os
-import drqa.retriever
-import drqa.drqa_tokenizers
+from .drqa import retriever
+from .drqa import drqa_tokenizers
 from dateutil.parser import parse
 import re
 from multiprocessing import Pool as ProcessPool
@@ -178,10 +178,11 @@ def convert_table_representation(table_id: str, table_contents: list[list]) -> d
         'uid': table_id,
         'title': table_id,
         'header': table_headers,
-        'data': table_data
+        'data': table_data,
+        'section_title': ''
     }
 
-default_hash_size = math.pow(2, 24)
+default_hash_size = int(math.pow(2, 24))
 
 
 class TFIDFBuilder():
@@ -241,8 +242,8 @@ class TFIDFBuilder():
             'ngram': ngram,
             'doc_dict': doc_dict
         }
-        drqa.retriever.utils.save_sparse_csr(filename, tfidf, metadata)
-        return filename
+        retriever.utils.save_sparse_csr(filename, tfidf, metadata)
+        return filename + '.npz'
 
 
 
@@ -265,15 +266,15 @@ class TFIDFBuilder():
         c = conn.cursor()
         c.execute("CREATE TABLE documents (id PRIMARY KEY, text);")
 
-        workers = ProcessPool(num_workers, initializer=self.init_preprocess, initargs=(preprocess,))
-        files = [f for f in self.iter_files(data_path)]
-        count = 0
-        with tqdm(total=len(files)) as pbar:
-            for pairs in tqdm(workers.imap_unordered(self.get_contents, files)):
-                count += len(pairs)
-                c.executemany("INSERT INTO documents VALUES (?,?)", pairs)
-                pbar.update()
-
+        with ProcessPool(num_workers) as pool:
+            get_contents_partial = partial(get_contents, preprocess)
+            files = [f for f in self.iter_files(data_path)]
+            count = 0
+            with tqdm(total=len(files)) as pbar:
+                for pairs in tqdm(pool.imap_unordered(get_contents_partial, files)):
+                    count += len(pairs)
+                    c.executemany("INSERT INTO documents VALUES (?,?)", pairs)
+                    pbar.update()
         conn.commit()
         conn.close()
 
@@ -290,44 +291,6 @@ class TFIDFBuilder():
         
 
 
-
-    def init_preprocess(self, filename):
-        if filename:
-            self.PREPROCESS_FN = self.import_module(filename).preprocess
-
-
-    def import_module(self, filename):
-        """Import a module given a full path to the file."""
-        spec = importlib.util.spec_from_file_location('doc_filter', filename)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module    
-
-
-
-    def get_contents(self, filename):
-        """Parse the contents of a file. Each line is a JSON encoded document."""
-        documents = []
-        with open(filename) as f:
-            for line in f:
-                # Parse document
-                doc = json.loads(line)
-                # Maybe preprocess the document with custom function
-                if self.PREPROCESS_FN:
-                    doc = self.PREPROCESS_FN(doc)
-                # Skip if it is empty or None
-                if not doc:
-                    continue
-                # Add the document
-                documents.append((doc['id'], doc['text']))
-        return documents
-
-    def init(self, tokenizer_class, db_class, db_opts):
-        self.PROCESS_TOK = tokenizer_class()
-        Finalize(self.PROCESS_TOK, self.PROCESS_TOK.shutdown, exitpriority=100)
-        self.PROCESS_DB = db_class(**db_opts)
-        Finalize(self.PROCESS_DB, self.PROCESS_DB.close, exitpriority=100)    
-
     def get_count_matrix(
             self, 
             tokenizer, 
@@ -341,64 +304,36 @@ class TFIDFBuilder():
         M[i, j] = # times word i appears in document j.
         """
         # Map doc_ids to indexes
-        db_class = drqa.retriever.get_class(db)
+        db_class = retriever.get_class(db)
+
         with db_class(**db_opts) as doc_db:
             doc_ids = doc_db.get_doc_ids()
-        self.DOC2IDX = {doc_id: i for i, doc_id in enumerate(doc_ids)}
+        DOC2IDX = {doc_id: i for i, doc_id in enumerate(doc_ids)}
 
         # Setup worker pool
-        tok_class = drqa.drqa_tokenizers.get_class(tokenizer)
-        workers = ProcessPool(
-            num_workers,
-            initializer=self.init,
-            initargs=(tok_class, db_class, db_opts)
-        )
-
-        # Compute the count matrix in steps (to keep in memory)
-        row, col, data = [], [], []
-        step = max(int(len(doc_ids) / 10), 1)
-        batches = [doc_ids[i:i + step] for i in range(0, len(doc_ids), step)]
-        _count = partial(self.count, ngram, hash_size)
-        for i, batch in enumerate(batches):
-            for b_row, b_col, b_data in workers.imap_unordered(_count, batch):
-                row.extend(b_row)
-                col.extend(b_col)
-                data.extend(b_data)
-        workers.close()
-        workers.join()
+        tok_class = drqa_tokenizers.get_class(tokenizer)
+        with ProcessPool(num_workers) as pool:
+            # Compute the count matrix in steps (to keep in memory)
+            row, col, data = [], [], []
+            step = max(int(len(doc_ids) / 10), 1)
+            batches = [doc_ids[i:i + step] for i in range(0, len(doc_ids), step)]
+            _count = partial(count, ngram, hash_size, tok_class, db_class, db_opts, DOC2IDX)
+            for i, batch in enumerate(batches):
+                for b_row, b_col, b_data in pool.imap_unordered(_count, batch):
+                    row.extend(b_row)
+                    col.extend(b_col)
+                    data.extend(b_data)
+            pool.close()
+            pool.join()
 
         count_matrix = sp.csr_matrix(
             (data, (row, col)), shape=(hash_size, len(doc_ids))
         )
         count_matrix.sum_duplicates()
-        return count_matrix, (self.DOC2IDX, doc_ids)
+        return count_matrix, (DOC2IDX, doc_ids)
 
-    def fetch_text(self, doc_id):
-        return self.PROCESS_DB.get_doc_text(doc_id)
-
-
-    def tokenize(self, text):
-        return self.PROCESS_TOK.tokenize(text)
     
-    def count(self, ngram, hash_size, doc_id):
-        """Fetch the text of a document and compute hashed ngrams counts."""
-        row, col, data = [], [], []
-        # Tokenize
-        tokens = tokenize(drqa.retriever.utils.normalize(self.fetch_text(doc_id)))
 
-        # Get ngrams from tokens, with stopword/punctuation filtering.
-        ngrams = tokens.ngrams(
-            n=ngram, uncased=True, filter_fn=drqa.retriever.utils.filter_ngram
-        )
-
-        # Hash ngrams and count occurences
-        counts = Counter([drqa.retriever.utils.hash(gram, hash_size) for gram in ngrams])
-
-        # Return in sparse matrix data format.
-        row.extend(counts.keys())
-        col.extend([self.DOC2IDX[doc_id]] * len(counts))
-        data.extend(counts.values())
-        return row, col, data
     
     def get_doc_freqs(self, cnts):
         """Return word --> # of docs it appears in."""
@@ -439,3 +374,69 @@ class TFIDFBuilder():
             raise NotImplementedError
         tfidfs = idfs.dot(tfs)
         return tfidfs
+    
+def init_preprocess(filename):
+    if filename:
+        return import_module(filename).preprocess
+    return None
+
+def import_module(filename):
+    """Import a module given a full path to the file."""
+    spec = importlib.util.spec_from_file_location('doc_filter', filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module    
+
+def get_contents(preprocess_file_name, filename):
+    preprocess_fn = init_preprocess(preprocess_file_name)
+    """Parse the contents of a file. Each line is a JSON encoded document."""
+    documents = []
+    with open(filename) as f:
+        for line in f:
+            # Parse document
+            doc = json.loads(line)
+            # Maybe preprocess the document with custom function
+            if preprocess_fn:
+                doc = preprocess_fn(doc)
+            # Skip if it is empty or None
+            if not doc:
+                continue
+            # Add the document
+            documents.append((doc['id'], doc['text']))
+    return documents
+
+
+def init(tokenizer_class, db_class, db_opts):
+    PROCESS_TOK = tokenizer_class()
+    Finalize(PROCESS_TOK, PROCESS_TOK.shutdown, exitpriority=100)
+    PROCESS_DB = db_class(**db_opts)
+    Finalize(PROCESS_DB, PROCESS_DB.close, exitpriority=100)  
+    return PROCESS_TOK, PROCESS_DB
+
+def fetch_text(doc_id, PROCESS_DB):
+    return PROCESS_DB.get_doc_text(doc_id)
+
+
+def tokenize_text(text, PROCESS_TOK):
+    return PROCESS_TOK.tokenize(text)
+
+def count(ngram, hash_size, tok_class, db_class, db_opts, DOC2IDX, doc_id):
+    """Fetch the text of a document and compute hashed ngrams counts."""
+    PROCESS_TOK, PROCESS_DB = init(tok_class, db_class, db_opts)
+    row, col, data = [], [], []
+    # Tokenize
+    tokens = tokenize_text(retriever.utils.normalize(fetch_text(doc_id, PROCESS_DB)), PROCESS_TOK)
+
+    # Get ngrams from tokens, with stopword/punctuation filtering.
+    ngrams = tokens.ngrams(
+        n=ngram, uncased=True, filter_fn=retriever.utils.filter_ngram
+    )
+
+    # Hash ngrams and count occurences
+    counts = Counter([retriever.utils.hash(gram, hash_size) for gram in ngrams])
+
+    # Return in sparse matrix data format.
+    row.extend([int(key) for key in counts.keys()])
+    col.extend([DOC2IDX[doc_id]] * len(counts))
+    data.extend(counts.values())
+    return row, col, data
