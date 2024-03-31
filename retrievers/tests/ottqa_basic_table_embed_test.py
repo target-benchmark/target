@@ -2,31 +2,7 @@ from retrievers.ottqa.OTTQARetriever import OTTQARetriever
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
 import unittest
 import os
-# table = {
-#     "table_default": [["col 1"], ["row 1"]]
-# }
 
-# test_dataset_name = 'fetaqa'
-# test_hf_corpus_dataset_path = 'target-benchmark/fetaqa-corpus'
-# test_hf_queries_dataset_path = 'target-benchmark/fetaqa-queries'
-# fetaqa_loader = HFDatasetLoader(
-#     dataset_name=test_dataset_name,
-#     hf_corpus_dataset_path=test_hf_corpus_dataset_path,
-#     hf_queries_dataset_path=test_hf_queries_dataset_path,
-#     )
-
-# fetaqa_loader.load() # load the fetaqa data
-# dict_iter = fetaqa_loader.convert_corpus_table_to()
-
-# print(fetaqa_loader.corpus.keys())
-
-# ottqa_retriever = OTTQARetriever(script_dir= os.path.dirname(os.path.abspath(__file__)))
-
-# ottqa_retriever.embed_corpus(fetaqa_loader.dataset_name, dict_iter)
-
-# print(ottqa_retriever.retrieve({fetaqa_loader.queries['test'][0]['query_id']: fetaqa_loader.queries['test'][0]['query']}, fetaqa_loader.dataset_name, 5))
-
-# print(fetaqa_loader.queries['test'][0]['table_id'])
 
 
 class TestOTTQARetriever(unittest.TestCase):

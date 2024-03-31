@@ -49,7 +49,7 @@ class OTTQARetriever(AbsTargetDirectRetriever):
         file_name = 'fetaqa_data.json'
 
         # Write the dictionary to a file in JSON format
-        with open(file_name, 'w') as f:
+        with open(os.path.join(self.out_dir, file_name), 'w') as f:
             json.dump(converted_corpus, f)                
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
