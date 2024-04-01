@@ -55,4 +55,5 @@ class TestOTTQARetriever(unittest.TestCase):
         self.assertEqual(query_table_id, expected_table_id)
 
 if __name__ == '__main__':
+    print(os.path.dirname(os.path.abspath(__file__)))
     unittest.main()

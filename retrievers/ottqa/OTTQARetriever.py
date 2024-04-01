@@ -42,6 +42,8 @@ class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
         dataset_name: str,
         corpus: Iterable[dict]
     ):
+        if not os.path.exists(self.out_dir):
+            os.mkdir(self.out_dir)
         converted_corpus = {}
         for corpus_dict in corpus:
             for key, value in corpus_dict.items():
