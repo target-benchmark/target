@@ -161,3 +161,6 @@ cython_debug/
 
 # large npz files
 *.npz
+
+# ottqa test files
+title_sectitle_schema/
