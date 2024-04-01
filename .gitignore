@@ -159,4 +159,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-test/
+# large npz files
+*.npz
+
+# ottqa test files
+title_sectitle_schema/

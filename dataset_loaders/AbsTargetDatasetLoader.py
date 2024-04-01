@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 import csv
-from dataset_loaders.utils import str_representation_to_array, str_representation_to_pandas_df
-from typing import Iterator
+from dataset_loaders.utils import array_of_arrays_to_df, str_representation_to_array, str_representation_to_pandas_df
+from typing import Iterable, Iterator
 
 class AbsTargetDatasetLoader(ABC):
     '''
@@ -122,7 +122,7 @@ class AbsTargetDatasetLoader(ABC):
             cur_split_dataset = self.corpus[split]
             for batch in cur_split_dataset.iter(1):
                 table_name = Path(batch[self.table_id_col_name][0])
-                nested_array = str_representation_to_array(batch[self.table_col_name][0])
+                nested_array = batch[self.table_col_name][0]
                 if (format.lower() == "csv"):
                     if "csv" not in table_name.suffix:
                         table_name = table_name / ".csv"
@@ -139,7 +139,7 @@ class AbsTargetDatasetLoader(ABC):
                 
 
     
-    def convert_corpus_table_to(self, output_class: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterator[dict]:
+    def convert_corpus_table_to(self, output_class: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterable[dict]:
         '''
         convert the corpus table to a specific format in memory. 
         
@@ -154,7 +154,6 @@ class AbsTargetDatasetLoader(ABC):
         '''
 
         if not self.corpus:
-            print("got here")
             raise RuntimeError("Corpus has not been loaded!")
         
         if not splits:
@@ -170,9 +169,9 @@ class AbsTargetDatasetLoader(ABC):
                 table_ids = batch[self.table_id_col_name]
                 tables = [] 
                 if "array" in output_class.lower():
-                    tables = map(str_representation_to_array, batch[self.table_col_name])
+                    tables = batch[self.table_col_name]
                 elif "dataframe" in output_class.lower():
-                    tables = map(str_representation_to_pandas_df, batch[self.table_col_name])
+                    tables = map(array_of_arrays_to_df, batch[self.table_col_name])
                 res_dict = {}
                 for key, value in zip(table_ids, tables):
                     res_dict[key] = value

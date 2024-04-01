@@ -1,15 +1,14 @@
+from typing import Iterable
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from abc import abstractmethod
-class AbsTargetDirectRetriever(AbsTargetRetrieverBase):
+from numpy.typing import NDArray, ArrayLike
+class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
     '''
-    This interface includes the retrieve method and an encode method that doesn't expect a return value. If your retrieval tool already has table embedding/encoding persistence built in, this is the preferred class to inherit from for your custom retriever, as you can just ignore the encode method. At retrieval time, it is assumed that the **table embeddings are no longer needed to be provided** for the retrieval to work. 
-    Reasons for providing this encoding method is:
-    - it's not expected of the users to deal with setting up `TargetDatasetloaders` directly, since at the time of instantiation it may be unclear which datasets needs to be preprocessed. We'd like to delegate this responsibilty to the `TargetEvaluator` class during the eval process. 
-    - remain symmetric to the `AbsTargetRetrieverWithEmbedding` 
-    Some possible reasons to inherit from this class and not `AbsTargetRetrieverWithEncoding`:
-    - you have a custom format of embedding for the tables (ie directory structure, file formats, etc). 
-    - your tool already deals with the persistence of the embedding, in which case the embedding method can just pass & do nothing. 
+    This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
+
+    Some reasons to inherit from this class as opposed to `AbsTargetCustomEmbeddingRetriver`
+    - the embedding of your tool is simply a vector or array like object. 
+    - your retrieval system doesn't need any specific persistence formats or folder structure to work, as long as the corpus embedding is given that's all you need.
     '''
     def __init__(
             self,
@@ -21,19 +20,21 @@ class AbsTargetDirectRetriever(AbsTargetRetrieverBase):
         '''
         self.expected_corpus_format = expected_corpus_format
 
-
     @abstractmethod
     def retrieve(
         self,
+        corpus_embedding,
         queries: dict[str, str],
         dataset_name: str,
         top_k: int,
         **kwargs,
     ) -> dict[str, list[str]]:
         '''
-        Directly retrieves the corresponding tables for the list of queries. Works under the assumption that the embeddings are available when this function is called, and the retriever should be able to get the right tables with the queries provided without any additional information about the corpus.
+        Given a corpus embedding, retrieves the corresponding tables for the list of queries. 
 
         Parameters:
+            corpus_embedding: embedding of the corpus (created by `embed_corpus`). TODO: figure out the format for this
+
             queries (dict[str, str]): a dictionary for the queries, maps query id to the actual query string.
 
             dataset_name (str): identifier for the dataset that these queries come from. since retrieval evaluation can be done for multiple datasets, use this as a way of choosing which dataset's corpus to retrieve from.
@@ -44,15 +45,15 @@ class AbsTargetDirectRetriever(AbsTargetRetrieverBase):
 
         Returns:
             dict[str, list[str]]: a dictionary mapping the query id to the list of table ids of the retrieved tables.
-        '''
+        '''        
         pass
 
     @abstractmethod
     def embed_corpus(
         self,
         dataset_name: str,
-        corpus: dict[str, object]
-    ):
+        corpus: Iterable[dict]
+    ) -> dict[str, ArrayLike]:
         '''
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
@@ -61,6 +62,6 @@ class AbsTargetDirectRetriever(AbsTargetRetrieverBase):
             corpus (dict[str, object]): a dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
         
         Returns:
-            nothing. the persistence of the embedding must be dealt with the logic of this function itself, and the `retrieve` function should also know about the embedding results of this function so that retrieval can be done.
+            dict[str, ArrayLike]: a mapping between the table id and the embedding of that table. the embedding is restricted to an ArrayLike
         '''
         pass

@@ -21,7 +21,10 @@ class HFDatasetLoader(AbsTargetDatasetLoader):
             query_type=query_type
         )
         '''
-        Constructor for a generic dataset loader that loads from a huggingface dataset
+        Constructor for a generic dataset loader that loads from a huggingface dataset.
+        Parameters:
+            hf_corpus_dataset_path (str): the path to your huggingface hub corpus dataset. it will look something like target-benchmark/fetaqa-corpus (namespace/dataset-name)
+            hf_queries_dataset_path (str): the path to your huggingface hub queries dataset path. 
         '''
 
         self.hf_corpus_dataset_path = hf_corpus_dataset_path
@@ -33,7 +36,7 @@ class HFDatasetLoader(AbsTargetDatasetLoader):
         Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            split(str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
+            split (str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
         '''
         if splits:
             if isinstance(splits, str):
