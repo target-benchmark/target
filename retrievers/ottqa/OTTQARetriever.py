@@ -9,11 +9,11 @@
 from typing import Iterable, Iterator
 from .drqa import retriever
 from .utils import convert_table_representation, TFIDFBuilder
-from ..AbsTargetDirectRetriever import AbsTargetDirectRetriever
+from ..AbsTargetCustomEmbeddingRetriver import AbsTargetCustomEmbeddingRetriver
 import json
 import os
 
-class OTTQARetriever(AbsTargetDirectRetriever):
+class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
     def __init__(
             self,
             script_dir: str,
