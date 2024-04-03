@@ -11,3 +11,7 @@ class AbsTargetRetrieverBase(ABC):
             a dictionary mapping the query IDs to the list of possible tables retrieved.
         '''
         pass
+
+    @abstractmethod
+    def retrieve_batch(self, *args, **kwargs) -> dict[str, list[str]]:
+        pass

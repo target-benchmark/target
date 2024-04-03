@@ -16,9 +16,14 @@ class AbsTargetDatasetLoader(ABC):
                  dataset_name: str,
                  table_col_name: str = "table",
                  table_id_col_name: str = "table_id",
+                 database_id_col_name: str = "database_id",
+                 query_col_name: str = "query",
+                 query_id_col_name: str = "query_id",
+                 answer_col_name: str = "answer",
                  splits: str | list[str] = "test",
                  data_directory: str = None,
                  query_type: str = None,
+                 **kwargs
                 ):
         
         '''
@@ -30,6 +35,14 @@ class AbsTargetDatasetLoader(ABC):
             table_col_name (str, optional): name of the column that contains the nested array tables. defaults to "table", you can leave as default if working with any TARGET datasets. If user were to use custom datasets with different header names, this name can be adjusted accordingly.
 
             table_id_col_name (str, optional): name of the column that contains the unique identifiers of the tables. defaults to "table_id" across all TARGET datasets.
+            
+            database_id_col_name (str, optional): name of the column that contains the database id, this column exists in both queries and corpus datasets, and TARGET datasets loaders work on the assumption that the column name remains the same across the queries and corpus datasets. defaults to "database_id".
+
+            query_col_name (str, optional): name of the column that contains the query strings. defaults to "query".
+
+            query_id_col_name (str, optional): name of the column that contains the query ids. defaults to "query_id".
+            
+            answer_col_name (str, optional): name of the column that contains the answer str. defaults to "answer".
 
             splits (str | list[str], optional): splits of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
 
@@ -53,6 +66,10 @@ class AbsTargetDatasetLoader(ABC):
         self.data_directory: str = data_directory
         self.table_col_name: str = table_col_name
         self.table_id_col_name: str = table_id_col_name
+        self.database_id_col_name: str = database_id_col_name
+        self.query_col_name: str = query_col_name
+        self.query_id_col_name: str = query_id_col_name
+        self.answer_col_name: str = answer_col_name
         self.query_type: str = query_type
         self.corpus: DatasetDict = None
         self.queries: DatasetDict = None
@@ -176,9 +193,36 @@ class AbsTargetDatasetLoader(ABC):
                 for key, value in zip(table_ids, tables):
                     res_dict[key] = value
                 yield res_dict
-    
 
 
+    def get_queries_for_task(self, splits: str | list[str] = None, batch_size: int =64) -> Iterable[list[dict[str, str]]]:
+        if not self.queries:
+            raise RuntimeError("Queries has not been loaded!")
+        
+        if not splits:
+            splits = self.splits
+        else:
+            splits = self._check_all_split_names_exist(splits)
+            if not isinstance(splits, list):
+                raise ValueError(f"split {splits} doesn't exist for the current dataset!")
+        for split in splits:
+            cur_queries_split = self.queries[split]
+            for batch in cur_queries_split.iter(batch_size):
+                res_list = []
+                query_ids = batch[self.query_id_col_name]
+                queries = batch[self.query_col_name]
+                database_ids = batch[self.database_id_col_name]
+                table_ids = batch[self.table_id_col_name]
+                answers = batch[self.answer_col_name]
+                for query_id, query, database_id, table_id, answer in zip(query_ids, queries, database_ids, table_ids, answers):
+                    res_list.append({
+                        'query_id': query_id,
+                        'query': query,
+                        'database_id': database_id,
+                        'table_id': table_id,
+                        'answer': answer
+                    })
+                yield res_list
 
     def get_dataset_name(self) -> str:
         '''

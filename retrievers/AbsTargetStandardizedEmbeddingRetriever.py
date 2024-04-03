@@ -20,8 +20,8 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
         '''
         self.expected_corpus_format = expected_corpus_format
 
-    @abstractmethod
-    def retrieve(
+
+    def retrieve_batch(
         self,
         corpus_embedding,
         queries: dict[str, str],
@@ -29,13 +29,27 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
         top_k: int,
         **kwargs,
     ) -> dict[str, list[str]]:
+        retrieval_results = {}
+        for query_id, query_str in queries.items():
+            retrieval_results[query_id] = self.retrieve(corpus_embedding, query_str, dataset_name, top_k, kwargs)
+        return retrieval_results
+
+    @abstractmethod
+    def retrieve(
+        self,
+        corpus_embedding,
+        query: str,
+        dataset_name: str,
+        top_k: int,
+        **kwargs,
+    ) -> list[str]:
         '''
-        Given a corpus embedding, retrieves the corresponding tables for the list of queries. 
+        Given a corpus embedding, retrieves the corresponding tables for the given query. 
 
         Parameters:
             corpus_embedding: embedding of the corpus (created by `embed_corpus`). TODO: figure out the format for this
 
-            queries (dict[str, str]): a dictionary for the queries, maps query id to the actual query string.
+            queries (str): the actual query string.
 
             dataset_name (str): identifier for the dataset that these queries come from. since retrieval evaluation can be done for multiple datasets, use this as a way of choosing which dataset's corpus to retrieve from.
 
@@ -44,7 +58,7 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
             any additional kwargs you'd like to include.
 
         Returns:
-            dict[str, list[str]]: a dictionary mapping the query id to the list of table ids of the retrieved tables.
+            list[str]: the list of table ids of the retrieved tables.
         '''        
         pass
 

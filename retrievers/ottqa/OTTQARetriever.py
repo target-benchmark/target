@@ -25,17 +25,14 @@ class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
 
     def retrieve(
         self,
-        queries: dict[str, str],
+        query: str,
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> dict[str, list[str]]:
-        retrieval_results = {}
+    ) -> list[str]:
         ranker = self.rankers[dataset_name]
-        for query_id, query_str in queries.items():
-            doc_names, doc_scores = ranker.closest_docs(query_str, top_k)
-            retrieval_results[query_id] = doc_names
-        return retrieval_results
+        doc_names, doc_scores = ranker.closest_docs(query, top_k)
+        return doc_names
     
     def embed_corpus(
         self,

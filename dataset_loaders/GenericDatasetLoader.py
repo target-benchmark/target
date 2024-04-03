@@ -2,16 +2,22 @@ from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from pathlib import Path
 from datasets import load_dataset, DatasetDict
 class GenericDatasetLoader(AbsTargetDatasetLoader):
-    def __init__(self,
-                 dataset_name: str,
-                 dataset_path: str,
-                 datafile_ext: str = None,
-                 table_col_name: str = "table",
-                 table_id_col_name: str = "table_id",
-                 splits: str | list[str] = "test",
-                 data_directory: str = None,
-                 query_type: str = "",
-                 ):
+    def __init__(
+            self,
+            dataset_name: str,
+            dataset_path: str,
+            datafile_ext: str = None,
+            table_col_name: str = "table",
+            table_id_col_name: str = "table_id",
+            database_id_col_name: str = "database_id",
+            query_col_name: str = "query",
+            query_id_col_name: str = "query_id",
+            answer_col_name: str = "answer",
+            splits: str | list[str] = "test",
+            data_directory: str = None,
+            query_type: str = "",
+            **kwargs
+        ):
         '''
         Constructor for a generic dataset loader that loads from a local directory
 
@@ -30,9 +36,14 @@ class GenericDatasetLoader(AbsTargetDatasetLoader):
             dataset_name=dataset_name, 
             table_col_name=table_col_name,
             table_id_col_name=table_id_col_name,
+            database_id_col_name=database_id_col_name,
+            query_col_name=query_col_name,
+            query_id_col_name=query_id_col_name,
+            answer_col_name=answer_col_name,
             splits=splits,
             data_directory=data_directory,
             query_type=query_type
+            **kwargs
         )
         self.dataset_path = Path(dataset_path)
         self.corpus_path = self.dataset_path / "corpus"

@@ -41,11 +41,11 @@ class TestOTTQARetriever(unittest.TestCase):
         query = self.fetaqa_loader.queries['test'][0]['query']
         query_id = self.fetaqa_loader.queries['test'][0]['query_id']
         table_id = self.fetaqa_loader.queries['test'][0]['table_id']
-        results = self.ottqa_retriever.retrieve({query_id: query}, self.fetaqa_loader.dataset_name, 10)
+        results = self.ottqa_retriever.retrieve(query, self.fetaqa_loader.dataset_name, 10)
         print(f"retrieving on query: {query}\n\ncorrect table: {table_id}\n\n actual results: {results}")
         # Perform assertions on the results
-        self.assertIsInstance(results, dict)
-        self.assertTrue(query_id in results[query_id])
+        self.assertIsInstance(results, list)
+        self.assertTrue(query_id in results)
         # More assertions depending on the expected structure of the results
 
     def test_query_table_id(self):
