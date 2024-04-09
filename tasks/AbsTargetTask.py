@@ -8,6 +8,7 @@ from retrievers.AbsTargetCustomEmbeddingRetriver import AbsTargetCustomEmbedding
 from retrievers.AbsTargetStandardizedEmbeddingRetriever import AbsTargetStandardizedEmbeddingRetriever as StandardizedEmbRetr
 
 from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from logging import Logger
 from dictionary_keys import *
 
@@ -115,16 +116,16 @@ class AbsTargetTask(ABC):
         return task_results
 
 
-    def _query_info_to_id_queries(self, batch: list[dict]) -> dict[str, str]:
+    def _query_info_to_id_queries(self, batch: list[QueryForTasksDataModel]) -> dict[str, str]:
         id_to_query = {}
         for query_info_dict in batch:
-            id_to_query[query_info_dict[QUERY_ID_COL_NAME]] = query_info_dict[QUERY_COL_NAME]
+            id_to_query[query_info_dict.query_id] = query_info_dict.query
         return id_to_query
     
-    def _query_info_to_answers(self, batch: list[dict]) -> dict[str, str]:
+    def _query_info_to_answers(self, batch: list[QueryForTasksDataModel]) -> dict[str, str]:
         id_to_answer = {}
         for query_info_dict in batch:
-            id_to_answer[query_info_dict[QUERY_ID_COL_NAME]] = query_info_dict[ANSWER_COL_NAME]
+            id_to_answer[query_info_dict.query_id] = query_info_dict.answer
         return id_to_answer
 
     def _get_retrieval_results(

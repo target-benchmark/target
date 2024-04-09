@@ -4,6 +4,7 @@ from enum import Enum
 from pathlib import Path
 import csv
 from dataset_loaders.utils import array_of_arrays_to_df, str_representation_to_array, str_representation_to_pandas_df
+from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from typing import Iterable, Iterator
 from dictionary_keys import *
 class AbsTargetDatasetLoader(ABC):
@@ -19,7 +20,7 @@ class AbsTargetDatasetLoader(ABC):
                  database_id_col_name: str = DATABASE_ID_COL_NAME,
                  query_col_name: str = QUERY_COL_NAME,
                  query_id_col_name: str = QUERY_ID_COL_NAME,
-                 answer_col_name: str = ANSWER_COL_ID_NAME,
+                 answer_col_name: str = ANSWER_COL_NAME,
                  splits: str | list[str] = "test",
                  data_directory: str = None,
                  query_type: str = None,
@@ -195,7 +196,7 @@ class AbsTargetDatasetLoader(ABC):
                 yield res_dict
 
 
-    def get_queries_for_task(self, splits: str | list[str] = None, batch_size: int =64) -> Iterable[list[dict[str, str]]]:
+    def get_queries_for_task(self, splits: str | list[str] = None, batch_size: int =64) -> Iterable[list[QueryForTasksDataModel]]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
         
@@ -215,13 +216,15 @@ class AbsTargetDatasetLoader(ABC):
                 table_ids = batch[self.table_id_col_name]
                 answers = batch[self.answer_col_name]
                 for query_id, query, database_id, table_id, answer in zip(query_ids, queries, database_ids, table_ids, answers):
-                    res_list.append({
-                        QUERY_ID_COL_NAME: query_id,
-                        QUERY_COL_NAME: query,
-                        DATABASE_ID_COL_NAME: database_id,
-                        TABLE_ID_COL_NAME: table_id,
-                        ANSWER_COL_ID_NAME: answer
-                    })
+                    res_list.append(
+                        QueryForTasksDataModel(
+                            table_id=table_id,
+                            database_id=database_id,
+                            query_id=query_id,
+                            query=query,
+                            answer=answer
+                        )
+                    )
                 yield res_list
 
     def get_dataset_name(self) -> str:

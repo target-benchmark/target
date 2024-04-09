@@ -13,7 +13,7 @@ class HFDatasetLoader(AbsTargetDatasetLoader):
             database_id_col_name: str = DATABASE_ID_COL_NAME,
             query_col_name: str = QUERY_COL_NAME,
             query_id_col_name: str = QUERY_ID_COL_NAME,
-            answer_col_name: str = ANSWER_COL_ID_NAME,            
+            answer_col_name: str = ANSWER_COL_NAME,            
             splits: str | list[str] = "test",
             data_directory: str = None,
             query_type: str = "",
