@@ -1,18 +1,19 @@
 from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from pathlib import Path
 from datasets import load_dataset, DatasetDict
+from dictionary_keys import *
 class HFDatasetLoader(AbsTargetDatasetLoader):
     def __init__(
             self,
             dataset_name: str,
             hf_corpus_dataset_path: str,
             hf_queries_dataset_path: str,
-            table_col_name: str = "table",
-            table_id_col_name: str = "table_id",
-            database_id_col_name: str = "database_id",
-            query_col_name: str = "query",
-            query_id_col_name: str = "query_id",
-            answer_col_name: str = "answer",                 
+            table_col_name: str = TABLE_COL_NAME,
+            table_id_col_name: str = TABLE_ID_COL_NAME,
+            database_id_col_name: str = DATABASE_ID_COL_NAME,
+            query_col_name: str = QUERY_COL_NAME,
+            query_id_col_name: str = QUERY_ID_COL_NAME,
+            answer_col_name: str = ANSWER_COL_ID_NAME,            
             splits: str | list[str] = "test",
             data_directory: str = None,
             query_type: str = "",

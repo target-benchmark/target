@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
+
 from generators.AbsTargetGenerator import AbsTargetGenerator
 from generators.DefaultTargetGenerator import DefaultTargetGenerator
+
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
 from retrievers.AbsTargetCustomEmbeddingRetriver import AbsTargetCustomEmbeddingRetriver as CustomEmbRetr
 from retrievers.AbsTargetStandardizedEmbeddingRetriever import AbsTargetStandardizedEmbeddingRetriever as StandardizedEmbRetr
+
 from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from logging import Logger
+from dictionary_keys import *
 
-HF_DATASET_CONFIG_CORPUS_FIELD: str = 'hf_corpus_path'
-HF_DATASET_CONFIG_QUERIES_FIELD: str = 'hf_queries_path'
-GENERIC_DATASET_CONFIG_FIELD: str = 'dataset_path'
 class AbsTargetTask(ABC):
 
     def __init__(
@@ -117,13 +118,13 @@ class AbsTargetTask(ABC):
     def _query_info_to_id_queries(self, batch: list[dict]) -> dict[str, str]:
         id_to_query = {}
         for query_info_dict in batch:
-            id_to_query[query_info_dict['query_id']] = query_info_dict['query']
+            id_to_query[query_info_dict[QUERY_ID_COL_NAME]] = query_info_dict[QUERY_COL_NAME]
         return id_to_query
     
     def _query_info_to_answers(self, batch: list[dict]) -> dict[str, str]:
         id_to_answer = {}
         for query_info_dict in batch:
-            id_to_answer[query_info_dict['query_id']] = query_info_dict['answer']
+            id_to_answer[query_info_dict[QUERY_ID_COL_NAME]] = query_info_dict[ANSWER_COL_NAME]
         return id_to_answer
 
     def _get_retrieval_results(

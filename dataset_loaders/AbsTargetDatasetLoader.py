@@ -5,7 +5,7 @@ from pathlib import Path
 import csv
 from dataset_loaders.utils import array_of_arrays_to_df, str_representation_to_array, str_representation_to_pandas_df
 from typing import Iterable, Iterator
-
+from dictionary_keys import *
 class AbsTargetDatasetLoader(ABC):
     '''
     The abstrack super class of target dataset loaders.
@@ -14,12 +14,12 @@ class AbsTargetDatasetLoader(ABC):
     '''
     def __init__(self,
                  dataset_name: str,
-                 table_col_name: str = "table",
-                 table_id_col_name: str = "table_id",
-                 database_id_col_name: str = "database_id",
-                 query_col_name: str = "query",
-                 query_id_col_name: str = "query_id",
-                 answer_col_name: str = "answer",
+                 table_col_name: str = TABLE_COL_NAME,
+                 table_id_col_name: str = TABLE_ID_COL_NAME,
+                 database_id_col_name: str = DATABASE_ID_COL_NAME,
+                 query_col_name: str = QUERY_COL_NAME,
+                 query_id_col_name: str = QUERY_ID_COL_NAME,
+                 answer_col_name: str = ANSWER_COL_ID_NAME,
                  splits: str | list[str] = "test",
                  data_directory: str = None,
                  query_type: str = None,
@@ -156,18 +156,18 @@ class AbsTargetDatasetLoader(ABC):
                 
 
     
-    def convert_corpus_table_to(self, output_class: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterable[dict]:
+    def convert_corpus_table_to(self, output_format: str = "nested array", splits: str | list[str] = None, batch_size: int = 64) -> Iterable[dict]:
         '''
         convert the corpus table to a specific format in memory. 
         
         Parameters:
         
-            output_class (str): the output class name, can be nest_array, pandas, etc.
+            output_format (str): the output class name, can be nest_array, pandas, etc.
             splits (str | list[str]): split names to convert. if non is provided, all splits will be converted.
             batch_size (int): number of tables to be outputted at once
 
         Returns:
-            a generator that contains a dictionary with the keys being the table_ids and the values being the corresponding table as an output_class object
+            a generator that contains a dictionary with the keys being the table_ids and the values being the corresponding table as an output_format object
         '''
 
         if not self.corpus:
@@ -185,9 +185,9 @@ class AbsTargetDatasetLoader(ABC):
             for batch in cur_split_dataset.iter(batch_size):
                 table_ids = batch[self.table_id_col_name]
                 tables = [] 
-                if "array" in output_class.lower():
+                if "array" in output_format.lower():
                     tables = batch[self.table_col_name]
-                elif "dataframe" in output_class.lower():
+                elif "dataframe" in output_format.lower():
                     tables = map(array_of_arrays_to_df, batch[self.table_col_name])
                 res_dict = {}
                 for key, value in zip(table_ids, tables):
@@ -216,11 +216,11 @@ class AbsTargetDatasetLoader(ABC):
                 answers = batch[self.answer_col_name]
                 for query_id, query, database_id, table_id, answer in zip(query_ids, queries, database_ids, table_ids, answers):
                     res_list.append({
-                        'query_id': query_id,
-                        'query': query,
-                        'database_id': database_id,
-                        'table_id': table_id,
-                        'answer': answer
+                        QUERY_ID_COL_NAME: query_id,
+                        QUERY_COL_NAME: query,
+                        DATABASE_ID_COL_NAME: database_id,
+                        TABLE_ID_COL_NAME: table_id,
+                        ANSWER_COL_ID_NAME: answer
                     })
                 yield res_list
 
