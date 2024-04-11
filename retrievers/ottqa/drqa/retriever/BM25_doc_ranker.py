@@ -38,14 +38,14 @@ class BM25DocRanker(object):
         """
         # Load from disk
         tfidf_path = tfidf_path
-        logger.info('Loading %s' % tfidf_path)
+        logger.info("Loading %s" % tfidf_path)
         matrix, metadata = utils.load_sparse_csr(tfidf_path)
         self.doc_mat = matrix
-        self.ngrams = metadata['ngram']
-        self.hash_size = metadata['hash_size']
-        self.tokenizer = drqa_tokenizers.get_class(metadata['tokenizer'])()
-        self.doc_freqs = metadata['doc_freqs'].squeeze()
-        self.doc_dict = metadata['doc_dict']
+        self.ngrams = metadata["ngram"]
+        self.hash_size = metadata["hash_size"]
+        self.tokenizer = drqa_tokenizers.get_class(metadata["tokenizer"])()
+        self.doc_freqs = metadata["doc_freqs"].squeeze()
+        self.doc_dict = metadata["doc_dict"]
         self.num_docs = len(self.doc_dict[0])
         self.strict = strict
 
@@ -86,8 +86,7 @@ class BM25DocRanker(object):
     def parse(self, query):
         """Parse the query into tokens (either ngrams or tokens)."""
         tokens = self.tokenizer.tokenize(query)
-        return tokens.ngrams(n=self.ngrams, uncased=True,
-                             filter_fn=utils.filter_ngram)
+        return tokens.ngrams(n=self.ngrams, uncased=True, filter_fn=utils.filter_ngram)
 
     def text2spvec(self, query):
         """Create a sparse tfidf-weighted word vector from query.
@@ -100,9 +99,9 @@ class BM25DocRanker(object):
 
         if len(wids) == 0:
             if self.strict:
-                raise RuntimeError('No valid word in: %s' % query)
+                raise RuntimeError("No valid word in: %s" % query)
             else:
-                logger.warning('No valid word in: %s' % query)
+                logger.warning("No valid word in: %s" % query)
                 return sp.csr_matrix((1, self.hash_size))
 
         # Count TF
@@ -119,8 +118,6 @@ class BM25DocRanker(object):
 
         # One row, sparse csr matrix
         indptr = np.array([0, len(wids_unique)])
-        spvec = sp.csr_matrix(
-            (data, wids_unique, indptr), shape=(1, self.hash_size)
-        )
+        spvec = sp.csr_matrix((data, wids_unique, indptr), shape=(1, self.hash_size))
 
         return spvec

@@ -13,15 +13,16 @@ from ..AbsTargetCustomEmbeddingRetriver import AbsTargetCustomEmbeddingRetriver
 import json
 import os
 
+
 class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
     def __init__(
-            self,
-            script_dir: str,
-            expected_corpus_format: str = 'nested array',
-        ):
+        self,
+        script_dir: str,
+        expected_corpus_format: str = "nested array",
+    ):
         super().__init__(expected_corpus_format)
         self.rankers: dict[str, retriever.TfidfDocRanker] = {}
-        self.out_dir = os.path.join(script_dir, 'title_sectitle_schema/')
+        self.out_dir = os.path.join(script_dir, "title_sectitle_schema/")
 
     def retrieve(
         self,
@@ -33,23 +34,19 @@ class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
         ranker = self.rankers[dataset_name]
         doc_names, doc_scores = ranker.closest_docs(query, top_k)
         return doc_names
-    
-    def embed_corpus(
-        self,
-        dataset_name: str,
-        corpus: Iterable[dict]
-    ):
+
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[dict]):
         if not os.path.exists(self.out_dir):
             os.mkdir(self.out_dir)
         converted_corpus = {}
         for corpus_dict in corpus:
             for key, value in corpus_dict.items():
                 converted_corpus[key] = convert_table_representation(key, value)
-        file_name = 'fetaqa_data.json'
+        file_name = "fetaqa_data.json"
 
         # Write the dictionary to a file in JSON format
-        with open(os.path.join(self.out_dir, file_name), 'w') as f:
-            json.dump(converted_corpus, f)                
+        with open(os.path.join(self.out_dir, file_name), "w") as f:
+            json.dump(converted_corpus, f)
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
-        self.rankers[dataset_name] = retriever.get_class('tfidf')(tfidf_path=out_path)
+        self.rankers[dataset_name] = retriever.get_class("tfidf")(tfidf_path=out_path)
