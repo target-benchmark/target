@@ -29,17 +29,17 @@ class TableRetrievalTask(AbsTargetTask):
         """
         # TODO: add more things here. this is for testing. carl note 4/10
         return {
-            # DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
-            "test_dataset": DEFAULT_FETAQA_DATASET_CONFIG  # this is for testing!!
+            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+            # "test_dataset": DEFAULT_FETAQA_DATASET_CONFIG  # this is for testing!!
         }
 
     def _get_downstream_task_results(
         self,
-        id_to_query: dict[str, str],
-        id_to_table_id: dict[str, str],
-        retrieval_results: dict[str, list[str]],
+        id_to_query: dict[int, str],
+        id_to_table_id: dict[int, str],
+        retrieval_results: dict[int, list[str]],
         dataset_name: str,
-    ) -> dict[str, str]:
+    ) -> dict[int, str]:
         """
         no downstream task results to obtain here, return empty dictionary
         """
@@ -47,8 +47,8 @@ class TableRetrievalTask(AbsTargetTask):
 
     def _update_downstream_task_results(
         self,
-        id_to_answer: dict[str, str],
-        downstream_answers: dict[str, str],
+        id_to_answer: dict[int, str],
+        downstream_answers: dict[int, str],
     ) -> None:
         """
         No downstream tasks values to update for basic table retrieval task.

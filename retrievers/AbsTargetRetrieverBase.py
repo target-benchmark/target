@@ -7,7 +7,7 @@ class AbsTargetRetrieverBase(ABC):
     """
 
     @abstractmethod
-    def retrieve(self, *args, **kwargs) -> dict[str, list[str]]:
+    def retrieve(self, *args, **kwargs) -> list[str]:
         """
         The essential function for any Target Retriever. User have to implement this for the retriever class to work with evaluation pipeline.
         Returns:
@@ -16,5 +16,5 @@ class AbsTargetRetrieverBase(ABC):
         pass
 
     @abstractmethod
-    def retrieve_batch(self, *args, **kwargs) -> dict[str, list[str]]:
+    def retrieve_batch(self, *args, **kwargs) -> dict[int, list[str]]:
         pass

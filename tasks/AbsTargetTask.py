@@ -15,6 +15,8 @@ from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     QueryForTasksDataModel,
     DatasetConfigDataModel,
+    HFDatasetConfigDataModel,
+    GenericDatasetConfigDataModel,
 )
 
 from tasks.TasksDataModels import (
@@ -87,7 +89,12 @@ class AbsTargetTask(ABC):
                     and HF_DATASET_CONFIG_QUERIES_FIELD in value
                 ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value})"
                 if key not in constructed_config or overwrite_default_datasets:
-                    constructed_config[key] = value
+                    if key not in value:
+                        value[DATASET_NAME] = key
+                    if HF_DATASET_CONFIG_CORPUS_FIELD in value:
+                        constructed_config[key] = HFDatasetConfigDataModel(**value)
+                    else:
+                        constructed_config[key] = GenericDatasetConfigDataModel(**value)
 
         return constructed_config
 
@@ -165,16 +172,15 @@ class AbsTargetTask(ABC):
 
     def _query_info_to_queries(
         self, batch: list[QueryForTasksDataModel]
-    ) -> dict[str, str]:
+    ) -> dict[int, str]:
         id_to_query = {}
         for query_info in batch:
-            print(f"the query info object: {query_info}")
             id_to_query[query_info.query_id] = query_info.query
         return id_to_query
 
     def _query_info_to_answers(
         self, batch: list[QueryForTasksDataModel]
-    ) -> dict[str, str]:
+    ) -> dict[int, str]:
         id_to_answer = {}
         for query_info_dict in batch:
             id_to_answer[query_info_dict.query_id] = query_info_dict.answer
@@ -182,7 +188,7 @@ class AbsTargetTask(ABC):
 
     def _query_info_to_table_ids(
         self, batch: list[QueryForTasksDataModel]
-    ) -> dict[str, str]:
+    ) -> dict[int, str]:
         id_to_table_id = {}
         for query_info_dict in batch:
             id_to_table_id[query_info_dict.query_id] = query_info_dict.table_id
@@ -191,10 +197,10 @@ class AbsTargetTask(ABC):
     def _get_retrieval_results(
         self,
         retriever: AbsTargetRetrieverBase,
-        id_to_query: dict[str, str],
+        id_to_query: dict[int, str],
         dataset_name: str,
         top_k: int,
-    ) -> dict[str, list[str]]:
+    ) -> dict[int, list[str]]:
         is_standard = True
         if isinstance(retriever, CustomEmbRetr):
             is_standard = False
@@ -211,8 +217,8 @@ class AbsTargetTask(ABC):
 
     def _update_retrieval_results(
         self,
-        id_to_table_id: dict[str, str],
-        new_retrieved_tables: dict[str, list[str]],
+        id_to_table_id: dict[int, str],
+        new_retrieved_tables: dict[int, list[str]],
     ) -> None:
         for query_id, retrieved_tables in new_retrieved_tables.items():
             if id_to_table_id[query_id] in retrieved_tables:
@@ -236,11 +242,11 @@ class AbsTargetTask(ABC):
     @abstractmethod
     def _get_downstream_task_results(
         self,
-        id_to_query: dict[str, str],
-        id_to_table_id: dict[str, str],
-        retrieval_results: dict[str, list[str]],
+        id_to_query: dict[int, str],
+        id_to_table_id: dict[int, str],
+        retrieval_results: dict[int, list[str]],
         dataset_name: str,
-    ) -> dict[str, str]:
+    ) -> dict[int, str]:
         """
         TODO: how to pass through the tables? nested arrays, etc
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
@@ -250,8 +256,8 @@ class AbsTargetTask(ABC):
     @abstractmethod
     def _update_downstream_task_results(
         self,
-        id_to_answer: dict[str, str],
-        downstream_answers: dict[str, str],
+        id_to_answer: dict[int, str],
+        downstream_answers: dict[int, str],
     ) -> None:
         """
         Update any values you keep track of for the downstream tasks.

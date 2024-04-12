@@ -24,11 +24,11 @@ class AbsTargetCustomEmbeddingRetriver(AbsTargetRetrieverBase):
 
     def retrieve_batch(
         self,
-        queries: dict[str, str],
+        queries: dict[int, str],
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> dict[str, list[str]]:
+    ) -> dict[int, list[str]]:
         retrieval_results = {}
         for query_id, query_str in queries.items():
             retrieval_results[query_id] = self.retrieve(
