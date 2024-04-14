@@ -33,7 +33,7 @@ class AbsTargetTask(ABC):
 
     def __init__(
         self,
-        task_name: str,
+        task_name: str = None,
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsTargetGenerator = DefaultTargetGenerator,
@@ -59,13 +59,30 @@ class AbsTargetTask(ABC):
 
             task_generator (AbsTargetGenerator, optional): each task as one corresponding generator for the downstream task. defaults to a default generator, just sends some openai api requests.
         """
-        self.task_name: str = task_name
+        if task_name is None:
+            self.task_name = self.get_default_task_name()
+        else:
+            self.task_name: str = task_name
         self.dataset_config: dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
         self.task_generator: AbsTargetGenerator = task_generator
         self.tp = 0
         self.total_queries_processed = 0
+
+    @classmethod
+    @abstractmethod
+    def get_default_task_name(cls):
+        '''
+        Returns the default name of the task.
+        '''
+        pass
+
+    def get_task_name(self):
+        '''
+        Returns the name of the task. NOTE: not the same as `get_default_task_name`. this name can be customized upon creation of the task.
+        '''
+        return self.task_name
 
     def _construct_dataset_config(
         self,
