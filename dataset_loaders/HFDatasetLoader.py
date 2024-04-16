@@ -44,12 +44,12 @@ class HFDatasetLoader(AbsTargetDatasetLoader):
         self.hf_corpus_dataset_path = hf_corpus_dataset_path
         self.hf_queries_dataset_path = hf_queries_dataset_path
 
-    def load(self, splits: str | list[str] = None) -> None:
+    def _load(self, splits: str | list[str] = None) -> None:
         """
         Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            split (str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
+            splits (str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
         """
         if splits:
             if isinstance(splits, str):

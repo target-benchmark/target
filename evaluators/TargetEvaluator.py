@@ -9,9 +9,11 @@ from dataset_loaders.LoadersDataModels import (
 from retrievers import (
     AbsTargetCustomEmbeddingRetriver,
     AbsTargetStandardizedEmbeddingRetriever,
+    AbsTargetRetrieverBase,
 )
 from tasks.AbsTargetTask import AbsTargetTask
 from tasks.TableRetrievalTask import TableRetrievalTask
+from tasks.TasksDataModels import TaskResultsDataModel
 
 from evaluators.utils import find_tasks
 from datetime import datetime
@@ -44,7 +46,9 @@ class TargetEvaluator:
         self.logger.info("Logger for TARGET is set up!")
 
         self.logger.info("Starting to load the specified tasks...")
-        self.tasks: dict[str, AbsTargetTask] = self.load_tasks()
+        self.tasks: dict[str, AbsTargetTask] = self.load_tasks(
+            downstream_task_names, downstream_task_objects
+        )
         self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
 
         self.logger.info("Started creating dataset information...")
@@ -149,6 +153,33 @@ class TargetEvaluator:
                     f"The dataset config passed in for {dataset_name} is not a valid dataset config data model. Skipping..."
                 )
 
+    def load_datasets_for_task(
+        self,
+        dataset_names: list[str],
+        splits: str | list[str] = "test",
+    ) -> dict[str, AbsTargetDatasetLoader]:
+        """
+        Load the datasets through the dataloaders for a task.
+
+        Parameters:
+            dataset_names (list[str]): a list of names for the datasets to load.
+            splits (str | list[str], optional): a single split or a list of splits.
+
+        Return:
+            a dictionary mapping dataset name to the corresponding dataloader object.
+        """
+        dataloaders_for_task = {}
+        for dataset_name in dataset_names:
+            if dataset_name not in self.dataloaders:
+                self.logger.warning(
+                    f"Dataset {dataset_name} was not included at task creation. Please double check if you've inputted the dataset config correctly!"
+                )
+            else:
+                dataloader = self.dataloaders[dataset_name]
+                dataloader.load(splits=splits)
+                dataloaders_for_task[dataset_name] = dataloader
+        return dataloaders_for_task
+
     def setup_logger(
         self, persist_log: bool = True, log_file_path: str = None
     ) -> logging.Logger:
@@ -180,3 +211,70 @@ class TargetEvaluator:
             # Add the handler to the logger
             logger.addHandler(fh)
         return logger
+
+    def run(
+        self,
+        retriever: AbsTargetRetrieverBase,
+        splits: str | list[str] = "test",
+        batch_size: int = 64,
+        top_k: int = 5,
+        **kwargs,
+    ) -> dict[str, TaskResultsDataModel]:
+        """
+        Call this function to run the tasks! Woohoo!!!
+
+        Parameters:
+            retriever (AbsTargetRetrieverBase): a retriever that either inherits from AbsTargetStandardizedEmbeddingRetriever or AbsTargetCustomEmbeddingRetriver.
+            splits (str | list[str], optional): splits of data to run the tasks on.
+            batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
+            top_k (int, optional): top k tables to retrieve.
+        """
+        all_results = {}
+        loaded_datasets = set()
+        for task_name, task in self.tasks.items():
+            self.logger.info(f"Start running {task_name}...")
+            self.logger.info("Start checking for new corpus to embed...")
+            # load the datasets needed
+            dataset_names = task.get_dataset_config().keys()
+            dataloaders_for_task = self.load_datasets_for_task(
+                dataset_names=dataset_names, splits=splits
+            )
+
+            # call embed corpus on the retriever to embed/preprocess the tables
+            for dataset_name in dataset_names:
+                if dataset_name not in loaded_datasets:
+                    if isinstance(retriever, AbsTargetStandardizedEmbeddingRetriever):
+                        embeddings = retriever.embed_corpus(
+                            dataset_name,
+                            self.dataloaders[dataset_name].convert_corpus_table_to(
+                                retriever.get_expected_corpus_format()
+                            ),
+                        )
+                        # TODO: figure out what to do with the embedding
+                    elif isinstance(retriever, AbsTargetCustomEmbeddingRetriver):
+                        retriever.embed_corpus(
+                            dataset_name,
+                            self.dataloaders[dataset_name].convert_corpus_table_to(
+                                retriever.get_expected_corpus_format()
+                            ),
+                        )
+                    else:
+                        self.logger.warning(
+                            "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
+                        )
+
+            self.logger("Finished embedding all new corpus!")
+
+            # run the task!
+            task_result = task.task_run(
+                retriever=retriever,
+                dataset_loaders=dataloaders_for_task,
+                logger=self.logger,
+                batch_size=batch_size,
+                splits=splits,
+                top_k=top_k,
+                **kwargs,
+            )
+            all_results[task_name] = task_result
+        self.logger.info("Finished running all tasks!")
+        return all_results

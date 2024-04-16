@@ -18,7 +18,7 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
         Parameters:
             expected_corpus_format (str, optional): a string indicating what corpus format (ie nested array, dictionary, pandas df, etc.) the `embed_corpus` function expects from its input.
         """
-        self.expected_corpus_format = expected_corpus_format
+        super().__init__(expected_corpus_format=expected_corpus_format)
 
     def retrieve_batch(
         self,

@@ -73,15 +73,15 @@ class AbsTargetTask(ABC):
     @classmethod
     @abstractmethod
     def get_default_task_name(cls):
-        '''
+        """
         Returns the default name of the task.
-        '''
+        """
         pass
 
     def get_task_name(self):
-        '''
+        """
         Returns the name of the task. NOTE: not the same as `get_default_task_name`. this name can be customized upon creation of the task.
-        '''
+        """
         return self.task_name
 
     def _construct_dataset_config(
