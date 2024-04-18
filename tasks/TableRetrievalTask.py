@@ -1,23 +1,23 @@
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from tasks.AbsTargetTask import AbsTargetTask
+from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     QueryForTasksDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-from generators.AbsTargetGenerator import AbsTargetGenerator
-from generators.DefaultTargetGenerator import DefaultTargetGenerator
+from generators.AbsGenerator import AbsGenerator
+from generators.DefaultGenerator import DefaultGenerator
 
 
-class TableRetrievalTask(AbsTargetTask):
+class TableRetrievalTask(AbsTask):
     def __init__(
         self,
         task_name: str = "Table Retrieval Task",
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsTargetGenerator = DefaultTargetGenerator,
+        task_generator: AbsGenerator = DefaultGenerator,
         **kwargs,
     ):
         super().__init__(

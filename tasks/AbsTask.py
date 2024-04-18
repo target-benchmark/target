@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
 
-from generators.AbsTargetGenerator import AbsTargetGenerator
-from generators.DefaultTargetGenerator import DefaultTargetGenerator
+from generators.AbsGenerator import AbsGenerator
+from generators.DefaultGenerator import DefaultGenerator
 
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
-from retrievers.AbsTargetCustomEmbeddingRetriever import (
-    AbsTargetCustomEmbeddingRetriever as CustomEmbRetr,
+from retrievers.AbsRetrieverBase import AbsRetrieverBase
+from retrievers.AbsCustomEmbeddingRetriever import (
+    AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from retrievers.AbsTargetStandardizedEmbeddingRetriever import (
-    AbsTargetStandardizedEmbeddingRetriever as StandardizedEmbRetr,
+from retrievers.AbsStandardizedEmbeddingRetriever import (
+    AbsStandardizedEmbeddingRetriever as StandardizedEmbRetr,
 )
 
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     QueryForTasksDataModel,
     DatasetConfigDataModel,
@@ -31,14 +31,14 @@ from logging import Logger
 from dictionary_keys import *
 
 
-class AbsTargetTask(ABC):
+class AbsTask(ABC):
 
     def __init__(
         self,
         task_name: str,
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsTargetGenerator = DefaultTargetGenerator,
+        task_generator: AbsGenerator = DefaultGenerator,
         **kwargs,
     ):
         """
@@ -59,13 +59,13 @@ class AbsTargetTask(ABC):
 
             overwrite_default_datasets (bool, optional): each task have a set of default datasets that will be tested on. if the user chooses to input some dataset config that has a dataset under the same name as one of the default sets, this boolean dictates whether to overwrite the default datasets or not. defaults to False, as no overwrites.
 
-            task_generator (AbsTargetGenerator, optional): each task as one corresponding generator for the downstream task. defaults to a default generator, just sends some openai api requests.
+            task_generator (AbsGenerator, optional): each task as one corresponding generator for the downstream task. defaults to a default generator, just sends some openai api requests.
         """
         self.task_name: str = task_name
         self.dataset_config: dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
-        self.task_generator: AbsTargetGenerator = task_generator
+        self.task_generator: AbsGenerator = task_generator
         self.true_positive = 0
         self.total_queries_processed = 0
 
@@ -118,8 +118,8 @@ class AbsTargetTask(ABC):
 
     def task_run(
         self,
-        retriever: AbsTargetRetrieverBase,
-        dataset_loaders: dict[str, AbsTargetDatasetLoader],
+        retriever: AbsRetrieverBase,
+        dataset_loaders: dict[str, AbsDatasetLoader],
         logger: Logger,
         batch_size: int = 64,
         splits: str | list[str] = "test",
@@ -172,7 +172,7 @@ class AbsTargetTask(ABC):
 
     def _get_retrieval_results(
         self,
-        retriever: AbsTargetRetrieverBase,
+        retriever: AbsRetrieverBase,
         query_batch: list[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,

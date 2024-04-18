@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 
-class AbsTargetRetrieverBase(ABC):
+class AbsRetrieverBase(ABC):
     """
     A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsTargetRetrieverFree` and `AbsTargetRetrieverCon
     """

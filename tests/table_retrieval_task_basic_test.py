@@ -10,8 +10,8 @@ from dataset_loaders.TargetDatasetConfig import (
     DEFAULT_WIKITQ_DATASET_CONFIG,
     DEFAULT_FETAQA_DATASET_CONFIG,
 )
-from retrievers.AbsTargetCustomEmbeddingRetriever import (
-    AbsTargetCustomEmbeddingRetriever as CustomEmbRetr,
+from retrievers.AbsCustomEmbeddingRetriever import (
+    AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 

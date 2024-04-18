@@ -1,9 +1,9 @@
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from dataset_loaders.GenericDatasetLoader import GenericDatasetLoader
 from retrievers import (
-    AbsTargetCustomEmbeddingRetriever,
-    AbsTargetStandardizedEmbeddingRetriever,
+    AbsCustomEmbeddingRetriever,
+    AbsStandardizedEmbeddingRetriever,
 )
 
 
@@ -20,7 +20,7 @@ class TargetEvaluator:
             downstream_task_names = [downstream_task_names]
         self.downstream_task_names: list[str] = downstream_task_names
         self.datasets_info: list[dict[str, object]] = {}
-        self.dataloaders: dict[str, AbsTargetDatasetLoader] = {}
+        self.dataloaders: dict[str, AbsDatasetLoader] = {}
         self.load_tasks()
         self.create_dataloaders()
 

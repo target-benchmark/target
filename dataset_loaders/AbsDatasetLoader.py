@@ -13,7 +13,7 @@ from typing import Iterable, Iterator
 from dictionary_keys import *
 
 
-class AbsTargetDatasetLoader(ABC):
+class AbsDatasetLoader(ABC):
     """
     The abstrack super class of target dataset loaders.
     This class contains implementations of utility functions shared by subclasses,

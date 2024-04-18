@@ -1,10 +1,10 @@
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from pathlib import Path
 from datasets import load_dataset, DatasetDict
 from dictionary_keys import *
 
 
-class HFDatasetLoader(AbsTargetDatasetLoader):
+class HFDatasetLoader(AbsDatasetLoader):
     def __init__(
         self,
         dataset_name: str,

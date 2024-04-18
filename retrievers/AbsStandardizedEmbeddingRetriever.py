@@ -1,12 +1,12 @@
 from typing import Iterable
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
-from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
+from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
 
 
-class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
+class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
     """
     This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
 

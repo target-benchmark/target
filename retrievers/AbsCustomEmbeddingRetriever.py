@@ -1,17 +1,17 @@
 from typing import Iterable, Iterator
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
-from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
+from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from abc import abstractmethod
 
 
-class AbsTargetCustomEmbeddingRetriever(AbsTargetRetrieverBase):
+class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
     """
     This interface includes the retrieve method and an encode method that doesn't expect a return value. If your retrieval tool already has table embedding/encoding persistence built in, this is the preferred class to inherit from for your custom retriever, as you can just ignore the encode method. At retrieval time, it is assumed that the **table embeddings are no longer needed to be provided** for the retrieval to work.
     Reasons for providing this encoding method is:
     - it's not expected of the users to deal with setting up `TargetDatasetloaders` directly, since at the time of instantiation it may be unclear which datasets needs to be preprocessed. We'd like to delegate this responsibilty to the `TargetEvaluator` class during the eval process.
-    - remain symmetric to the `AbsTargetStandardizedEmbeddingRetriever`
+    - remain symmetric to the `AbsStandardizedEmbeddingRetriever`
     Some possible reasons to inherit from this class and not `AbsTargetRetrieverWithEncoding`:
     - you have a custom format of embedding for the tables (ie directory structure, file formats, etc).
     - your tool already deals with the persistence of the embedding, in which case the embedding method can just pass & do nothing.
