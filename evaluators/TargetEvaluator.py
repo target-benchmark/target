@@ -2,7 +2,7 @@ from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from dataset_loaders.GenericDatasetLoader import GenericDatasetLoader
 from retrievers import (
-    AbsTargetCustomEmbeddingRetriver,
+    AbsTargetCustomEmbeddingRetriever,
     AbsTargetStandardizedEmbeddingRetriever,
 )
 

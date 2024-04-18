@@ -12,7 +12,8 @@ class QueryForTasksDataModel(BaseModel):
 
 class DatasetConfigDataModel(BaseModel):
     """
-    A base data model for dataset configs. DO NOT USE DIRECTLY. use
+    A base data model for dataset configs. DO NOT USE DIRECTLY. use `GenericDatasetConfigDataModel` or `HFDatasetConfigDataModel`.
+    Target's dataset configs are written in `TargetDatasetConfig.py`.
     """
 
     dataset_name: str = Field(

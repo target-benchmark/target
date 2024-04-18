@@ -3,9 +3,10 @@ from abc import ABC, abstractmethod
 from generators.AbsTargetGenerator import AbsTargetGenerator
 from generators.DefaultTargetGenerator import DefaultTargetGenerator
 
+from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
-from retrievers.AbsTargetCustomEmbeddingRetriver import (
-    AbsTargetCustomEmbeddingRetriver as CustomEmbRetr,
+from retrievers.AbsTargetCustomEmbeddingRetriever import (
+    AbsTargetCustomEmbeddingRetriever as CustomEmbRetr,
 )
 from retrievers.AbsTargetStandardizedEmbeddingRetriever import (
     AbsTargetStandardizedEmbeddingRetriever as StandardizedEmbRetr,
@@ -19,6 +20,7 @@ from dataset_loaders.LoadersDataModels import (
     GenericDatasetConfigDataModel,
 )
 
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
@@ -64,7 +66,7 @@ class AbsTargetTask(ABC):
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
         self.task_generator: AbsTargetGenerator = task_generator
-        self.tp = 0
+        self.true_positive = 0
         self.total_queries_processed = 0
 
     def _construct_dataset_config(
@@ -140,19 +142,17 @@ class AbsTargetTask(ABC):
             logger.info(f"running task on dataset {dataset_name}")
 
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
-                id_to_query = self._query_info_to_queries(query_batch)
-                id_to_answer = self._query_info_to_answers(query_batch)
-                id_to_table_id = self._query_info_to_table_ids(query_batch)
+
                 retrieved_tables = self._get_retrieval_results(
-                    retriever, id_to_query, dataset_name, top_k
+                    retriever, query_batch, dataset_name, top_k
                 )
-                self._update_retrieval_results(id_to_table_id, retrieved_tables)
+                self._update_retrieval_results(query_batch, retrieved_tables)
 
                 downstream_task_results = self._get_downstream_task_results(
-                    id_to_query, id_to_table_id, retrieved_tables, dataset_name
+                    query_batch, retrieved_tables, dataset_name
                 )
                 self._update_downstream_task_results(
-                    id_to_answer, downstream_task_results
+                    query_batch, downstream_task_results
                 )
 
                 logger.info(
@@ -170,37 +170,14 @@ class AbsTargetTask(ABC):
             logger.info(f"finished running task {self.task_name}")
         return task_results
 
-    def _query_info_to_queries(
-        self, batch: list[QueryForTasksDataModel]
-    ) -> dict[int, str]:
-        id_to_query = {}
-        for query_info in batch:
-            id_to_query[query_info.query_id] = query_info.query
-        return id_to_query
-
-    def _query_info_to_answers(
-        self, batch: list[QueryForTasksDataModel]
-    ) -> dict[int, str]:
-        id_to_answer = {}
-        for query_info_dict in batch:
-            id_to_answer[query_info_dict.query_id] = query_info_dict.answer
-        return id_to_answer
-
-    def _query_info_to_table_ids(
-        self, batch: list[QueryForTasksDataModel]
-    ) -> dict[int, str]:
-        id_to_table_id = {}
-        for query_info_dict in batch:
-            id_to_table_id[query_info_dict.query_id] = query_info_dict.table_id
-        return id_to_table_id
 
     def _get_retrieval_results(
         self,
         retriever: AbsTargetRetrieverBase,
-        id_to_query: dict[int, str],
+        query_batch: list[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
-    ) -> dict[int, list[str]]:
+    ) -> list[RetrievalResultDataModel]:
         is_standard = True
         if isinstance(retriever, CustomEmbRetr):
             is_standard = False
@@ -210,19 +187,19 @@ class AbsTargetTask(ABC):
             retrieval_results = {}
         else:
             retrieval_results = retriever.retrieve_batch(
-                queries=id_to_query, dataset_name=dataset_name, top_k=top_k
+                queries=query_batch, dataset_name=dataset_name, top_k=top_k
             )
 
         return retrieval_results
 
     def _update_retrieval_results(
         self,
-        id_to_table_id: dict[int, str],
-        new_retrieved_tables: dict[int, list[str]],
+        query_batch: list[QueryForTasksDataModel],
+        new_retrieved_tables: list[RetrievalResultDataModel],
     ) -> None:
-        for query_id, retrieved_tables in new_retrieved_tables.items():
-            if id_to_table_id[query_id] in retrieved_tables:
-                self.tp += 1
+        for query, retrieval_result in zip(query_batch, new_retrieved_tables):
+            if query.table_id in retrieval_result.retrieval_results:
+                self.true_positive += 1
             self.total_queries_processed += 1
 
     def _calculate_table_retrieval_metrics(
@@ -232,21 +209,20 @@ class AbsTargetTask(ABC):
         Calculate the retrieval metrics after the table retrieval has been completed.
         """
         performace = RetrievalPerformanceDataModel(
-            k=top_k, accuracy=self.tp / self.total_queries_processed
+            k=top_k, accuracy=self.true_positive / self.total_queries_processed
         )
 
-        self.tp = 0
+        self.true_positive = 0
         self.total_queries_processed = 0
         return performace
 
     @abstractmethod
     def _get_downstream_task_results(
         self,
-        id_to_query: dict[int, str],
-        id_to_table_id: dict[int, str],
-        retrieval_results: dict[int, list[str]],
+        query_batch: list[QueryForTasksDataModel],
+        retrieval_results: list[RetrievalResultDataModel],
         dataset_name: str,
-    ) -> dict[int, str]:
+    ) -> list[DownstreamGeneratedResultDataModel]:
         """
         TODO: how to pass through the tables? nested arrays, etc
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
@@ -256,8 +232,8 @@ class AbsTargetTask(ABC):
     @abstractmethod
     def _update_downstream_task_results(
         self,
-        id_to_answer: dict[int, str],
-        downstream_answers: dict[int, str],
+        query_batch: list[QueryForTasksDataModel],
+        downstream_answers: list[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values you keep track of for the downstream tasks.

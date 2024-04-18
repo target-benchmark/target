@@ -1,5 +1,7 @@
 from typing import Iterable
+from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
 
@@ -8,7 +10,7 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
     """
     This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
 
-    Some reasons to inherit from this class as opposed to `AbsTargetCustomEmbeddingRetriver`
+    Some reasons to inherit from this class as opposed to `AbsTargetCustomEmbeddingRetreiver`
     - the embedding of your tool is simply a vector or array like object.
     - your retrieval system doesn't need any specific persistence formats or folder structure to work, as long as the corpus embedding is given that's all you need.
     """
@@ -23,15 +25,21 @@ class AbsTargetStandardizedEmbeddingRetriever(AbsTargetRetrieverBase):
     def retrieve_batch(
         self,
         corpus_embedding,
-        queries: dict[int, str],
+        queries: list[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> dict[int, list[str]]:
-        retrieval_results = {}
-        for query_id, query_str in queries.items():
-            retrieval_results[query_id] = self.retrieve(
-                corpus_embedding, query_str, dataset_name, top_k, kwargs
+    ) -> list[RetrievalResultDataModel]:
+        retrieval_results = []
+        for query in queries:
+            retrieval_results.append(
+                RetrievalResultDataModel(
+                    dataset_name=dataset_name,
+                    query_id=query.query_id,
+                    retrieval_results=self.retrieve(
+                        corpus_embedding, query.query_str, dataset_name, top_k, kwargs
+                    ),
+                )
             )
         return retrieval_results
 

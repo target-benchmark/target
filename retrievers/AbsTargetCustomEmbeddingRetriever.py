@@ -1,10 +1,12 @@
 from typing import Iterable, Iterator
+from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from retrievers.AbsTargetRetrieverBase import AbsTargetRetrieverBase
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
 from abc import abstractmethod
 
 
-class AbsTargetCustomEmbeddingRetriver(AbsTargetRetrieverBase):
+class AbsTargetCustomEmbeddingRetriever(AbsTargetRetrieverBase):
     """
     This interface includes the retrieve method and an encode method that doesn't expect a return value. If your retrieval tool already has table embedding/encoding persistence built in, this is the preferred class to inherit from for your custom retriever, as you can just ignore the encode method. At retrieval time, it is assumed that the **table embeddings are no longer needed to be provided** for the retrieval to work.
     Reasons for providing this encoding method is:
@@ -24,15 +26,21 @@ class AbsTargetCustomEmbeddingRetriver(AbsTargetRetrieverBase):
 
     def retrieve_batch(
         self,
-        queries: dict[int, str],
+        queries: list[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> dict[int, list[str]]:
-        retrieval_results = {}
-        for query_id, query_str in queries.items():
-            retrieval_results[query_id] = self.retrieve(
-                query_str, dataset_name, top_k, kwargs
+    ) -> list[RetrievalResultDataModel]:
+        retrieval_results = []
+        for query in queries:
+            retrieval_results.append(
+                RetrievalResultDataModel(
+                    dataset_name=dataset_name,
+                    query_id=query.query_id,
+                    retrieval_results=self.retrieve(
+                        query.query_str, dataset_name, top_k, kwargs
+                    ),
+                )
             )
         return retrieval_results
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 
 class AbsTargetRetrieverBase(ABC):
@@ -16,5 +17,5 @@ class AbsTargetRetrieverBase(ABC):
         pass
 
     @abstractmethod
-    def retrieve_batch(self, *args, **kwargs) -> dict[int, list[str]]:
+    def retrieve_batch(self, *args, **kwargs) -> list[RetrievalResultDataModel]:
         pass
