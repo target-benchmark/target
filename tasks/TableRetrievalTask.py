@@ -2,7 +2,10 @@ from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from tasks.AbsTargetTask import AbsTargetTask
 from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
-from dataset_loaders.LoadersDataModels import DatasetConfigDataModel, QueryForTasksDataModel
+from dataset_loaders.LoadersDataModels import (
+    DatasetConfigDataModel,
+    QueryForTasksDataModel,
+)
 from dataset_loaders.TargetDatasetConfig import *
 from generators.AbsTargetGenerator import AbsTargetGenerator
 from generators.DefaultTargetGenerator import DefaultTargetGenerator

@@ -170,7 +170,6 @@ class AbsTargetTask(ABC):
             logger.info(f"finished running task {self.task_name}")
         return task_results
 
-
     def _get_retrieval_results(
         self,
         retriever: AbsTargetRetrieverBase,
