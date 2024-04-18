@@ -1,18 +1,23 @@
-from tasks.AbsTargetTask import AbsTargetTask
+from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
-from dataset_loaders.LoadersDataModels import DatasetConfigDataModel
+from dataset_loaders.LoadersDataModels import (
+    DatasetConfigDataModel,
+    QueryForTasksDataModel,
+)
 from dataset_loaders.TargetDatasetConfig import *
-from generators.AbsTargetGenerator import AbsTargetGenerator
-from generators.DefaultTargetGenerator import DefaultTargetGenerator
+from generators.AbsGenerator import AbsGenerator
+from generators.DefaultGenerator import DefaultGenerator
 
 
-class TableRetrievalTask(AbsTargetTask):
+class TableRetrievalTask(AbsTask):
     def __init__(
         self,
         task_name: str = None,
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsTargetGenerator = DefaultTargetGenerator,
+        task_generator: AbsGenerator = DefaultGenerator,
         **kwargs,
     ):
         super().__init__(
@@ -39,30 +44,30 @@ class TableRetrievalTask(AbsTargetTask):
 
     def _get_downstream_task_results(
         self,
-        id_to_query: dict[int, str],
-        id_to_table_id: dict[int, str],
-        retrieval_results: dict[int, list[str]],
+        query_batch: list[QueryForTasksDataModel],
+        retrieval_results: list[RetrievalResultDataModel],
         dataset_name: str,
-    ) -> dict[int, str]:
+    ) -> list[DownstreamGeneratedResultDataModel]:
         """
-        no downstream task results to obtain here, return empty dictionary
+        TODO: how to pass through the tables? nested arrays, etc
+        All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        return {}
+        return []
 
     def _update_downstream_task_results(
         self,
-        id_to_answer: dict[int, str],
-        downstream_answers: dict[int, str],
+        query_batch: list[QueryForTasksDataModel],
+        downstream_answers: list[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
-        No downstream tasks values to update for basic table retrieval task.
+        Update any values you keep track of for the downstream tasks.
         """
-        return
+        pass
 
     def _calculate_downstream_task_metrics(
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
-        No downstream metrics to calculate. return a default data model
+        All downstreams tasks should fill out this method. uses whatever values that's been tracked & updated through the query eval, and calculate the metrics.
         """
         return DownstreamTaskPerformanceDataModel()

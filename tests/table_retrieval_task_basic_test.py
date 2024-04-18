@@ -10,9 +10,10 @@ from dataset_loaders.TargetDatasetConfig import (
     DEFAULT_WIKITQ_DATASET_CONFIG,
     DEFAULT_FETAQA_DATASET_CONFIG,
 )
-from retrievers.AbsTargetCustomEmbeddingRetriver import (
-    AbsTargetCustomEmbeddingRetriver as CustomEmbRetr,
+from retrievers.AbsCustomEmbeddingRetriever import (
+    AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 import logging
 
@@ -30,10 +31,18 @@ class TestOTTQARetriever(unittest.TestCase):
         self.retr_task = TableRetrievalTask()
         self.mock_retriever = MagicMock()
         self.mock_retriever.__class__ = CustomEmbRetr
-        self.mock_retriever.retrieve_batch.return_value = {
-            1: ["Table1", "Table2"],
-            2: ["Table3", "Table4"],
-        }
+        self.mock_retriever.retrieve_batch.return_value = [
+            RetrievalResultDataModel(
+                dataset_name="fetaqa",
+                query_id=1,
+                retrieval_results=["Table1", "Table2"]
+            ),
+            RetrievalResultDataModel(
+                dataset_name="fetaqa",
+                query_id=2,
+                retrieval_results=["Table3", "Table4"]
+            ),
+        ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
             lambda splits, batch_size: iter(
@@ -69,7 +78,22 @@ class TestOTTQARetriever(unittest.TestCase):
             top_k=2,
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(
-            queries={1: "Test query", 2: "Test query 2"},
+            queries=[
+                        QueryForTasksDataModel(
+                            query_id=1,
+                            query="Test query",
+                            answer="Test answer",
+                            table_id="Table1",
+                            database_id=0,
+                        ),
+                        QueryForTasksDataModel(
+                            query_id=2,
+                            query="Test query 2",
+                            answer="Test answer 2",
+                            table_id="Table5",
+                            database_id=0,
+                        ),
+                    ],
             dataset_name="fetaqa",
             top_k=2,
         )
@@ -95,7 +119,7 @@ class TestOTTQARetriever(unittest.TestCase):
             {"k": 2, "accuracy": 0.5, "precision": None, "recall": None},
         )
         self.assertEqual(downs_perf.model_dump(), {"task_name": None})
-        self.assertEqual(self.retr_task.tp, 0)
+        self.assertEqual(self.retr_task.true_positive, 0)
         self.assertEqual(self.retr_task.total_queries_processed, 0)
 
     def test_custom_dataset_config(self):

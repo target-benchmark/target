@@ -1,4 +1,4 @@
-from dataset_loaders.AbsTargetDatasetLoader import AbsTargetDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from dataset_loaders.GenericDatasetLoader import GenericDatasetLoader
 from dataset_loaders.LoadersDataModels import (
@@ -7,11 +7,11 @@ from dataset_loaders.LoadersDataModels import (
     HFDatasetConfigDataModel,
 )
 from retrievers import (
-    AbsTargetCustomEmbeddingRetriver,
-    AbsTargetStandardizedEmbeddingRetriever,
-    AbsTargetRetrieverBase,
+    AbsRetrieverBase,
+    AbsCustomEmbeddingRetriever,
+    AbsStandardizedEmbeddingRetriever,
 )
-from tasks.AbsTargetTask import AbsTargetTask
+from tasks.AbsTask import AbsTargetTask
 from tasks.TableRetrievalTask import TableRetrievalTask
 from tasks.TasksDataModels import TaskResultsDataModel
 
@@ -130,7 +130,7 @@ class TargetEvaluator:
 
     def create_dataloaders(
         self, dataset_config: dict[str, DatasetConfigDataModel]
-    ) -> dict[str, AbsTargetDatasetLoader]:
+    ) -> dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
 
@@ -157,7 +157,7 @@ class TargetEvaluator:
         self,
         dataset_names: list[str],
         splits: str | list[str] = "test",
-    ) -> dict[str, AbsTargetDatasetLoader]:
+    ) -> dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
 
@@ -214,7 +214,7 @@ class TargetEvaluator:
 
     def run(
         self,
-        retriever: AbsTargetRetrieverBase,
+        retriever: AbsRetrieverBase,
         splits: str | list[str] = "test",
         batch_size: int = 64,
         top_k: int = 5,
@@ -224,7 +224,7 @@ class TargetEvaluator:
         Call this function to run the tasks! Woohoo!!!
 
         Parameters:
-            retriever (AbsTargetRetrieverBase): a retriever that either inherits from AbsTargetStandardizedEmbeddingRetriever or AbsTargetCustomEmbeddingRetriver.
+            retriever (AbsTargetRetrieverBase): a retriever that either inherits from AbsTargetStandardizedEmbeddingRetriever or AbsCustomEmbeddingRetriver.
             splits (str | list[str], optional): splits of data to run the tasks on.
             batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
             top_k (int, optional): top k tables to retrieve.
@@ -243,7 +243,7 @@ class TargetEvaluator:
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
-                    if isinstance(retriever, AbsTargetStandardizedEmbeddingRetriever):
+                    if isinstance(retriever, AbsStandardizedEmbeddingRetriever):
                         embeddings = retriever.embed_corpus(
                             dataset_name,
                             self.dataloaders[dataset_name].convert_corpus_table_to(
@@ -251,7 +251,7 @@ class TargetEvaluator:
                             ),
                         )
                         # TODO: figure out what to do with the embedding
-                    elif isinstance(retriever, AbsTargetCustomEmbeddingRetriver):
+                    elif isinstance(retriever, AbsCustomEmbeddingRetriever):
                         retriever.embed_corpus(
                             dataset_name,
                             self.dataloaders[dataset_name].convert_corpus_table_to(
