@@ -47,8 +47,8 @@ class DocDB(object):
         cursor = self.connection.cursor()
         cursor.execute(
             "SELECT text FROM documents WHERE id = ?",
-            #(utils.normalize(doc_id),)
-            (doc_id, )
+            # (utils.normalize(doc_id),)
+            (doc_id,),
         )
         result = cursor.fetchone()
         cursor.close()

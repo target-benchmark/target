@@ -7,14 +7,15 @@
 
 import os
 
+
 def get_class(name):
-    if name == 'tfidf':
+    if name == "tfidf":
         return TfidfDocRanker
-    if name == 'bm25':
+    if name == "bm25":
         return BM25DocRanker
-    if name == 'sqlite':
+    if name == "sqlite":
         return DocDB
-    raise RuntimeError('Invalid retriever class: %s' % name)
+    raise RuntimeError("Invalid retriever class: %s" % name)
 
 
 from .doc_db import DocDB

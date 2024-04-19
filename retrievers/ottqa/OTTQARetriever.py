@@ -9,50 +9,44 @@
 from typing import Iterable, Iterator
 from .drqa import retriever
 from .utils import convert_table_representation, TFIDFBuilder
-from ..AbsTargetCustomEmbeddingRetriver import AbsTargetCustomEmbeddingRetriver
+from ..AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
 import json
 import os
 
-class OTTQARetriever(AbsTargetCustomEmbeddingRetriver):
+
+class OTTQARetriever(AbsCustomEmbeddingRetriever):
     def __init__(
-            self,
-            script_dir: str,
-            expected_corpus_format: str = 'nested array',
-        ):
+        self,
+        script_dir: str,
+        expected_corpus_format: str = "nested array",
+    ):
         super().__init__(expected_corpus_format)
         self.rankers: dict[str, retriever.TfidfDocRanker] = {}
-        self.out_dir = os.path.join(script_dir, 'title_sectitle_schema/')
+        self.out_dir = os.path.join(script_dir, "title_sectitle_schema/")
 
     def retrieve(
         self,
-        queries: dict[str, str],
+        query: str,
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> dict[str, list[str]]:
-        retrieval_results = {}
+    ) -> list[str]:
         ranker = self.rankers[dataset_name]
-        for query_id, query_str in queries.items():
-            doc_names, doc_scores = ranker.closest_docs(query_str, top_k)
-            retrieval_results[query_id] = doc_names
-        return retrieval_results
-    
-    def embed_corpus(
-        self,
-        dataset_name: str,
-        corpus: Iterable[dict]
-    ):
+        doc_names, doc_scores = ranker.closest_docs(query, top_k)
+        return doc_names
+
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[dict]):
         if not os.path.exists(self.out_dir):
             os.mkdir(self.out_dir)
         converted_corpus = {}
         for corpus_dict in corpus:
             for key, value in corpus_dict.items():
                 converted_corpus[key] = convert_table_representation(key, value)
-        file_name = 'fetaqa_data.json'
+        file_name = "fetaqa_data.json"
 
         # Write the dictionary to a file in JSON format
-        with open(os.path.join(self.out_dir, file_name), 'w') as f:
-            json.dump(converted_corpus, f)                
+        with open(os.path.join(self.out_dir, file_name), "w") as f:
+            json.dump(converted_corpus, f)
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
-        self.rankers[dataset_name] = retriever.get_class('tfidf')(tfidf_path=out_path)
+        self.rankers[dataset_name] = retriever.get_class("tfidf")(tfidf_path=out_path)
