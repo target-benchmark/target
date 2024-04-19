@@ -194,16 +194,17 @@ class AbsTask(ABC):
         dataset_name: str,
         top_k: int,
     ) -> list[RetrievalResultDataModel]:
-        is_standard = True
-        if isinstance(retriever, CustomEmbRetr):
-            is_standard = False
-        if is_standard:
+        if isinstance(retriever, StandardizedEmbRetr):
             # TODO: figure out what to do with embedding here
             # retreival_results = retriever.retrieve_batch(corpus_embedding=)
             retrieval_results = {}
-        else:
+        elif isinstance(retriever, CustomEmbRetr):
             retrieval_results = retriever.retrieve_batch(
                 queries=query_batch, dataset_name=dataset_name, top_k=top_k
+            )
+        else:
+            raise ValueError(
+                f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
 
         return retrieval_results
