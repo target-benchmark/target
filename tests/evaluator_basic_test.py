@@ -84,5 +84,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(list(results.keys()), ["Table Retrieval Task"])
         self.assertDictEqual(results["Table Retrieval Task"]["fetaqa"].retrieval_performance.model_dump(), {"k": 2, "accuracy": 0.5, "precision": None, "recall": None})
         self.assertDictEqual(results["Table Retrieval Task"]["fetaqa"].downstream_task_performance.model_dump(), {"task_name": None})
+
+    
 if __name__ == "__main__":
     unittest.main()
