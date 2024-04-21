@@ -4,7 +4,7 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 class AbsRetrieverBase(ABC):
     """
-    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsTargetRetrieverFree` and `AbsTargetRetrieverCon
+    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsStandardizedEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):

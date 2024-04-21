@@ -11,7 +11,7 @@ from retrievers import (
     AbsCustomEmbeddingRetriever,
     AbsStandardizedEmbeddingRetriever,
 )
-from tasks.AbsTask import AbsTargetTask
+from tasks.AbsTask import AbsTask
 from tasks.TableRetrievalTask import TableRetrievalTask
 from tasks.TasksDataModels import TaskResultsDataModel
 
@@ -25,7 +25,7 @@ class TargetEvaluator:
     def __init__(
         self,
         downstream_task_names: str | list[str] = [],
-        downstream_task_objects: AbsTargetTask | list[AbsTargetTask] = [],
+        downstream_task_objects: AbsTask | list[AbsTask] = [],
         persist_log: bool = True,
         log_file_path: str = None,
     ):
@@ -34,7 +34,7 @@ class TargetEvaluator:
 
         Parameters:
             downstream_task_names (str | list[str], optional): name of the tasks.
-            downstream_task_objects (AbsTargetTask | list[AbsTargetTask], optional): a list of custom tasks. for example, if a user wants to run some task with a custom dataset, they can first create the task object with the specified dataset configs, then simply pass the task object in here.
+            downstream_task_objects (AbsTask | list[AbsTask], optional): a list of custom tasks. for example, if a user wants to run some task with a custom dataset, they can first create the task object with the specified dataset configs, then simply pass the task object in here.
             persist_log (bool, optional): whether to persist the log to a file or not.
             log_file_path (string, optional): the path to persis the log to. if none is provided, default to target_run_log_<current time>.txt
         """
@@ -46,24 +46,24 @@ class TargetEvaluator:
         self.logger.info("Logger for TARGET is set up!")
 
         self.logger.info("Starting to load the specified tasks...")
-        self.tasks: dict[str, AbsTargetTask] = self.load_tasks(
+        self.tasks: dict[str, AbsTask] = self.load_tasks(
             downstream_task_names, downstream_task_objects
         )
         self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
 
         self.logger.info("Started creating dataset information...")
-        self.dataset_info = self.create_dataset_info(self.tasks)
+        self.dataset_info: dict[str, DatasetConfigDataModel] = self.create_dataset_info(self.tasks)
         self.logger.info("Finished creating dataset config information.")
 
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders = self.create_dataloaders(self.dataset_info)
+        self.dataloaders: dict[str, AbsDatasetLoader] = self.create_dataloaders(self.dataset_info)
         self.logger.info("Finished creating dataset loaders. Finished setting up.")
 
     def load_tasks(
         self,
         downstream_task_names: str | list[str],
-        downstream_task_objects: AbsTargetTask | list[AbsTargetTask],
-    ) -> dict[str, AbsTargetTask]:
+        downstream_task_objects: AbsTask | list[AbsTask],
+    ) -> dict[str, AbsTask]:
         """
         Returns the task objects specified in the list of downstream tasks. If no tasks are specified, load the table retrieval task.
 
@@ -79,7 +79,7 @@ class TargetEvaluator:
         if not isinstance(downstream_task_objects, list):
             downstream_task_objects = [downstream_task_objects]
         if len(downstream_task_names) + len(downstream_task_objects) == 0:
-            return {TableRetrievalTask.get_default_task_name: TableRetrievalTask()}
+            return {TableRetrievalTask.get_default_task_name(): TableRetrievalTask()}
         loaded_tasks = {}
         tasks_dict = find_tasks()
         for task_name in downstream_task_names:
@@ -109,13 +109,25 @@ class TargetEvaluator:
             loaded_tasks[task_default_name] = task_class()
         return loaded_tasks
 
+    def get_loaded_tasks(self) -> list[str]:
+        '''
+        Getter function for all the loaded tasks.
+        
+        Returns:
+            a list of task names of the loaded tasks. if no tasks are loaded, return an empty list.
+        '''
+        if self.tasks != None:
+            return list(self.tasks.keys())
+        else:
+            return []
+
     def create_dataset_info(
-        self, tasks: dict[str, AbsTargetTask]
+        self, tasks: dict[str, AbsTask]
     ) -> dict[str, DatasetConfigDataModel]:
         """
         After loading in the tasks, create the dataset information dictionary
         Parameters:
-            tasks (dict[str, AbsTargetTask]): a dictionary mapping task names to tasks.
+            tasks (dict[str, AbsTask]): a dictionary mapping task names to tasks.
 
         Returns:
             a dictionary mapping dataset names to dataset configs.
@@ -152,6 +164,7 @@ class TargetEvaluator:
                 self.logger.warning(
                     f"The dataset config passed in for {dataset_name} is not a valid dataset config data model. Skipping..."
                 )
+        return eval_dataloaders
 
     def load_datasets_for_task(
         self,
@@ -224,7 +237,7 @@ class TargetEvaluator:
         Call this function to run the tasks! Woohoo!!!
 
         Parameters:
-            retriever (AbsTargetRetrieverBase): a retriever that either inherits from AbsTargetStandardizedEmbeddingRetriever or AbsCustomEmbeddingRetriver.
+            retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardizedEmbeddingRetriever or AbsCustomEmbeddingRetriver.
             splits (str | list[str], optional): splits of data to run the tasks on.
             batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
             top_k (int, optional): top k tables to retrieve.
@@ -263,7 +276,7 @@ class TargetEvaluator:
                             "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
                         )
 
-            self.logger("Finished embedding all new corpus!")
+            self.logger.info("Finished embedding all new corpus!")
 
             # run the task!
             task_result = task.task_run(

@@ -2,7 +2,7 @@ import pkgutil
 import inspect
 import importlib
 from typing import Type
-from tasks.AbsTargetTask import AbsTargetTask
+from tasks.AbsTask import AbsTask
 
 
 def find_subclasses(package, cls) -> dict:
@@ -27,5 +27,5 @@ def find_subclasses(package, cls) -> dict:
 import tasks
 
 
-def find_tasks() -> dict[str, Type[AbsTargetTask]]:
-    return find_subclasses(tasks, AbsTargetTask)
+def find_tasks() -> dict[str, Type[AbsTask]]:
+    return find_subclasses(tasks, AbsTask)

@@ -10,7 +10,7 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
     """
     This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
 
-    Some reasons to inherit from this class as opposed to `AbsTargetCustomEmbeddingRetreiver`
+    Some reasons to inherit from this class as opposed to `AbsCustomEmbeddingRetreiver`
     - the embedding of your tool is simply a vector or array like object.
     - your retrieval system doesn't need any specific persistence formats or folder structure to work, as long as the corpus embedding is given that's all you need.
     """

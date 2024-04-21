@@ -84,7 +84,7 @@ class AbsDatasetLoader(ABC):
 
     def load(self, splits: str | list[str] = None) -> None:
         if not self.corpus or not self.queries:
-            self.load(splits=splits)
+            self._load(splits=splits)
 
     @abstractmethod
     def _load(self, splits: str | list[str] = None) -> None:

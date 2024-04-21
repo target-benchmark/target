@@ -12,7 +12,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
     Reasons for providing this encoding method is:
     - it's not expected of the users to deal with setting up `TargetDatasetloaders` directly, since at the time of instantiation it may be unclear which datasets needs to be preprocessed. We'd like to delegate this responsibilty to the `TargetEvaluator` class during the eval process.
     - remain symmetric to the `AbsStandardizedEmbeddingRetriever`
-    Some possible reasons to inherit from this class and not `AbsTargetRetrieverWithEncoding`:
+    Some possible reasons to inherit from this class and not `AbsStandardizedEmbeddingRetriever`:
     - you have a custom format of embedding for the tables (ie directory structure, file formats, etc).
     - your tool already deals with the persistence of the embedding, in which case the embedding method can just pass & do nothing.
     """
