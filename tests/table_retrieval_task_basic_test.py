@@ -35,12 +35,12 @@ class TestTableRetriever(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=1,
-                retrieval_results=["Table1", "Table2"]
+                retrieval_results=["Table1", "Table2"],
             ),
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=2,
-                retrieval_results=["Table3", "Table4"]
+                retrieval_results=["Table3", "Table4"],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
@@ -79,21 +79,21 @@ class TestTableRetriever(unittest.TestCase):
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(
             queries=[
-                        QueryForTasksDataModel(
-                            query_id=1,
-                            query="Test query",
-                            answer="Test answer",
-                            table_id="Table1",
-                            database_id=0,
-                        ),
-                        QueryForTasksDataModel(
-                            query_id=2,
-                            query="Test query 2",
-                            answer="Test answer 2",
-                            table_id="Table5",
-                            database_id=0,
-                        ),
-                    ],
+                QueryForTasksDataModel(
+                    query_id=1,
+                    query="Test query",
+                    answer="Test answer",
+                    table_id="Table1",
+                    database_id=0,
+                ),
+                QueryForTasksDataModel(
+                    query_id=2,
+                    query="Test query 2",
+                    answer="Test answer 2",
+                    table_id="Table5",
+                    database_id=0,
+                ),
+            ],
             dataset_name="fetaqa",
             top_k=2,
         )
