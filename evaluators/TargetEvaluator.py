@@ -14,7 +14,7 @@ from retrievers import (
 from tasks.AbsTask import AbsTask
 from tasks.TableRetrievalTask import TableRetrievalTask
 from tasks.TasksDataModels import TaskResultsDataModel
-
+import os
 from evaluators.utils import find_tasks
 from datetime import datetime
 
@@ -96,7 +96,7 @@ class TargetEvaluator:
                     f"task named {task_name} doesn't exist. please double check your input values. skipping this task..."
                 )
         for task_obj in downstream_task_objects:
-            if not isinstance(task_obj):
+            if not isinstance(task_obj, AbsTask):
                 self.logger.warning(
                     f"task {task_obj} is not a valid task object. Skipping..."
                 )
@@ -210,7 +210,7 @@ class TargetEvaluator:
         if persist_log:
             if not log_file_path:
                 time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                log_file_path = f"./target_run_log_{time_str}.txt"
+                log_file_path = os.path.join("logs", f"./target_run_log_{time_str}.txt")
             # Create file handler which logs even debug messages
             fh = logging.FileHandler(log_file_path)
             fh.setLevel(logging.DEBUG)

@@ -27,7 +27,7 @@ class DefaultGenerator(AbsGenerator):
                     )
                 ),
                 HumanMessagePromptTemplate.from_template(
-                    "Table: {table_str}\nQuery: {query_str}"
+                    "Please use the following table(s) to answer the query. Tables: {table_str}\nQuery: {query_str}"
                 ),
             ]
         )
