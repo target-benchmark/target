@@ -96,7 +96,7 @@ class TargetEvaluator:
                     f"task named {task_name} doesn't exist. please double check your input values. skipping this task..."
                 )
         for task_obj in downstream_task_objects:
-            if not isinstance(task_obj):
+            if not isinstance(task_obj, AbsTask):
                 self.logger.warning(
                     f"task {task_obj} is not a valid task object. Skipping..."
                 )
