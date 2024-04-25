@@ -5,7 +5,7 @@ from typing import Type
 from tasks.AbsTask import AbsTask
 
 
-def find_subclasses(package, cls) -> dict:
+def find_subclasses(package, cls) -> dict[str, Type[AbsTask]]:
     subclasses = {}
     # Traverse through all modules in the given package
     for finder, name, ispkg in pkgutil.walk_packages(

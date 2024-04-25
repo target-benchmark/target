@@ -38,7 +38,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
                     dataset_name=dataset_name,
                     query_id=query.query_id,
                     retrieval_results=self.retrieve(
-                        query.query_str, dataset_name, top_k, kwargs
+                        query.query, dataset_name, top_k, **kwargs
                     ),
                 )
             )

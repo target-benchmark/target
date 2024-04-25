@@ -5,8 +5,7 @@ from pathlib import Path
 import csv
 from dataset_loaders.utils import (
     array_of_arrays_to_df,
-    str_representation_to_array,
-    str_representation_to_pandas_df,
+    markdown_table_with_headers,
 )
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from typing import Iterable, Iterator
@@ -216,6 +215,16 @@ class AbsDatasetLoader(ABC):
                     res_dict[key] = value
                 yield res_dict
 
+    def get_table_id_to_table(
+        self,
+        splits: str | list[str] = None,
+    ) -> dict[str, list[list]]:
+        mapping_dict = {}
+        for batch in self.convert_corpus_table_to(splits=splits):
+            for table_id, table in batch.items():
+                mapping_dict[table_id] = table
+        return mapping_dict
+    
     def get_queries_for_task(
         self, splits: str | list[str] = None, batch_size: int = 64
     ) -> Iterable[list[QueryForTasksDataModel]]:

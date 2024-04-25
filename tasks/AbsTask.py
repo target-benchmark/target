@@ -13,6 +13,7 @@ from retrievers.AbsStandardizedEmbeddingRetriever import (
 )
 
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from dataset_loaders.utils import markdown_table_with_headers
 from dataset_loaders.LoadersDataModels import (
     QueryForTasksDataModel,
     DatasetConfigDataModel,
@@ -38,7 +39,7 @@ class AbsTask(ABC):
         task_name: str = None,
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator = DefaultGenerator,
+        task_generator: AbsGenerator = None,
         **kwargs,
     ):
         """
@@ -68,7 +69,11 @@ class AbsTask(ABC):
         self.dataset_config: dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
-        self.task_generator: AbsGenerator = task_generator
+        if task_generator is None:
+            self.task_generator = DefaultGenerator()
+            print(f"type of generator: {type(self.task_generator)}", flush=True)
+        else:
+            self.task_generator = task_generator
         self.true_positive = 0
         self.total_queries_processed = 0
 
@@ -157,17 +162,19 @@ class AbsTask(ABC):
 
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
-
+            table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
-
                 retrieved_tables = self._get_retrieval_results(
                     retriever, query_batch, dataset_name, top_k
                 )
                 self._update_retrieval_results(query_batch, retrieved_tables)
-
+                self._fill_retrieval_results_with_table_strs(
+                    retrieved_tables, table_id_to_table
+                )
                 downstream_task_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
+                logger.info(f"generated results {downstream_task_results}") # TODO: comment this out, this is for testing
                 self._update_downstream_task_results(
                     query_batch, downstream_task_results
                 )
@@ -186,6 +193,17 @@ class AbsTask(ABC):
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
+
+    def _fill_retrieval_results_with_table_strs(
+        self,
+        retrieval_results: list[RetrievalResultDataModel],
+        table_id_to_tables: dict[str, list[list]],
+    ) -> None:
+        for result in retrieval_results:
+            result.retrieved_tables = [
+                markdown_table_with_headers(table_id_to_tables[table_id])
+                for table_id in result.retrieved_tables
+            ]
 
     def _get_retrieval_results(
         self,
