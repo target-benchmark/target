@@ -82,8 +82,12 @@ class AbsDatasetLoader(ABC):
         self.corpus: DatasetDict = None
         self.queries: DatasetDict = None
 
+    def load(self, splits: str | list[str] = None) -> None:
+        if not self.corpus or not self.queries:
+            self._load(splits=splits)
+
     @abstractmethod
-    def load(self, split: str | list[str] = None) -> None:
+    def _load(self, splits: str | list[str] = None) -> None:
         """
         Load the dataset split.
 
@@ -91,7 +95,7 @@ class AbsDatasetLoader(ABC):
         such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            split(str | list[str], optional): The dataset split or splits to load. If none are provided, splits specified in self.splits should be loaded. self.splits will also be updated to reflect the splits actually loaded
+            splits(str | list[str], optional): The dataset split or splits to load. If none are provided, splits specified in self.splits should be loaded. self.splits will also be updated to reflect the splits actually loaded
 
         Raises NotImplementedError: If the method is called on the abstract class directly.
 

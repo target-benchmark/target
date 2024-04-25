@@ -14,7 +14,7 @@ from generators.DefaultGenerator import DefaultGenerator
 class TableRetrievalTask(AbsTask):
     def __init__(
         self,
-        task_name: str = "Table Retrieval Task",
+        task_name: str = None,
         datasets_config: dict[str, dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = DefaultGenerator,
@@ -27,6 +27,10 @@ class TableRetrievalTask(AbsTask):
             task_generator=task_generator,
             **kwargs,
         )
+
+    @classmethod
+    def get_default_task_name(cls) -> str:
+        return "Table Retrieval Task"
 
     def _get_default_dataset_config(self) -> dict[str, DatasetConfigDataModel]:
         """

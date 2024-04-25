@@ -4,8 +4,21 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 class AbsRetrieverBase(ABC):
     """
-    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsTargetRetrieverFree` and `AbsTargetRetrieverCon
+    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsStandardizedEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
     """
+
+    def __init__(self, expected_corpus_format: str = "nested array"):
+        """
+        Parameters:
+            expected_corpus_format (str, optional): a string indicating what corpus format (ie nested array, dictionary, pandas df, etc.) the `embed_corpus` function expects from its input.
+        """
+        self.expected_corpus_format = expected_corpus_format
+
+    def get_expected_corpus_format(self) -> str:
+        """
+        Returns the expected corpus format.
+        """
+        return self.expected_corpus_format
 
     @abstractmethod
     def retrieve(self, *args, **kwargs) -> list[str]:

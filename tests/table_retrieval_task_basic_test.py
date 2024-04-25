@@ -25,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class TestOTTQARetriever(unittest.TestCase):
+class TestTableRetriever(unittest.TestCase):
 
     def setUp(self):
         self.retr_task = TableRetrievalTask()
