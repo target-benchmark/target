@@ -21,7 +21,7 @@ from datetime import datetime
 import logging
 
 
-class TargetEvaluator:
+class TARGET:
     def __init__(
         self,
         downstream_task_names: str | list[str] = [],
