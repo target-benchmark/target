@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
-from evaluators.TargetEvaluator import TargetEvaluator
+from evaluators.TARGET import TARGET
 from dataset_loaders.TargetDatasetConfig import DEFAULT_FETAQA_DATASET_CONFIG
 from retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
@@ -11,7 +11,7 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 class TestEvaluator(unittest.TestCase):
     def setUp(self):
-        self.evaluator = TargetEvaluator()
+        self.evaluator = TARGET()
 
 
     def test_default_task_creation(self):
