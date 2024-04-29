@@ -57,7 +57,9 @@ class QuestionAnsweringTask(AbsTask):
                 dataset_name=dataset_name,
                 query_id=query.query_id,
                 generated_results=self.task_generator.generate(
-                    table_str="\n".join(table_str for table_str in result.retrieved_tables),
+                    table_str="\n".join(
+                        table_str for table_str in result.retrieved_tables
+                    ),
                     query=query.query,
                 ),
             )

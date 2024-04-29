@@ -174,7 +174,9 @@ class AbsTask(ABC):
                 downstream_task_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
-                logger.info(f"generated results {downstream_task_results}") # TODO: comment this out, this is for testing
+                logger.info(
+                    f"generated results {downstream_task_results}"
+                )  # TODO: comment this out, this is for testing
                 self._update_downstream_task_results(
                     query_batch, downstream_task_results
                 )

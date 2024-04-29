@@ -1,6 +1,5 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
-from dataset_loaders.GenericDatasetLoader import GenericDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
@@ -52,11 +51,15 @@ class TARGET:
         self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
 
         self.logger.info("Started creating dataset information...")
-        self.dataset_info: dict[str, DatasetConfigDataModel] = self.create_dataset_info(self.tasks)
+        self.dataset_info: dict[str, DatasetConfigDataModel] = self.create_dataset_info(
+            self.tasks
+        )
         self.logger.info("Finished creating dataset config information.")
 
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders: dict[str, AbsDatasetLoader] = self.create_dataloaders(self.dataset_info)
+        self.dataloaders: dict[str, AbsDatasetLoader] = self.create_dataloaders(
+            self.dataset_info
+        )
         self.logger.info("Finished creating dataset loaders. Finished setting up.")
 
     def load_tasks(
@@ -110,12 +113,12 @@ class TARGET:
         return loaded_tasks
 
     def get_loaded_tasks(self) -> list[str]:
-        '''
+        """
         Getter function for all the loaded tasks.
-        
+
         Returns:
             a list of task names of the loaded tasks. if no tasks are loaded, return an empty list.
-        '''
+        """
         if self.tasks != None:
             return list(self.tasks.keys())
         else:

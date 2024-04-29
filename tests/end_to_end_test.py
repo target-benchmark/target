@@ -5,17 +5,19 @@ from tasks.QuestionAnsweringTask import QuestionAnsweringTask
 import unittest
 import os
 
+
 class TestEndToEnd(unittest.TestCase):
     def setUp(self):
         self.ottqa_retriever = OTTQARetriever(
             script_dir=os.path.dirname(os.path.abspath(__file__))
         )
 
-        self.target = TARGET("Question Answering Task")
+        self.target = TARGET()
 
     def test_run(self):
-        res = self.target.run(self.ottqa_retriever)
+        res = self.target.run(self.ottqa_retriever, top_k=20)
         print(res)
+
 
 if __name__ == "__main__":
     print(os.path.dirname(os.path.abspath(__file__)))

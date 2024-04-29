@@ -38,7 +38,6 @@ class TableRetrievalTask(AbsTask):
         # TODO: add more things here. this is for testing. carl note 4/10
         return {
             DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
-            # "test_dataset": DEFAULT_FETAQA_DATASET_CONFIG  # this is for testing!!
         }
 
     def _get_downstream_task_results(
