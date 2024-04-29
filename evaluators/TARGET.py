@@ -173,14 +173,14 @@ class TARGET:
 
     def load_datasets_for_task(
         self,
-        dataset_names: list[str],
+        dataset_names: List[str],
         splits: Union[str, List[str]] = "test",
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
 
         Parameters:
-            dataset_names (list[str]): a list of names for the datasets to load.
+            dataset_names (List[str]): a list of names for the datasets to load.
             splits (Union[str, List[str]], optional): a single split or a list of splits.
 
         Return:
