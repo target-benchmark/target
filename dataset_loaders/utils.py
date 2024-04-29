@@ -1,6 +1,7 @@
 from ast import literal_eval
 import pandas as pd
 import json
+from typing import List
 
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
@@ -20,11 +21,11 @@ def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     return array_of_arrays_to_df(array)
 
 
-def array_of_arrays_to_df(array: list[list]):
+def array_of_arrays_to_df(array: List[List]):
     return pd.DataFrame(data=array[1:], columns=array[0])
 
 
-def str_representation_to_array(array_repr: str) -> list:
+def str_representation_to_array(array_repr: str) -> List:
     """
     Attempts to convert a string representation of an array into an array object
 
@@ -48,7 +49,7 @@ def str_representation_to_array(array_repr: str) -> list:
     return array
 
 
-def markdown_table_with_headers(nested_array: list[list]):
+def markdown_table_with_headers(nested_array: List[List]):
     # the first row of the array is the header
     headers = nested_array[0]
     # The rest of the array are the data rows

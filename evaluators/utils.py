@@ -3,9 +3,10 @@ import inspect
 import importlib
 from typing import Type
 from tasks.AbsTask import AbsTask
+from typing import Dict
 
 
-def find_subclasses(package, cls) -> dict[str, Type[AbsTask]]:
+def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:
     subclasses = {}
     # Traverse through all modules in the given package
     for finder, name, ispkg in pkgutil.walk_packages(
@@ -27,5 +28,5 @@ def find_subclasses(package, cls) -> dict[str, Type[AbsTask]]:
 import tasks
 
 
-def find_tasks() -> dict[str, Type[AbsTask]]:
+def find_tasks() -> Dict[str, Type[AbsTask]]:
     return find_subclasses(tasks, AbsTask)

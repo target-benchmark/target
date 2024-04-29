@@ -9,12 +9,13 @@ from dataset_loaders.LoadersDataModels import (
 from dataset_loaders.TargetDatasetConfig import *
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
+from typing import List, Dict
 
 
 class TableRetrievalTask(AbsTask):
     def __init__(
         self,
-        datasets_config: dict[str, dict[str, str]] = None,
+        datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         **kwargs,
@@ -31,7 +32,7 @@ class TableRetrievalTask(AbsTask):
     def get_default_task_name(cls) -> str:
         return "Table Retrieval Task"
 
-    def _get_default_dataset_config(self) -> dict[str, DatasetConfigDataModel]:
+    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for the class. MUST be implemented by any inherited task class.
         """
@@ -42,10 +43,10 @@ class TableRetrievalTask(AbsTask):
 
     def _get_downstream_task_results(
         self,
-        query_batch: list[QueryForTasksDataModel],
-        retrieval_results: list[RetrievalResultDataModel],
+        query_batch: List[QueryForTasksDataModel],
+        retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
-    ) -> list[DownstreamGeneratedResultDataModel]:
+    ) -> List[DownstreamGeneratedResultDataModel]:
         """
         TODO: how to pass through the tables? nested arrays, etc
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
@@ -54,8 +55,8 @@ class TableRetrievalTask(AbsTask):
 
     def _update_downstream_task_results(
         self,
-        query_batch: list[QueryForTasksDataModel],
-        downstream_answers: list[DownstreamGeneratedResultDataModel],
+        query_batch: List[QueryForTasksDataModel],
+        downstream_answers: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values you keep track of for the downstream tasks.

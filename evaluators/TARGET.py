@@ -19,12 +19,14 @@ from datetime import datetime
 
 import logging
 
+from typing import Union, List, Dict
+
 
 class TARGET:
     def __init__(
         self,
-        downstream_task_names: str | list[str] = [],
-        downstream_task_objects: AbsTask | list[AbsTask] = [],
+        downstream_task_names: Union[str, List[str]] = [],
+        downstream_task_objects: Union[AbsTask, List[AbsTask]] = [],
         persist_log: bool = True,
         log_file_path: str = None,
     ):
@@ -32,8 +34,8 @@ class TARGET:
         Pass in a list of task names for the evaluator to run. If no tasks are passed in, default table retrieval task will be created for running.
 
         Parameters:
-            downstream_task_names (str | list[str], optional): name of the tasks.
-            downstream_task_objects (AbsTask | list[AbsTask], optional): a list of custom tasks. for example, if a user wants to run some task with a custom dataset, they can first create the task object with the specified dataset configs, then simply pass the task object in here.
+            downstream_task_names (Union[str, List[str]], optional): name of the tasks.
+            downstream_task_objects (Union[AbsTask, List[AbsTask]], optional): a list of custom tasks. for example, if a user wants to run some task with a custom dataset, they can first create the task object with the specified dataset configs, then simply pass the task object in here.
             persist_log (bool, optional): whether to persist the log to a file or not.
             log_file_path (string, optional): the path to persis the log to. if none is provided, default to target_run_log_<current time>.txt
         """
@@ -45,33 +47,33 @@ class TARGET:
         self.logger.info("Logger for TARGET is set up!")
 
         self.logger.info("Starting to load the specified tasks...")
-        self.tasks: dict[str, AbsTask] = self.load_tasks(
+        self.tasks: Dict[str, AbsTask] = self.load_tasks(
             downstream_task_names, downstream_task_objects
         )
         self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
 
         self.logger.info("Started creating dataset information...")
-        self.dataset_info: dict[str, DatasetConfigDataModel] = self.create_dataset_info(
+        self.dataset_info: Dict[str, DatasetConfigDataModel] = self.create_dataset_info(
             self.tasks
         )
         self.logger.info("Finished creating dataset config information.")
 
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders: dict[str, AbsDatasetLoader] = self.create_dataloaders(
+        self.dataloaders: Dict[str, AbsDatasetLoader] = self.create_dataloaders(
             self.dataset_info
         )
         self.logger.info("Finished creating dataset loaders. Finished setting up.")
 
     def load_tasks(
         self,
-        downstream_task_names: str | list[str],
-        downstream_task_objects: AbsTask | list[AbsTask],
-    ) -> dict[str, AbsTask]:
+        downstream_task_names: Union[str, List[str]],
+        downstream_task_objects: Union[AbsTask, List[AbsTask]],
+    ) -> Dict[str, AbsTask]:
         """
         Returns the task objects specified in the list of downstream tasks. If no tasks are specified, load the table retrieval task.
 
         Parameters:
-            downstream_task_names (str | list[str]): list of default tasks names for loading default tasks.
+            downstream_task_names (Union[str, List[str]]): list of default tasks names for loading default tasks.
             downstream_task_objects: list of created task objects.
 
         Returns:
@@ -112,7 +114,7 @@ class TARGET:
             loaded_tasks[task_default_name] = task_class()
         return loaded_tasks
 
-    def get_loaded_tasks(self) -> list[str]:
+    def get_loaded_tasks(self) -> List[str]:
         """
         Getter function for all the loaded tasks.
 
@@ -125,12 +127,12 @@ class TARGET:
             return []
 
     def create_dataset_info(
-        self, tasks: dict[str, AbsTask]
-    ) -> dict[str, DatasetConfigDataModel]:
+        self, tasks: Dict[str, AbsTask]
+    ) -> Dict[str, DatasetConfigDataModel]:
         """
         After loading in the tasks, create the dataset information dictionary
         Parameters:
-            tasks (dict[str, AbsTask]): a dictionary mapping task names to tasks.
+            tasks (Dict[str, AbsTask]): a dictionary mapping task names to tasks.
 
         Returns:
             a dictionary mapping dataset names to dataset configs.
@@ -144,13 +146,13 @@ class TARGET:
         return eval_dataset_config
 
     def create_dataloaders(
-        self, dataset_config: dict[str, DatasetConfigDataModel]
-    ) -> dict[str, AbsDatasetLoader]:
+        self, dataset_config: Dict[str, DatasetConfigDataModel]
+    ) -> Dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
 
         Parameters:
-            dataset_config (dict[str, DatasetConfigDataModel]): A dictionary mapping dataset names to the config data models.
+            dataset_config (Dict[str, DatasetConfigDataModel]): A dictionary mapping dataset names to the config data models.
 
         Returns:
             a dictionary of dataloaders mapping dataset names to dataloader objects.
@@ -172,14 +174,14 @@ class TARGET:
     def load_datasets_for_task(
         self,
         dataset_names: list[str],
-        splits: str | list[str] = "test",
-    ) -> dict[str, AbsDatasetLoader]:
+        splits: Union[str, List[str]] = "test",
+    ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
 
         Parameters:
             dataset_names (list[str]): a list of names for the datasets to load.
-            splits (str | list[str], optional): a single split or a list of splits.
+            splits (Union[str, List[str]], optional): a single split or a list of splits.
 
         Return:
             a dictionary mapping dataset name to the corresponding dataloader object.
@@ -231,17 +233,17 @@ class TARGET:
     def run(
         self,
         retriever: AbsRetrieverBase,
-        splits: str | list[str] = "test",
+        splits: Union[str, List[str]] = "test",
         batch_size: int = 64,
         top_k: int = 5,
         **kwargs,
-    ) -> dict[str, TaskResultsDataModel]:
+    ) -> Dict[str, TaskResultsDataModel]:
         """
         Call this function to run the tasks! Woohoo!!!
 
         Parameters:
             retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardizedEmbeddingRetriever or AbsCustomEmbeddingRetriver.
-            splits (str | list[str], optional): splits of data to run the tasks on.
+            splits (Union[str, List[str]], optional): splits of data to run the tasks on.
             batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
             top_k (int, optional): top k tables to retrieve.
         """

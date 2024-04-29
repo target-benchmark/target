@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from dictionary_keys import *
+from typing import Union, List
 
 
 class QueryForTasksDataModel(BaseModel):
@@ -49,7 +50,7 @@ class DatasetConfigDataModel(BaseModel):
         default=ANSWER_COL_NAME,
         description="Name of the column that contains the downstream task answers.",
     )
-    splits: str | list[str] = Field(
+    splits: Union[str, List[str]] = Field(
         default="test",
         description="Split(s) to include. Defaults to only the test split.",
     )

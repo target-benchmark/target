@@ -2,6 +2,7 @@ from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from pathlib import Path
 from datasets import load_dataset, DatasetDict
 from dictionary_keys import *
+from typing import Union, List
 
 
 class GenericDatasetLoader(AbsDatasetLoader):
@@ -16,7 +17,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
-        splits: str | list[str] = "test",
+        splits: Union[str, List[str]] = "test",
         data_directory: str = None,
         query_type: str = "",
         **kwargs
@@ -52,12 +53,12 @@ class GenericDatasetLoader(AbsDatasetLoader):
         self.queries_path = self.dataset_path / "queries"
         self.datafile_ext = datafile_ext
 
-    def _load(self, splits: str | list[str] = None) -> None:
+    def _load(self, splits: Union[str, List[str]] = None) -> None:
         """
         Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            splits(str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load test split or the split specified when constructing this Generic Dataset Loader object
+            splits(Union[str, List[str]], optional): The dataset split or splits to load. Defaults to None, which will load test split or the split specified when constructing this Generic Dataset Loader object
         """
         if splits:
             if isinstance(splits, str):

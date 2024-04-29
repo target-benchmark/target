@@ -18,6 +18,7 @@ import importlib.util
 from tqdm import tqdm
 import numpy as np
 import scipy.sparse as sp
+from typing import List, Dict
 
 import warnings
 
@@ -178,8 +179,8 @@ def build_corpus(tables: dict, tmp_file: str):
 
 
 def convert_table_representation(
-    table_id: str, table_contents: list[list]
-) -> dict[str, object]:
+    table_id: str, table_contents: List[List]
+) -> Dict[str, object]:
     table_headers = table_contents[0]
     table_data = table_contents[1:]
     return {
@@ -205,7 +206,7 @@ class TFIDFBuilder:
     def build_tfidf(
         self,
         out_dir: str,
-        corpus: dict[str, object],
+        corpus: Dict[str, object],
         tmp_file: str = "/tmp/tf-idf-input.json",
         tmp_db_file: str = "/tmp/db.json",
         preprocess: str = None,

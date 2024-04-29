@@ -12,6 +12,7 @@ from .utils import convert_table_representation, TFIDFBuilder
 from ..AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
 import json
 import os
+from typing import Dict, List
 
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):
@@ -21,7 +22,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
-        self.rankers: dict[str, retriever.TfidfDocRanker] = {}
+        self.rankers: Dict[str, retriever.TfidfDocRanker] = {}
         self.out_dir = os.path.join(script_dir, "title_sectitle_schema/")
 
     def retrieve(
@@ -30,7 +31,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> list[str]:
+    ) -> List[str]:
         ranker = self.rankers[dataset_name]
         doc_names, doc_scores = ranker.closest_docs(query, top_k)
         return doc_names
