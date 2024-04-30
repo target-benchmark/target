@@ -19,7 +19,15 @@ export AZURE_OPENAI_CHAT_DEPLOYMENT_NAME="target-gpt4-32k"
 
 Our Azure OpenAI resources are located at [this link](https://portal.azure.com/#@epicdatalaboutlook.onmicrosoft.com/resource/subscriptions/6bbef843-a5c2-4407-abae-0eec3d8123ca/resourceGroups/learning-tables/providers/Microsoft.CognitiveServices/accounts/target-openai-canada-east/overview).
 
-5. to run one of the tests in the test folder, run the following command in the root directory of the project. I'm using the evaluator_basic_test as an example:
+5. Log into the target benchmark huggingface account with huggingface cli to access the private datasets.
+
+```
+huggingface-cli login
+```
+
+This will prompt you to input a token. Ask one of the other members on the team for this token!
+
+6. to run one of the tests in the test folder, run the following command in the root directory of the project. I'm using the evaluator_basic_test as an example:
 
 ```
 python -m tests.evaluator_basic_test
