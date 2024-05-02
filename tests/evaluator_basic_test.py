@@ -13,13 +13,15 @@ class TestEvaluator(unittest.TestCase):
     def setUp(self):
         self.evaluator = TARGET()
 
-
     def test_default_task_creation(self):
         self.assertEqual(self.evaluator.get_loaded_tasks(), ["Table Retrieval Task"])
         self.assertEqual(list(self.evaluator.dataset_info.keys()), ["fetaqa"])
-        self.assertDictEqual(self.evaluator.dataset_info["fetaqa"].model_dump(), DEFAULT_FETAQA_DATASET_CONFIG.model_dump())
+        self.assertDictEqual(
+            self.evaluator.dataset_info["fetaqa"].model_dump(),
+            DEFAULT_FETAQA_DATASET_CONFIG.model_dump(),
+        )
         self.assertEqual(list(self.evaluator.dataloaders.keys()), ["fetaqa"])
-    
+
     def test_dataset_loaders_creation(self):
         feta_loader = self.evaluator.dataloaders["fetaqa"]
         self.assertEqual(feta_loader.dataset_name, "fetaqa")
@@ -38,7 +40,16 @@ class TestEvaluator(unittest.TestCase):
         feta_loader.load()
         self.assertNotEqual(feta_loader.corpus, None)
         self.assertNotEqual(feta_loader.queries, None)
-        self.assertDictEqual(feta_loader.queries["test"][0], {'query_id': 2206, 'database_id': 0, 'table_id': 'totto_source/dev_json/example-2205.json', 'query': 'What TV shows was Shagun Sharma seen in 2019?', 'answer': 'In 2019, Shagun Sharma played in the roles as Pernia in Laal Ishq, Vikram Betaal Ki Rahasya Gatha as Rukmani/Kashi and Shaadi Ke Siyape as Dua.'})
+        self.assertDictEqual(
+            feta_loader.queries["test"][0],
+            {
+                "query_id": 2206,
+                "database_id": 0,
+                "table_id": "totto_source/dev_json/example-2205.json",
+                "query": "What TV shows was Shagun Sharma seen in 2019?",
+                "answer": "In 2019, Shagun Sharma played in the roles as Pernia in Laal Ishq, Vikram Betaal Ki Rahasya Gatha as Rukmani/Kashi and Shaadi Ke Siyape as Dua.",
+            },
+        )
 
     def test_basic_run_task(self):
         self.mock_retriever = MagicMock()
@@ -47,12 +58,12 @@ class TestEvaluator(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=1,
-                retrieval_results=["Table1", "Table2"]
+                retrieval_results=["Table1", "Table2"],
             ),
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=2,
-                retrieval_results=["Table3", "Table4"]
+                retrieval_results=["Table3", "Table4"],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
@@ -82,9 +93,19 @@ class TestEvaluator(unittest.TestCase):
         results = self.evaluator.run(self.mock_retriever, top_k=2)
         self.assertIsInstance(results, dict)
         self.assertEqual(list(results.keys()), ["Table Retrieval Task"])
-        self.assertDictEqual(results["Table Retrieval Task"]["fetaqa"].retrieval_performance.model_dump(), {"k": 2, "accuracy": 0.5, "precision": None, "recall": None})
-        self.assertDictEqual(results["Table Retrieval Task"]["fetaqa"].downstream_task_performance.model_dump(), {"task_name": None})
+        self.assertDictEqual(
+            results["Table Retrieval Task"][
+                "fetaqa"
+            ].retrieval_performance.model_dump(),
+            {"k": 2, "accuracy": 0.5, "precision": None, "recall": None},
+        )
+        self.assertDictEqual(
+            results["Table Retrieval Task"][
+                "fetaqa"
+            ].downstream_task_performance.model_dump(),
+            {"task_name": None},
+        )
 
-    
+
 if __name__ == "__main__":
     unittest.main()

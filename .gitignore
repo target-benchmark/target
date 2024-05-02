@@ -166,3 +166,5 @@ cython_debug/
 title_sectitle_schema/
 
 target_run_log_*
+
+logs/

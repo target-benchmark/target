@@ -1,11 +1,12 @@
-import pkgutil
-import inspect
-import importlib
-from typing import Type
 from tasks.AbsTask import AbsTask
 
+import importlib
+import inspect
+import pkgutil
+from typing import Type
 
-def find_subclasses(package, cls) -> dict:
+
+def find_subclasses(package, cls) -> dict[str, Type[AbsTask]]:
     subclasses = {}
     # Traverse through all modules in the given package
     for finder, name, ispkg in pkgutil.walk_packages(
@@ -29,3 +30,7 @@ import tasks
 
 def find_tasks() -> dict[str, Type[AbsTask]]:
     return find_subclasses(tasks, AbsTask)
+
+
+def get_task_names() -> list[str]:
+    return list(find_tasks().keys())

@@ -1,9 +1,9 @@
-from typing import Iterable, Iterator
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+
 from abc import abstractmethod
+from typing import Iterable, Iterator
 
 
 class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
@@ -38,7 +38,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
                     dataset_name=dataset_name,
                     query_id=query.query_id,
                     retrieval_results=self.retrieve(
-                        query.query_str, dataset_name, top_k, kwargs
+                        query.query, dataset_name, top_k, **kwargs
                     ),
                 )
             )

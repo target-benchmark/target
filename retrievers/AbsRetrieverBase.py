@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
+from abc import ABC, abstractmethod
 
 
 class AbsRetrieverBase(ABC):
