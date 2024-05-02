@@ -1,9 +1,10 @@
-from typing import Iterable
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
+from typing import Iterable
 
 
 class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):

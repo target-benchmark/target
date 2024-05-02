@@ -1,9 +1,18 @@
-from abc import ABC, abstractmethod
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from dataset_loaders.LoadersDataModels import (
+    QueryForTasksDataModel,
+    DatasetConfigDataModel,
+    HFDatasetConfigDataModel,
+    GenericDatasetConfigDataModel,
+)
+from dataset_loaders.utils import markdown_table_with_headers
+
+from dictionary_keys import *
 
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
-
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
@@ -11,25 +20,18 @@ from retrievers.AbsCustomEmbeddingRetriever import (
 from retrievers.AbsStandardizedEmbeddingRetriever import (
     AbsStandardizedEmbeddingRetriever as StandardizedEmbRetr,
 )
-
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders.utils import markdown_table_with_headers
-from dataset_loaders.LoadersDataModels import (
-    QueryForTasksDataModel,
-    DatasetConfigDataModel,
-    HFDatasetConfigDataModel,
-    GenericDatasetConfigDataModel,
-)
-
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
+
 from tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
     TaskResultsDataModel,
 )
 
+
+from abc import ABC, abstractmethod
 from logging import Logger
-from dictionary_keys import *
 
 
 class AbsTask(ABC):

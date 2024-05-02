@@ -1,23 +1,23 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from dataset_loaders import HFDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
 )
+from evaluators.utils import find_tasks
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
     AbsStandardizedEmbeddingRetriever,
 )
 from tasks.AbsTask import AbsTask
-from tasks.TableRetrievalTask import TableRetrievalTask
+from tasks import TableRetrievalTask
 from tasks.TasksDataModels import TaskResultsDataModel
-import os
-from evaluators.utils import find_tasks
-from datetime import datetime
 
+from datetime import datetime
 import logging
+import os
 
 
 class TARGET:

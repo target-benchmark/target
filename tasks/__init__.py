@@ -1,0 +1,2 @@
+from tasks.QuestionAnsweringTask import QuestionAnsweringTask
+from tasks.TableRetrievalTask import TableRetrievalTask

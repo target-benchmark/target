@@ -9,10 +9,11 @@ import os
 
 AZURE_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
 AZURE_API_VER = os.getenv("AZURE_OPENAI_API_VERSION")
+DEFAULT_SYSTEM_MESSAGE = "You are a data analyst who reads tables to answer questions."
 
 
 class DefaultGenerator(AbsGenerator):
-    def __init__(self):
+    def __init__(self, system_message: str = DEFAULT_SYSTEM_MESSAGE):
         super().__init__()
         self.language_model = AzureChatOpenAI(
             azure_deployment=AZURE_DEPLOYMENT_NAME,
@@ -21,11 +22,7 @@ class DefaultGenerator(AbsGenerator):
         )
         self.chat_template = ChatPromptTemplate.from_messages(
             [
-                SystemMessage(
-                    content=(
-                        "You are a data analyst who reads tables to answer questions."
-                    )
-                ),
+                SystemMessage(content=(system_message)),
                 HumanMessagePromptTemplate.from_template(
                     "Please use the following table(s) to answer the query. Tables: {table_str}\nQuery: {query_str}"
                 ),

@@ -1,8 +1,9 @@
-import pkgutil
-import inspect
-import importlib
-from typing import Type
 from tasks.AbsTask import AbsTask
+
+import importlib
+import inspect
+import pkgutil
+from typing import Type
 
 
 def find_subclasses(package, cls) -> dict[str, Type[AbsTask]]:

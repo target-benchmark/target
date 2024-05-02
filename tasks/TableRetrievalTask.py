@@ -1,14 +1,16 @@
+from dataset_loaders.TargetDatasetConfig import *
+
+from generators.AbsGenerator import AbsGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
 from tasks.AbsTask import AbsTask
-from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     QueryForTasksDataModel,
 )
-from dataset_loaders.TargetDatasetConfig import *
-from generators.AbsGenerator import AbsGenerator
-from generators.DefaultGenerator import DefaultGenerator
+from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
 
 
 class TableRetrievalTask(AbsTask):
