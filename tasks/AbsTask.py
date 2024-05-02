@@ -73,7 +73,6 @@ class AbsTask(ABC):
         )
         if task_generator is None:
             self.task_generator = DefaultGenerator()
-            print(f"type of generator: {type(self.task_generator)}", flush=True)
         else:
             self.task_generator = task_generator
         self.true_positive = 0
