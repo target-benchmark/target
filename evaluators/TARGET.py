@@ -202,8 +202,8 @@ class TARGET:
         """
         set up a logger for logging all evaluator actions.
         Parameters:
-            persist_log (bool, optional): whether to persist the log to a file or not.
-            log_file_path (string, optional): the path to persis the log to. if none is provided, default to target_run_log_<current time>.txt
+            persist_log (bool, optional): whether to persist the logs or not.
+            log_file_path (string, optional): the path to persis the log to. if none is provided, default to logs/target_run_log_<current time>.txt
 
         Returns:
             a logger with the correct file handling set up.
@@ -214,6 +214,9 @@ class TARGET:
             if not log_file_path:
                 time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 log_file_path = os.path.join("logs", f"./target_run_log_{time_str}.txt")
+            log_dir = os.path.dirname(log_file_path)
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
             # Create file handler which logs even debug messages
             fh = logging.FileHandler(log_file_path)
             fh.setLevel(logging.DEBUG)
