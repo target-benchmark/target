@@ -166,7 +166,7 @@ class AbsTask(ABC):
             table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
                 retrieved_tables = self._get_retrieval_results(
-                    retriever, query_batch, dataset_name, top_k
+                    retriever, query_batch, dataset_name, top_k, **kwargs
                 )
                 self._update_retrieval_results(query_batch, retrieved_tables)
                 self._fill_retrieval_results_with_table_strs(
@@ -214,11 +214,20 @@ class AbsTask(ABC):
         query_batch: List[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
+        **kwargs,
     ) -> List[RetrievalResultDataModel]:
         if isinstance(retriever, StandardizedEmbRetr):
+            if CLIENT_KEY_NAME not in kwargs:
+                raise KeyError(
+                    f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever"
+                )
             # TODO: figure out what to do with embedding here
-            # retreival_results = retriever.retrieve_batch(corpus_embedding=)
-            retrieval_results = {}
+            retrieval_results = retriever.retrieve_batch(
+                queries=query_batch,
+                dataset_name=dataset_name,
+                top_k=top_k,
+                client=kwargs.get(CLIENT_KEY_NAME),
+            )
         elif isinstance(retriever, CustomEmbRetr):
             retrieval_results = retriever.retrieve_batch(
                 queries=query_batch, dataset_name=dataset_name, top_k=top_k

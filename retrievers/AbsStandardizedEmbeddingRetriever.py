@@ -1,5 +1,9 @@
 from typing import Iterable
+
+from qdrant_client import QdrantClient
+from qdrant_client.models import SearchRequest, ScoredPoint
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
+from dictionary_keys import CLIENT_KEY_NAME, METADATA_KEY_NAME
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from abc import abstractmethod
@@ -25,21 +29,34 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
 
     def retrieve_batch(
         self,
-        corpus_embedding,
         queries: List[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
+        if CLIENT_KEY_NAME not in kwargs:
+            raise KeyError(
+                f"missing key {CLIENT_KEY_NAME} in kwargs. must be included to use standardized embedding retriever."
+            )
+        client: QdrantClient = kwargs.get(CLIENT_KEY_NAME)
         for query in queries:
+            result = client.search(
+                collection_name=dataset_name,
+                query_vector=self.retrieve(
+                    query.query_str, dataset_name, top_k, **kwargs
+                ),
+                limit=top_k,
+                with_payload=True,
+            )
             retrieval_results.append(
                 RetrievalResultDataModel(
                     dataset_name=dataset_name,
                     query_id=query.query_id,
-                    retrieval_results=self.retrieve(
-                        corpus_embedding, query.query_str, dataset_name, top_k, kwargs
-                    ),
+                    retrieval_results=[
+                        scored_point.payload[METADATA_KEY_NAME]
+                        for scored_point in result
+                    ],
                 )
             )
         return retrieval_results
@@ -47,17 +64,15 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
     @abstractmethod
     def retrieve(
         self,
-        corpus_embedding,
         query: str,
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[str]:
+    ) -> ArrayLike:
         """
-        Given a corpus embedding, retrieves the corresponding tables for the given query.
+        Given a query, return the query embedding for searching.
 
         Parameters:
-            corpus_embedding: embedding of the corpus (created by `embed_corpus`). TODO: figure out the format for this
 
             queries (str): the actual query string.
 
@@ -68,7 +83,7 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
             any additional kwargs you'd like to include.
 
         Returns:
-            List[str]: the list of table ids of the retrieved tables.
+            Arraylike: the embeddings for the query
         """
         pass
 

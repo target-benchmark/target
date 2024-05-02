@@ -17,3 +17,10 @@ DATABASE_ID_COL_NAME: str = "database_id"
 QUERY_COL_NAME: str = "query"
 QUERY_ID_COL_NAME: str = "query_id"
 ANSWER_COL_NAME: str = "answer"
+
+
+"""
+Default names used when inserting into a vector db
+"""
+METADATA_KEY_NAME: str = "table_id"
+CLIENT_KEY_NAME: str = "client"
