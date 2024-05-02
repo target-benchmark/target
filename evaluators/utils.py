@@ -30,3 +30,7 @@ import tasks
 
 def find_tasks() -> dict[str, Type[AbsTask]]:
     return find_subclasses(tasks, AbsTask)
+
+
+def get_task_names() -> list[str]:
+    return list(find_tasks().keys())
