@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from dictionary_keys import *
 from typing import Union, List
+
+from pydantic import BaseModel, Field
 
 
 class QueryForTasksDataModel(BaseModel):

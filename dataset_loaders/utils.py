@@ -1,7 +1,7 @@
 from ast import literal_eval
-import pandas as pd
 import json
 from typing import List
+import pandas as pd
 
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:

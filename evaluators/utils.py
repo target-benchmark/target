@@ -1,9 +1,10 @@
-import pkgutil
-import inspect
-import importlib
-from typing import Type
 from tasks.AbsTask import AbsTask
 from typing import Dict
+
+import importlib
+import inspect
+import pkgutil
+from typing import Type
 
 
 def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:
@@ -30,3 +31,7 @@ import tasks
 
 def find_tasks() -> Dict[str, Type[AbsTask]]:
     return find_subclasses(tasks, AbsTask)
+
+
+def get_task_names() -> list[str]:
+    return list(find_tasks().keys())
