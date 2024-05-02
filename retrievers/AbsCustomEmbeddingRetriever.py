@@ -1,8 +1,7 @@
-from typing import Iterable, Iterator
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+
 from abc import abstractmethod
 from typing import List, Dict, Iterable
 

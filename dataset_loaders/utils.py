@@ -1,7 +1,8 @@
 from ast import literal_eval
-import pandas as pd
 import json
 from typing import List, Literal
+import pandas as pd
+
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     """
@@ -47,11 +48,15 @@ def str_representation_to_array(array_repr: str) -> List:
             raise ValueError(f"row {row} has unmatched number of items!")
     return array
 
-def convert_nested_list_to(nested_list: List[List], output_format: Literal["array", "nested array", "pandas"]):
+
+def convert_nested_list_to(
+    nested_list: List[List], output_format: Literal["array", "nested array", "pandas"]
+):
     if "array" in output_format:
         return nested_list
     elif "pandas" in output_format:
         return array_of_arrays_to_df(nested_list)
+
 
 def markdown_table_with_headers(nested_array: List[List]):
     # the first row of the array is the header

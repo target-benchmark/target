@@ -1,9 +1,18 @@
-from abc import ABC, abstractmethod
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from dataset_loaders.LoadersDataModels import (
+    QueryForTasksDataModel,
+    DatasetConfigDataModel,
+    HFDatasetConfigDataModel,
+    GenericDatasetConfigDataModel,
+)
+from dataset_loaders.utils import markdown_table_with_headers
+
+from dictionary_keys import *
 
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
-
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
@@ -11,25 +20,18 @@ from retrievers.AbsCustomEmbeddingRetriever import (
 from retrievers.AbsStandardizedEmbeddingRetriever import (
     AbsStandardizedEmbeddingRetriever as StandardizedEmbRetr,
 )
-
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders.utils import markdown_table_with_headers
-from dataset_loaders.LoadersDataModels import (
-    QueryForTasksDataModel,
-    DatasetConfigDataModel,
-    HFDatasetConfigDataModel,
-    GenericDatasetConfigDataModel,
-)
-
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
+
 from tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
     TaskResultsDataModel,
 )
 
+
+from abc import ABC, abstractmethod
 from logging import Logger
-from dictionary_keys import *
 from typing import Union, List, Dict
 
 
@@ -72,7 +74,6 @@ class AbsTask(ABC):
         )
         if task_generator is None:
             self.task_generator = DefaultGenerator()
-            print(f"type of generator: {type(self.task_generator)}", flush=True)
         else:
             self.task_generator = task_generator
         self.true_positive = 0

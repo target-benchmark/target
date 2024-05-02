@@ -6,6 +6,7 @@ from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from dictionary_keys import CLIENT_KEY_NAME, METADATA_KEY_NAME
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
 from typing import List, Dict, Iterable
