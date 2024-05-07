@@ -1,4 +1,5 @@
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from typing import List
 
 from abc import ABC, abstractmethod
 
@@ -22,7 +23,7 @@ class AbsRetrieverBase(ABC):
         return self.expected_corpus_format
 
     @abstractmethod
-    def retrieve(self, *args, **kwargs) -> list[str]:
+    def retrieve(self, *args, **kwargs) -> List[str]:
         """
         The essential function for any Target Retriever. User have to implement this for the retriever class to work with evaluation pipeline.
         Returns:
@@ -31,5 +32,5 @@ class AbsRetrieverBase(ABC):
         pass
 
     @abstractmethod
-    def retrieve_batch(self, *args, **kwargs) -> list[RetrievalResultDataModel]:
+    def retrieve_batch(self, *args, **kwargs) -> List[RetrievalResultDataModel]:
         pass

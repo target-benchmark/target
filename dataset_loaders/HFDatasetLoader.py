@@ -1,5 +1,6 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dictionary_keys import *
+from typing import Union, List
 
 from datasets import load_dataset, DatasetDict
 from pathlib import Path
@@ -17,7 +18,7 @@ class HFDatasetLoader(AbsDatasetLoader):
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
-        splits: str | list[str] = "test",
+        splits: Union[str, List[str]] = "test",
         data_directory: str = None,
         query_type: str = "",
         **kwargs
@@ -45,12 +46,12 @@ class HFDatasetLoader(AbsDatasetLoader):
         self.hf_corpus_dataset_path = hf_corpus_dataset_path
         self.hf_queries_dataset_path = hf_queries_dataset_path
 
-    def _load(self, splits: str | list[str] = None) -> None:
+    def _load(self, splits: Union[str, List[str]] = None) -> None:
         """
         Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            splits (str | list[str], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
+            splits (Union[str, List[str]], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
         """
         if splits:
             if isinstance(splits, str):

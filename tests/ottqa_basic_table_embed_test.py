@@ -62,5 +62,4 @@ class TestOTTQARetriever(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print(os.path.dirname(os.path.abspath(__file__)))
     unittest.main()

@@ -4,7 +4,7 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from abc import abstractmethod
 from numpy.typing import NDArray, ArrayLike
-from typing import Iterable
+from typing import List, Dict, Iterable
 
 
 class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
@@ -26,11 +26,11 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
     def retrieve_batch(
         self,
         corpus_embedding,
-        queries: list[QueryForTasksDataModel],
+        queries: List[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> list[RetrievalResultDataModel]:
+    ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
         for query in queries:
             retrieval_results.append(
@@ -52,7 +52,7 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> list[str]:
+    ) -> List[str]:
         """
         Given a corpus embedding, retrieves the corresponding tables for the given query.
 
@@ -68,22 +68,22 @@ class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
             any additional kwargs you'd like to include.
 
         Returns:
-            list[str]: the list of table ids of the retrieved tables.
+            List[str]: the list of table ids of the retrieved tables.
         """
         pass
 
     @abstractmethod
     def embed_corpus(
         self, dataset_name: str, corpus: Iterable[dict]
-    ) -> dict[str, ArrayLike]:
+    ) -> Dict[str, ArrayLike]:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (dict[str, object]): a dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
+            corpus (Dict[str, object]): a dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
 
         Returns:
-            dict[str, ArrayLike]: a mapping between the table id and the embedding of that table. the embedding is restricted to an ArrayLike
+            Dict[str, ArrayLike]: a mapping between the table id and the embedding of that table. the embedding is restricted to an ArrayLike
         """
         pass

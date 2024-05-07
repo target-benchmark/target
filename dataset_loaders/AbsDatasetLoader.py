@@ -27,7 +27,7 @@ class AbsDatasetLoader(ABC):
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
-        splits: str | list[str] = "test",
+        splits: Union[str, List[str]] = "test",
         data_directory: str = None,
         query_type: str = None,
         **kwargs,
@@ -50,7 +50,7 @@ class AbsDatasetLoader(ABC):
 
             answer_col_name (str, optional): name of the column that contains the answer str. defaults to "answer".
 
-            splits (str | list[str], optional): splits of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
+            splits (Union[str, List[str]], optional): splits of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
 
             data_directory (str, optional): a directory where data files are stored. you don't have to provide one if you don't need to persist the file after loading it.
 
@@ -80,12 +80,12 @@ class AbsDatasetLoader(ABC):
         self.corpus: DatasetDict = None
         self.queries: DatasetDict = None
 
-    def load(self, splits: str | list[str] = None) -> None:
+    def load(self, splits: Union[str, List[str]] = None) -> None:
         if not self.corpus or not self.queries:
             self._load(splits=splits)
 
     @abstractmethod
-    def _load(self, splits: str | list[str] = None) -> None:
+    def _load(self, splits: Union[str, List[str]] = None) -> None:
         """
         Load the dataset split.
 
@@ -93,7 +93,7 @@ class AbsDatasetLoader(ABC):
         such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            splits(str | list[str], optional): The dataset split or splits to load. If none are provided, splits specified in self.splits should be loaded. self.splits will also be updated to reflect the splits actually loaded
+            splits(Union[str, List[str]], optional): The dataset split or splits to load. If none are provided, splits specified in self.splits should be loaded. self.splits will also be updated to reflect the splits actually loaded
 
         Raises NotImplementedError: If the method is called on the abstract class directly.
 
@@ -109,7 +109,7 @@ class AbsDatasetLoader(ABC):
         pass
 
     def persist_corpus_to(
-        self, format: str, path: str = None, splits: str | list[str] = None
+        self, format: str, path: str = None, splits: Union[str, List[str]] = None
     ) -> None:
         """
         Saves the tables in the corpus to a specified location and format.
@@ -117,7 +117,7 @@ class AbsDatasetLoader(ABC):
         Parameters:
             format (str): The format in which to save the corpus (e.g., 'csv', 'json').
             path (str, optional): The file system path where the corpus should be saved. creates directory if the directory doesn't exist. if no path is given, defaults to self.data_directory. if self.data_directory is also None, throw ValueError.
-            splits (str | list[str]): split names to persist. if non is provided, all splits will be persisted.
+            splits (Union[str, List[str]]): split names to persist. if non is provided, all splits will be persisted.
 
         Raises:
             Runtime error if the corpus has not been loaded, or if the splits specified doesn't exist in the data dicts.
@@ -172,16 +172,16 @@ class AbsDatasetLoader(ABC):
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
-        splits: str | list[str] = None,
+        splits: Union[str, List[str]] = None,
         batch_size: int = 64,
-    ) -> Iterable[dict]:
+    ) -> Iterable[Dict]:
         """
         convert the corpus table to a specific format in memory.
 
         Parameters:
 
             output_format (str): the output class name, can be nest_array, pandas, etc.
-            splits (str | list[str]): split names to convert. if non is provided, all splits will be converted.
+            splits (Union[str, List[str]]): split names to convert. if non is provided, all splits will be converted.
             batch_size (int): number of tables to be outputted at once
 
         Returns:
@@ -216,8 +216,8 @@ class AbsDatasetLoader(ABC):
 
     def get_table_id_to_table(
         self,
-        splits: str | list[str] = None,
-    ) -> dict[str, list[list]]:
+        splits: Union[str, List[str]] = None,
+    ) -> Dict[str, List[List]]:
         mapping_dict = {}
         for batch in self.convert_corpus_table_to(splits=splits):
             for table_id, table in batch.items():
@@ -225,8 +225,8 @@ class AbsDatasetLoader(ABC):
         return mapping_dict
 
     def get_queries_for_task(
-        self, splits: str | list[str] = None, batch_size: int = 64
-    ) -> Iterable[list[QueryForTasksDataModel]]:
+        self, splits: Union[str, List[str]] = None, batch_size: int = 64
+    ) -> Iterable[List[QueryForTasksDataModel]]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
 
@@ -234,7 +234,7 @@ class AbsDatasetLoader(ABC):
             splits = self.splits
         else:
             splits = self._check_all_split_names_exist(splits)
-            if not isinstance(splits, list):
+            if not isinstance(splits, List):
                 raise ValueError(
                     f"split {splits} doesn't exist for the current dataset!"
                 )
@@ -270,12 +270,12 @@ class AbsDatasetLoader(ABC):
         """
         return self.dataset_name
 
-    def get_corpus(self, splits: str | list[str] = None) -> DatasetDict:
+    def get_corpus(self, splits: Union[str, List[str]] = None) -> DatasetDict:
         """
         get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
 
         Parameters:
-            splits(str | list[str], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
+            splits(Union[str, List[str]], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
 
         Returns:
             a DatasetDict object containing the corresponding splits from the dataset's corpus
@@ -288,12 +288,12 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self._get_dataset_dict_from_split(self.corpus, splits)
 
-    def get_queries(self, splits: str | list[str] = None) -> DatasetDict:
+    def get_queries(self, splits: Union[str, List[str]] = None) -> DatasetDict:
         """
         get the queries of the loaded dataset. if the dataset has not been loaded, raise an error.
 
         Parameters:
-            splits(str | list[str], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
+            splits(Union[str, List[str]], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
 
         Returns:
             a DatasetDict object containing the corresponding splits from the dataset's queries.
@@ -306,14 +306,14 @@ class AbsDatasetLoader(ABC):
         return self._get_dataset_dict_from_split(self.queries, splits)
 
     def _get_dataset_dict_from_split(
-        self, existing_dataset_dict: DatasetDict, splits: str | list[str] = None
+        self, existing_dataset_dict: DatasetDict, splits: Union[str, List[str]] = None
     ) -> DatasetDict:
         """
         get the dataset from specified splits
 
         Parameters:
             existing_dataset_dict (DatasetDict): a dataset dict to get splits from.
-            splits (str | list[str], optional): split names, can be a single name or a list of names. if none is provided, the entire DatasetDict object is returned.
+            splits (Union[str, List[str]], optional): split names, can be a single name or a list of names. if none is provided, the entire DatasetDict object is returned.
 
         Returns:
             a DatasetDict object containing the requested splits.
@@ -333,13 +333,13 @@ class AbsDatasetLoader(ABC):
         return DatasetDict(dataset_splits)
 
     def _check_all_split_names_exist(
-        self, splits: str | list[str] = None
-    ) -> list[str] | str:
+        self, splits: Union[str, List[str]] = None
+    ) -> Union[str, List[str]]:
         """
         check if the splits string or list exists within the corpus and queries Datasets. if any of the splits doesn't exist within either, the function returns the split name that doesn't exist. otherwise returns a list of splits
 
         Parameters:
-            splits (str | list[str]) : a single split or a list of splits to check
+            splits (Union[str, List[str]]) : a single split or a list of splits to check
 
         Returns:
              if a split doesn't exist, return the single string (split name that doesn't exist), or returns a list of validated split names.
@@ -351,7 +351,7 @@ class AbsDatasetLoader(ABC):
                 return split_name
         return splits
 
-    def get_corpus_header(self) -> dict[str, list[str]]:
+    def get_corpus_header(self) -> Dict[str, List[str]]:
         """
         returns the header of this dataset's corpus
 
@@ -362,7 +362,7 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus.column_names
 
-    def get_queries_header(self) -> dict[str, list[str]]:
+    def get_queries_header(self) -> Dict[str, List[str]]:
         """
         returns the header of this dataset's queries
         Returns:

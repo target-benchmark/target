@@ -32,6 +32,7 @@ from tasks.TasksDataModels import (
 
 from abc import ABC, abstractmethod
 from logging import Logger
+from typing import Union, List, Dict
 
 
 class AbsTask(ABC):
@@ -39,7 +40,7 @@ class AbsTask(ABC):
     def __init__(
         self,
         task_name: str = None,
-        datasets_config: dict[str, dict[str, str]] = None,
+        datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         **kwargs,
@@ -49,7 +50,7 @@ class AbsTask(ABC):
         Parameters:
             task_name (str): name of the task. should be an unique identifier.
 
-            datasets_config (dict[str, dict[str, str]], optional): if the user wants to add any custom datasets to the task, they can do so by passing in a dictionary to specify the dataset configuration. for the outer dictionary, the key is the name of the dataset, and the value is another dictionary. for the inner dictionary, either paths to hf corpus & queries datasets or a local path to a generic dataset should be included.
+            datasets_config (Dict[str, Dict[str, str]], optional): if the user wants to add any custom datasets to the task, they can do so by passing in a dictionary to specify the dataset configuration. for the outer dictionary, the key is the name of the dataset, and the value is another dictionary. for the inner dictionary, either paths to hf corpus & queries datasets or a local path to a generic dataset should be included.
             example for a huggingface dataset:
                 {
                     'hf_corpus_path': 'target-benchmark/fetaqa-corpus',
@@ -68,7 +69,7 @@ class AbsTask(ABC):
             self.task_name = self.get_default_task_name()
         else:
             self.task_name: str = task_name
-        self.dataset_config: dict[str, DatasetConfigDataModel] = (
+        self.dataset_config: Dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
         if task_generator is None:
@@ -94,17 +95,17 @@ class AbsTask(ABC):
 
     def _construct_dataset_config(
         self,
-        datasets_config: dict[str, dict[str, str]],
+        datasets_config: Dict[str, Dict[str, str]],
         overwrite_default_datasets: bool,
-    ) -> dict[str, DatasetConfigDataModel]:
+    ) -> Dict[str, DatasetConfigDataModel]:
         """
         builds the dataset config according to the user inputted dataset config (if any) and the default for the class.
 
         Parameters:
-            datasets_config (dict[str, dict[str, str]]): user inputted datasets config dictionary.
+            datasets_config (Dict[str, Dict[str, str]]): user inputted datasets config dictionary.
             overwrite_default_datasets (bool): whether to overwrite the default datasets or not if the same name dataset is provided.
         """
-        constructed_config: dict[str, DatasetConfigDataModel] = (
+        constructed_config: Dict[str, DatasetConfigDataModel] = (
             self._get_default_dataset_config()
         )
         if datasets_config is not None:
@@ -123,7 +124,7 @@ class AbsTask(ABC):
 
         return constructed_config
 
-    def get_dataset_config(self) -> dict[str, DatasetConfigDataModel]:
+    def get_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the dataset config of the task.
 
@@ -133,7 +134,7 @@ class AbsTask(ABC):
         return self.dataset_config
 
     @abstractmethod
-    def _get_default_dataset_config(self) -> dict[str, DatasetConfigDataModel]:
+    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for the class. MUST be implemented by any inherited task class.
         """
@@ -142,10 +143,10 @@ class AbsTask(ABC):
     def task_run(
         self,
         retriever: AbsRetrieverBase,
-        dataset_loaders: dict[str, AbsDatasetLoader],
+        dataset_loaders: Dict[str, AbsDatasetLoader],
         logger: Logger,
         batch_size: int = 64,
-        splits: str | list[str] = "test",
+        splits: Union[str, List[str]] = "test",
         top_k: int = 5,
         **kwargs,
     ) -> dict:
@@ -199,8 +200,8 @@ class AbsTask(ABC):
 
     def _fill_retrieval_results_with_table_strs(
         self,
-        retrieval_results: list[RetrievalResultDataModel],
-        table_id_to_tables: dict[str, list[list]],
+        retrieval_results: List[RetrievalResultDataModel],
+        table_id_to_tables: Dict[str, List[List]],
     ) -> None:
         for result in retrieval_results:
             result.retrieved_tables = [
@@ -211,10 +212,10 @@ class AbsTask(ABC):
     def _get_retrieval_results(
         self,
         retriever: AbsRetrieverBase,
-        query_batch: list[QueryForTasksDataModel],
+        query_batch: List[QueryForTasksDataModel],
         dataset_name: str,
         top_k: int,
-    ) -> list[RetrievalResultDataModel]:
+    ) -> List[RetrievalResultDataModel]:
         if isinstance(retriever, StandardizedEmbRetr):
             # TODO: figure out what to do with embedding here
             # retreival_results = retriever.retrieve_batch(corpus_embedding=)
@@ -232,8 +233,8 @@ class AbsTask(ABC):
 
     def _update_retrieval_results(
         self,
-        query_batch: list[QueryForTasksDataModel],
-        new_retrieved_tables: list[RetrievalResultDataModel],
+        query_batch: List[QueryForTasksDataModel],
+        new_retrieved_tables: List[RetrievalResultDataModel],
     ) -> None:
         for query, retrieval_result in zip(query_batch, new_retrieved_tables):
             if query.table_id in retrieval_result.retrieval_results:
@@ -257,10 +258,10 @@ class AbsTask(ABC):
     @abstractmethod
     def _get_downstream_task_results(
         self,
-        query_batch: list[QueryForTasksDataModel],
-        retrieval_results: list[RetrievalResultDataModel],
+        query_batch: List[QueryForTasksDataModel],
+        retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
-    ) -> list[DownstreamGeneratedResultDataModel]:
+    ) -> List[DownstreamGeneratedResultDataModel]:
         """
         TODO: how to pass through the tables? nested arrays, etc
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
@@ -270,8 +271,8 @@ class AbsTask(ABC):
     @abstractmethod
     def _update_downstream_task_results(
         self,
-        query_batch: list[QueryForTasksDataModel],
-        downstream_answers: list[DownstreamGeneratedResultDataModel],
+        query_batch: List[QueryForTasksDataModel],
+        downstream_answers: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values you keep track of for the downstream tasks.
