@@ -10,17 +10,23 @@ from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from tasks.AbsTask import AbsTask
-from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
+from tasks.TasksDataModels import DownstreamTaskPerformanceDataModel, TableQATaskPerformanceDataModel
 
-from typing import List, Dict
+import evaluate
+from typing import List, Dict, Union
+
 
 
 class QuestionAnsweringTask(AbsTask):
+
+    AVAILABLE_METRICS = set("bertscore", "bleurt", "sacrebleu", "rouge", "meteor")
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
+        lang: str = "en",
+        metrics: Union[str, List[str]] = "bertscore",
         **kwargs,
     ):
         super().__init__(
@@ -30,10 +36,29 @@ class QuestionAnsweringTask(AbsTask):
             task_generator=task_generator,
             **kwargs,
         )
+        # set up the evaluator objects
+        if isinstance(metrics, str):
+            metrics = [metrics]
+        for metric in metrics:
+            if metric not in QuestionAnsweringTask.AVAILABLE_METRICS:
+                raise ValueError(f"the metric {metric} is not one of the available metrics!")
+
+        self.bert_score = evaluate.load("bertscore") if "bertscore" in metrics else None
+        self.bleurt = evaluate.load("bleurt", module_type="metric") if "bleurt" in metrics else None
+        self.sacre_bleu = evaluate.load("sacrebleu") if "sacrebleu" in metrics else None
+        self.rouge = evaluate.load("rouge") if "rouge" in metrics else None
+        self.meteor = evaluate.load("meteor") if "meteor" in metrics else None
+        self.language = lang
+        self.pred_answers = []
+        self.ref_answers = []
 
     @classmethod
     def get_default_task_name(cls) -> str:
-        return "Question Answering Task"
+        return "Table Question Answering Task"
+    @classmethod
+    def get_available_metrics(cls) -> str:
+        return str(cls.AVAILABLE_METRICS)
+
 
     def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
@@ -42,7 +67,7 @@ class QuestionAnsweringTask(AbsTask):
         # TODO: add more things here. this is for testing. carl note 4/24
         return {
             # this is for testing!!
-            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+            DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(
@@ -52,10 +77,9 @@ class QuestionAnsweringTask(AbsTask):
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
-        TODO: how to pass through the tables? nested arrays, etc; currently just markdown reps of table strings
+        currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        # assert(len(query_batch) == len(retrieval_results)), "the "
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
@@ -78,12 +102,23 @@ class QuestionAnsweringTask(AbsTask):
         """
         Update any values you keep track of for the downstream tasks.
         """
-        pass
+        self.pred_answers.extend([downstream_answer.generated_results for downstream_answer in downstream_answers])
+        self.ref_answers.extend([query.answer for query in query_batch])
 
     def _calculate_downstream_task_metrics(
         self, **kwargs
-    ) -> DownstreamTaskPerformanceDataModel:
+    ) -> TableQATaskPerformanceDataModel:
         """
-        All downstreams tasks should fill out this method. uses whatever values that's been tracked & updated through the query eval, and calculate the metrics.
+        Calculate downstream task metrics for the question answering task.
         """
-        return DownstreamTaskPerformanceDataModel()
+        result = TableQATaskPerformanceDataModel(
+            bert_score=self.bert_score.compute(predictions=self.pred_answers, references=self.ref_answers, lang="en") if self.bert_score else None,
+            bleurt_score=self.bleurt.compute(predictions=self.pred_answers, references=self.ref_answers) if self.bleurt else None,
+            sacrebleu_score=self.sacre_bleu.compute(predictions=self.pred_answers, references=self.ref_answers) if self.sacre_bleu else None,
+            rouge_score=self.rouge.compute(predictions=self.pred_answers, references=self.ref_answers) if self.rouge else None,
+            meteor_score=self.meteor.compute(predictions=self.pred_answers, references=self.ref_answers) if self.meteor else None,
+        )
+        
+        self.pred_answers = []
+        self.ref_answers = []
+        return result

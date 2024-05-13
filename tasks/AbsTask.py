@@ -72,18 +72,24 @@ class AbsTask(ABC):
         self.dataset_config: Dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
-        if task_generator is None:
-            self.task_generator = DefaultGenerator()
-        else:
-            self.task_generator = task_generator
+        
+        self.task_generator = task_generator if task_generator is not None else DefaultGenerator()
         self.true_positive = 0
         self.total_queries_processed = 0
 
     @classmethod
     @abstractmethod
-    def get_default_task_name(cls):
+    def get_default_task_name(cls) -> str:
         """
         Returns the default name of the task.
+        """
+        pass
+    
+    @classmethod
+    @abstractmethod
+    def get_available_metrics(cls) -> str:
+        """
+        Returns the metrics available for a class.
         """
         pass
 
