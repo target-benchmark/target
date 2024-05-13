@@ -149,9 +149,20 @@ class AbsTask(ABC):
         splits: Union[str, List[str]] = "test",
         top_k: int = 5,
         **kwargs,
-    ) -> dict:
+    ) -> Dict[str, TaskResultsDataModel]:
         '''
         Running the task.
+
+        Parameters: 
+            retriever (AbsRetrieverBase): a standardized or custom retriever.
+            dataset_loaders (Dict[str, AbsDatasetLoader]): a dictionary of dataset loaders needed to finish this task.
+            logger (Logger): a logger object for logging.
+            batch_size (int): number of queries to process at once.
+            splits (Union[str, List[str]]): which splits of a particular dataset to run. defaults to test.
+            top_k (int): an integer for the top k tables to retrieve.
+        
+        Returns:
+            a dictionary mapping the dataset names to the task results.
         '''
         assert (
             self.dataset_config.keys() <= dataset_loaders.keys()
@@ -170,12 +181,9 @@ class AbsTask(ABC):
             table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
                 retrieved_tables = self._get_retrieval_results(
-                    retriever, query_batch, dataset_name, top_k, **kwargs
+                    retriever, query_batch, table_id_to_table, dataset_name, top_k, **kwargs
                 )
                 self._update_retrieval_results(query_batch, retrieved_tables)
-                self._fill_retrieval_results_with_table_strs(
-                    retrieved_tables, table_id_to_table
-                )
                 downstream_task_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
@@ -201,34 +209,32 @@ class AbsTask(ABC):
             logger.info(f"finished running task {self.task_name}")
         return task_results
 
-    def _fill_retrieval_results_with_table_strs(
-        self,
-        retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_tables: Dict[str, List[List]],
-    ) -> None:
-        '''
-        Complete the retrieval result data model objects by including all the table strings.
-        '''
-        for result in retrieval_results:
-            result.retrieved_tables = [
-                markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieved_tables
-            ]
-
     def _get_retrieval_results(
         self,
         retriever: AbsRetrieverBase,
         query_batch: List[QueryForTasksDataModel],
+        table_id_to_table: Dict[str, str],
         dataset_name: str,
         top_k: int,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
+        '''
+        Get the retrieval results for the query batch passed in.
+        Parameters:
+            retriever (AbsRetrieverBase): a standardized or custom retriever.
+            query_batch (List[QueryForTasksDataModel]): a list of query for task data model objects.
+            table_id_to_table (Dict[str, str]): a dictionary mapping table id to table strings.
+            dataset_name (str): name of the dataset that the queries come from.
+            top_k (int): an integer for the top k tables to retrieve.
+        
+        Returns:
+            a list of retrieval result data model objects corresponding to the input. 
+        '''
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
                     f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever"
                 )
-            # TODO: figure out what to do with embedding here
             retrieval_results = retriever.retrieve_batch(
                 queries=query_batch,
                 dataset_name=dataset_name,
@@ -243,7 +249,10 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
-
+        # complete the results data model objects with table strings
+        self._fill_retrieval_results_with_table_strs( 
+            retrieval_results, table_id_to_table
+        )
         return retrieval_results
 
     def _update_retrieval_results(
@@ -251,6 +260,12 @@ class AbsTask(ABC):
         query_batch: List[QueryForTasksDataModel],
         new_retrieved_tables: List[RetrievalResultDataModel],
     ) -> None:
+        '''
+        Update retrieval results.
+        Parameters:
+            query_batch (List[QueryForTasksDataModel]): a list of query for task data model objects
+            new_retrieved_tables (List[RetrievalResultDataModel]): a list of retrieval result data model objects
+        '''
         for query, retrieval_result in zip(query_batch, new_retrieved_tables):
             if query.table_id in retrieval_result.retrieval_results:
                 self.true_positive += 1
@@ -261,6 +276,11 @@ class AbsTask(ABC):
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval metrics after the table retrieval has been completed.
+        Parameters: 
+            top_k (int): top k tables retrieved
+
+        Returns:
+            a retrieval performance data model object to reflect the retrieval results.
         """
         performace = RetrievalPerformanceDataModel(
             k=top_k, accuracy=self.true_positive / self.total_queries_processed
@@ -278,8 +298,15 @@ class AbsTask(ABC):
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
-        TODO: how to pass through the tables? nested arrays, etc
-        All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
+        All downstreams tasks should fill out this method. 
+        The RetrievalResultDataModel contains a list of table ids and a list of corresponding table strings. Uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
+        Parameters:
+            query_batch (List[QueryForTasksDataModel]): a list of query for task data model objects
+            new_retrieved_tables (List[RetrievalResultDataModel]): a list of retrieval result data model objects. contains the table string representation.
+            dataset_name (string): name of the dataset that the queries came from.
+        
+        Returns:
+            a list of downstream generated result data model objects, containing the generated answer and the corresponding query.
         """
         pass
 
@@ -290,7 +317,11 @@ class AbsTask(ABC):
         downstream_answers: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
+        All downstreams tasks should fill out this method. 
         Update any values you keep track of for the downstream tasks.
+        Parameters: 
+            query_batch (List[QueryForTasksDataModel]): a list of query for task data model objects
+            downstream_answers (List[DownstreamGeneratedResultDataModel]): downstream task generated answers, obtained from `_get_downstream_task_results` function.
         """
         pass
 
@@ -299,6 +330,24 @@ class AbsTask(ABC):
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
-        All downstreams tasks should fill out this method. uses whatever values that's been tracked & updated through the query eval, and calculate the metrics.
+        All downstreams tasks should fill out this method. 
+        Uses whatever values that's been tracked & updated for the downstream task and calculate the metrics.
+        Reset any values necessary (ie instance vars, class vars, etc.) for the new eval on the next dataset.
+        Parameters:
+            whatever needed. 
         """
         pass
+
+    def _fill_retrieval_results_with_table_strs(
+        self,
+        retrieval_results: List[RetrievalResultDataModel],
+        table_id_to_tables: Dict[str, List[List]],
+    ) -> None:
+        '''
+        Complete the retrieval result data model objects by including all the table strings.
+        '''
+        for result in retrieval_results:
+            result.retrieved_tables = [
+                markdown_table_with_headers(table_id_to_tables[table_id])
+                for table_id in result.retrieved_tables
+            ]
