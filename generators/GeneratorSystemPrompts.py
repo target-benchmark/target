@@ -1,0 +1,2 @@
+DEFAULT_SYSTEM_MESSAGE = "You are a data analyst who reads tables to answer questions."
+DEFAULT_FACT_VERIFICATION_SM = "Given the following evidence which may take the form of sentences or a data table, determine whether the evidence supports or refutes the following statement, or does not contain enough information. Assign the statement one of three labels: True, False, Not Enough Information. Do not include anything else in your answer."

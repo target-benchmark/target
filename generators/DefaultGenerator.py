@@ -1,4 +1,5 @@
 from generators.AbsGenerator import AbsGenerator
+from generators.GeneratorSystemPrompts import DEFAULT_SYSTEM_MESSAGE
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
@@ -9,7 +10,6 @@ import os
 
 AZURE_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
 AZURE_API_VER = os.getenv("AZURE_OPENAI_API_VERSION")
-DEFAULT_SYSTEM_MESSAGE = "You are a data analyst who reads tables to answer questions."
 
 
 class DefaultGenerator(AbsGenerator):
