@@ -21,7 +21,7 @@ from typing import List, Dict, Union
 
 class QuestionAnsweringTask(AbsTask):
 
-    AVAILABLE_METRICS = set("bertscore", "bleurt", "sacrebleu", "rouge", "meteor")
+    AVAILABLE_METRICS = set(["bertscore", "bleurt", "sacrebleu", "rouge", "meteor"])
 
     def __init__(
         self,
@@ -42,21 +42,15 @@ class QuestionAnsweringTask(AbsTask):
         # set up the evaluator objects
         if isinstance(metrics, str):
             metrics = [metrics]
+
+        self.evals = {}
         for metric in metrics:
             if metric not in QuestionAnsweringTask.AVAILABLE_METRICS:
                 raise ValueError(
                     f"the metric {metric} is not one of the available metrics!"
                 )
+            self.evals[metric] = evaluate.load(metric)
 
-        self.bert_score = evaluate.load("bertscore") if "bertscore" in metrics else None
-        self.bleurt = (
-            evaluate.load("bleurt", module_type="metric")
-            if "bleurt" in metrics
-            else None
-        )
-        self.sacre_bleu = evaluate.load("sacrebleu") if "sacrebleu" in metrics else None
-        self.rouge = evaluate.load("rouge") if "rouge" in metrics else None
-        self.meteor = evaluate.load("meteor") if "meteor" in metrics else None
         self.language = lang
         self.pred_answers = []
         self.ref_answers = []
@@ -125,45 +119,22 @@ class QuestionAnsweringTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
-        result = TableQATaskPerformanceDataModel(
-            bert_score=(
-                self.bert_score.compute(
+        scores = {}
+        for metric_name, evaluator in self.evals.items():
+            calculated_result = None
+            if metric_name == "bertscore":
+                calculated_result = evaluator.compute(
                     predictions=self.pred_answers,
                     references=self.ref_answers,
                     lang="en",
                 )
-                if self.bert_score
-                else None
-            ),
-            bleurt_score=(
-                self.bleurt.compute(
+            else:
+                calculated_result = evaluator.compute(
                     predictions=self.pred_answers, references=self.ref_answers
                 )
-                if self.bleurt
-                else None
-            ),
-            sacrebleu_score=(
-                self.sacre_bleu.compute(
-                    predictions=self.pred_answers, references=self.ref_answers
-                )
-                if self.sacre_bleu
-                else None
-            ),
-            rouge_score=(
-                self.rouge.compute(
-                    predictions=self.pred_answers, references=self.ref_answers
-                )
-                if self.rouge
-                else None
-            ),
-            meteor_score=(
-                self.meteor.compute(
-                    predictions=self.pred_answers, references=self.ref_answers
-                )
-                if self.meteor
-                else None
-            ),
-        )
+            scores[metric_name] = calculated_result
+
+        result = TableQATaskPerformanceDataModel(scores=scores)
 
         self.pred_answers = []
         self.ref_answers = []

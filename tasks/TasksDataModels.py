@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, Optional
 
 
 class RetrievalPerformanceDataModel(BaseModel):
@@ -11,31 +11,15 @@ class RetrievalPerformanceDataModel(BaseModel):
 
 class DownstreamTaskPerformanceDataModel(BaseModel):
     task_name: str = Field(default=None, description="name of the downstream task")
+    scores: Optional[Dict] = Field(
+        default=None, description="all metrics with the metric name prepended."
+    )
 
 
 class TableQATaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
     task_name: str = Field(
         default="Table Question Answering Task",
         description="name of the downstream task",
-    )
-    bert_score: Dict = Field(
-        default=None,
-        description="Calculated bert score, dictionary with fields precision, recall, f1, and hashcode of the model used for scoring.",
-    )
-    bleurt_score: Dict = Field(
-        default=None,
-        description="Calculated bleurt score. dictionary with one field, a list of scores",
-    )
-    sacrebleu_score: Dict = Field(
-        default=None,
-        description="Calculate sacreBleu score. dictionary with fields score, counts, totals, precisions, bp, sys_len, ref_len",
-    )
-    rouge_score: Dict = Field(
-        default=None,
-        description="Calculated rouge score. Contains keys rouge1, rouge2, rougeL, rougeLsum.",
-    )
-    meteor_score: Dict = Field(
-        default=None, description="Calculated meteor score. Contains key meteor."
     )
 
 

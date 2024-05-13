@@ -29,7 +29,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
 
     def setUp(self):
         self.retr_task = TableRetrievalTask()
-        self.retriever = MagicMock()
+        self.mock_retriever = MagicMock()
         self.mock_retriever.__class__ = AbsStandardizedEmbeddingRetriever
         self.mock_retriever.retrieve_batch.return_value = [
             RetrievalResultDataModel(
