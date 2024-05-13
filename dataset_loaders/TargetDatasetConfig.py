@@ -24,8 +24,9 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_queries_dataset_path="target-benchmark/infiagentda-queries",
 )
 
+# TESTING ONLY
 DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="dummy-dataset",
-    hf_corpus_dataset_path="jixy2012/test-hf-corpus",
-    hf_queries_dataset_path="jixy2012/test-hf-queries",
+    hf_corpus_dataset_path="jixy2012/mock-hf-corpus-dataset",
+    hf_queries_dataset_path="jixy2012/mock-hf-queries-dataset",
 )
