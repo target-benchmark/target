@@ -150,6 +150,9 @@ class AbsTask(ABC):
         top_k: int = 5,
         **kwargs,
     ) -> dict:
+        '''
+        Running the task.
+        '''
         assert (
             self.dataset_config.keys() <= dataset_loaders.keys()
         ), f"task's dataset config is not a subset of the dataset loaders passed in! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
@@ -203,6 +206,9 @@ class AbsTask(ABC):
         retrieval_results: List[RetrievalResultDataModel],
         table_id_to_tables: Dict[str, List[List]],
     ) -> None:
+        '''
+        Complete the retrieval result data model objects by including all the table strings.
+        '''
         for result in retrieval_results:
             result.retrieved_tables = [
                 markdown_table_with_headers(table_id_to_tables[table_id])
