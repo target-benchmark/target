@@ -206,7 +206,7 @@ class AbsTask(ABC):
         for result in retrieval_results:
             result.retrieved_tables = [
                 markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieved_tables
+                for table_id in result.retrieval_results
             ]
 
     def _get_retrieval_results(

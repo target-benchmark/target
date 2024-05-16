@@ -1,3 +1,4 @@
 from tasks.AbsTask import AbsTask
 from tasks.QuestionAnsweringTask import QuestionAnsweringTask
 from tasks.TableRetrievalTask import TableRetrievalTask
+from tasks.FactVerificationTask import FactVerificationTask

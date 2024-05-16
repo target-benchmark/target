@@ -74,6 +74,7 @@ class FactVerificationTask(AbsTask):
         currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
+        print(f"ret results {retrieval_results[0]}")
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
@@ -117,6 +118,7 @@ class FactVerificationTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
+        print(f"predictions: {self.pred_answers}, references: {self.ref_answers}")
         scores = self.evals.compute(
             predictions=self.pred_answers, references=self.ref_answers
         )
