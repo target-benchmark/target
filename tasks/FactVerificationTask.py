@@ -16,7 +16,8 @@ from tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
 
-import evaluate
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_recall_fscore_support
 from typing import List, Dict
 
 
@@ -41,8 +42,9 @@ class FactVerificationTask(AbsTask):
             task_generator=task_generator,
             **kwargs,
         )
-        self.evals = evaluate.combine(FactVerificationTask.AVAILABLE_METRICS)
 
+        # two lists, pred_answers contains the predicted answers, and ref_answers contains the ground truth answers. 
+        #True = 1, False = 0, Not Enough information = -1.
         self.pred_answers = []
         self.ref_answers = []
 
@@ -56,7 +58,10 @@ class FactVerificationTask(AbsTask):
 
     def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
-        Returns the default dataset config for the class. MUST be implemented by any inherited task class.
+        Returns the default dataset config for fact verification.
+        Includes the following datasets:
+            TabFact
+            TODO: more to come
         """
         # TODO: add more things here. this is for testing. carl note 4/24
         return {
@@ -71,10 +76,8 @@ class FactVerificationTask(AbsTask):
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
-        currently just markdown reps of table strings
-        All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
+        Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
         """
-        print(f"ret results {retrieval_results[0]}")
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
@@ -95,7 +98,9 @@ class FactVerificationTask(AbsTask):
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
-        Update any values you keep track of for the downstream tasks.
+        Update metric tracked for fact verification's performance calculation. 
+        Specifically, update the `self.pred_answers` and `self.ref_answers` lists
+        based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
         for downstream_answer in downstream_results:
             if "true" in downstream_answer.generated_results.lower():
@@ -116,14 +121,18 @@ class FactVerificationTask(AbsTask):
         self, **kwargs
     ) -> FactVerificationTaskPerformanceDataModel:
         """
-        Calculate downstream task metrics for the question answering task.
+        Calculate downstream task metrics for the fact verification task.
+        Metrics computed: accuracy, f1, precision, and recall.
         """
-        print(f"predictions: {self.pred_answers}, references: {self.ref_answers}")
-        scores = self.evals.compute(
-            predictions=self.pred_answers, references=self.ref_answers
-        )
+        accuracy = accuracy_score(self.ref_answers, self.pred_answers)
+        precision, recall, fbeta, _ = precision_recall_fscore_support(self.ref_answers, self.pred_answers, average="weighted")
 
-        result = FactVerificationTaskPerformanceDataModel(scores=scores)
+        result = FactVerificationTaskPerformanceDataModel(scores={
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": fbeta
+        })
 
         self.pred_answers = []
         self.ref_answers = []
