@@ -89,7 +89,7 @@ class FactVerificationTask(AbsTask):
             for query, result in zip(query_batch, retrieval_results)
         ]
 
-    def _update_downstream_task_results(
+    def _update_downstream_task_metrics(
         self,
         query_batch: List[QueryForTasksDataModel],
         downstream_answers: List[DownstreamGeneratedResultDataModel],
@@ -112,7 +112,7 @@ class FactVerificationTask(AbsTask):
             else:
                 self.ref_answers.append(-1)
 
-    def _calculate_downstream_task_metrics(
+    def _calculate_downstream_task_performance(
         self, **kwargs
     ) -> FactVerificationTaskPerformanceDataModel:
         """

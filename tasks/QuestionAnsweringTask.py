@@ -55,7 +55,6 @@ class QuestionAnsweringTask(AbsTask):
         TODO: how to pass through the tables? nested arrays, etc; currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        # assert(len(query_batch) == len(retrieval_results)), "the "
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
@@ -70,7 +69,7 @@ class QuestionAnsweringTask(AbsTask):
             for query, result in zip(query_batch, retrieval_results)
         ]
 
-    def _update_downstream_task_results(
+    def _update_downstream_task_metrics(
         self,
         query_batch: List[QueryForTasksDataModel],
         downstream_answers: List[DownstreamGeneratedResultDataModel],
@@ -80,7 +79,7 @@ class QuestionAnsweringTask(AbsTask):
         """
         pass
 
-    def _calculate_downstream_task_metrics(
+    def _calculate_downstream_task_performance(
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """

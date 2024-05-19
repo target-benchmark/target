@@ -1,5 +1,8 @@
 from generators.AbsGenerator import AbsGenerator
-from generators.GeneratorPrompts import DEFAULT_QA_SYSTEM_MESSAGE, DEFAULT_QA_USER_PROMPT
+from generators.GeneratorPrompts import (
+    DEFAULT_QA_SYSTEM_MESSAGE,
+    DEFAULT_QA_USER_PROMPT,
+)
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
@@ -23,9 +26,7 @@ class DefaultGenerator(AbsGenerator):
         self.chat_template = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(content=(system_message)),
-                HumanMessagePromptTemplate.from_template(
-                    DEFAULT_QA_USER_PROMPT
-                ),
+                HumanMessagePromptTemplate.from_template(DEFAULT_QA_USER_PROMPT),
             ]
         )
         self.chain = self.chat_template | self.language_model

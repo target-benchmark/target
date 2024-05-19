@@ -104,7 +104,17 @@ class TestTableRetriever(unittest.TestCase):
             dataset_name="dummy-dataset",
             top_k=2,
         )
-        print(results)
+        self.assertDictEqual(
+            results["dummy-dataset"].retrieval_performance.model_dump(),
+            {"k": 2, "accuracy": 1.0, "precision": None, "recall": None},
+        )
+        self.assertDictEqual(
+            results["dummy-dataset"].downstream_task_performance.model_dump(),
+            {
+                "task_name": "Fact Verification Task",
+                "scores": {"accuracy": 1.0, "f1": 1.0, "precision": 1.0, "recall": 1.0},
+            },
+        )
 
 
 if __name__ == "__main__":

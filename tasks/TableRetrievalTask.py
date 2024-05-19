@@ -56,7 +56,7 @@ class TableRetrievalTask(AbsTask):
         """
         return []
 
-    def _update_downstream_task_results(
+    def _update_downstream_task_metrics(
         self,
         query_batch: List[QueryForTasksDataModel],
         downstream_answers: List[DownstreamGeneratedResultDataModel],
@@ -66,7 +66,7 @@ class TableRetrievalTask(AbsTask):
         """
         pass
 
-    def _calculate_downstream_task_metrics(
+    def _calculate_downstream_task_performance(
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
