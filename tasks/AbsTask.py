@@ -191,15 +191,13 @@ class AbsTask(ABC):
                 self._fill_retrieval_results_with_table_strs(
                     retrieved_tables, table_id_to_table
                 )
-                downstream_task_results = self._get_downstream_task_results(
+                downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
                 logger.info(
-                    f"generated results {downstream_task_results}"
+                    f"generated results {downstream_results}"
                 )  # TODO: comment this out, this is for testing
-                self._update_downstream_task_metrics(
-                    query_batch, downstream_task_results
-                )
+                self._update_downstream_task_metrics(query_batch, downstream_results)
 
                 logger.info(
                     f"number of queries processed: {self.total_queries_processed}"
@@ -335,14 +333,14 @@ class AbsTask(ABC):
     def _update_downstream_task_metrics(
         self,
         query_batch: List[QueryForTasksDataModel],
-        downstream_answers: List[DownstreamGeneratedResultDataModel],
+        downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values needed for the calculation of metrics for the downstream tasks. For example, if the task is table fact verification, update the tp, fp, tn, fn in order to caluclate f1, accuracy, etc.
 
         Parameters:
             query_batch (List[QueryForTasksDataModel]): Data model objects, contains gold tables and gold answer for the query.
-            downstream_answers (List[DownstreamGeneratedResultDataModel]): generated downstream answers.
+            downstream_results (List[DownstreamGeneratedResultDataModel]): generated downstream answers.
         """
         pass
 
