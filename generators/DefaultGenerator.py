@@ -1,5 +1,5 @@
 from generators.AbsGenerator import AbsGenerator
-from generators.GeneratorSystemPrompts import DEFAULT_SYSTEM_MESSAGE
+from generators.GeneratorPrompts import DEFAULT_QA_SYSTEM_MESSAGE, DEFAULT_QA_USER_PROMPT
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
@@ -13,7 +13,7 @@ AZURE_API_VER = os.getenv("AZURE_OPENAI_API_VERSION")
 
 
 class DefaultGenerator(AbsGenerator):
-    def __init__(self, system_message: str = DEFAULT_SYSTEM_MESSAGE):
+    def __init__(self, system_message: str = DEFAULT_QA_SYSTEM_MESSAGE):
         super().__init__()
         self.language_model = AzureChatOpenAI(
             azure_deployment=AZURE_DEPLOYMENT_NAME,
@@ -24,7 +24,7 @@ class DefaultGenerator(AbsGenerator):
             [
                 SystemMessage(content=(system_message)),
                 HumanMessagePromptTemplate.from_template(
-                    "Please use the following table(s) to answer the query. Tables: {table_str}\nQuery: {query_str}"
+                    DEFAULT_QA_USER_PROMPT
                 ),
             ]
         )
