@@ -70,7 +70,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 

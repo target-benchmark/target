@@ -74,3 +74,13 @@ def markdown_table_with_headers(nested_array: List[List]):
     for row in data_rows:
         markdown += "| " + " | ".join(str(item) for item in row) + " |\n"
     return markdown
+
+
+def get_dummy_table_of_format(expected_format: str = "nested array"):
+    dummy_table = [["header"], ["content"]]
+    if "array" in expected_format.lower():
+        return dummy_table
+    elif "dataframe" in expected_format.lower():
+        return array_of_arrays_to_df(dummy_table)
+    else:
+        return dummy_table

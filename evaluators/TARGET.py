@@ -5,6 +5,7 @@ from dataset_loaders.LoadersDataModels import (
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
 )
+from dataset_loaders.utils import get_dummy_table_of_format
 from evaluators.utils import find_tasks
 
 from dictionary_keys import METADATA_KEY_NAME
@@ -26,7 +27,7 @@ import os
 
 from typing import Union, List, Dict
 
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 
 
 class TARGET:
@@ -245,29 +246,40 @@ class TARGET:
         retriever: AbsStandardizedEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
-    ):
-        embeddings = retriever.embed_corpus(
-            dataset_name,
-            self.dataloaders[dataset_name].convert_corpus_table_to(
-                retriever.get_expected_corpus_format()
+    ) -> None:
+
+        vec_size = len(
+            retriever.embed_corpus(
+                dataset_name,
+                get_dummy_table_of_format(retriever.get_expected_corpus_format()),
+            )
+        )
+        client.create_collection(
+            collection_name=dataset_name,
+            vectors_config=models.VectorParams(
+                size=vec_size, distance=models.Distance.DOT
             ),
         )
-        vectors = []
-        metadata = []
-        for table_id, table_embedding in embeddings.items():
-            vectors.append[list(table_embedding)]
-            metadata.append[{METADATA_KEY_NAME: table_id}]
-        client.add(
-            collection_name=dataset_name,
-            documents=vectors,
-            metadata=metadata,
-        )
+        for corpus_dict in self.dataloaders[dataset_name].convert_corpus_table_to(
+            retriever.get_expected_corpus_format()
+        ):
+            vectors = []
+            metadata = []
+            for table_id, table in corpus_dict.items():
+                table_embedding = retriever.embed_corpus(dataset_name, table)
+                vectors.append(list(table_embedding))
+                metadata.append({METADATA_KEY_NAME: table_id})
+            client.upload_collection(
+                collection_name=dataset_name,
+                vectors=vectors,
+                payload=metadata,
+            )
 
     def embed_with_custom_embeddings(
         self,
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
-    ):
+    ) -> None:
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
@@ -299,6 +311,7 @@ class TARGET:
             client = QdrantClient(":memory:")
         elif isinstance(retriever, AbsCustomEmbeddingRetriever):
             standardized = False
+            client = None
         else:
             self.logger.warning(
                 "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
