@@ -20,7 +20,9 @@ from typing import List, Dict, Union
 
 class QuestionAnsweringTask(AbsTask):
 
-    AVAILABLE_METRICS = set(["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"])
+    AVAILABLE_METRICS = set(
+        ["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"]
+    )
     DEFAULT_METRICS = set(["bleu", "sacrebleu", "rouge"])
 
     def __init__(

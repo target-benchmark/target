@@ -216,7 +216,9 @@ class AbsTask(ABC):
                     f"number of queries processed: {self.total_queries_processed}"
                 )
             retrieval_performance = self._calculate_table_retrieval_performance(top_k)
-            downstream_task_performance = self._calculate_downstream_task_performance(**kwargs)
+            downstream_task_performance = self._calculate_downstream_task_performance(
+                **kwargs
+            )
 
             task_results[dataset_name] = TaskResultsDataModel(
                 retrieval_performance=retrieval_performance,
@@ -330,7 +332,7 @@ class AbsTask(ABC):
             )
         else:
             raise ValueError("haven't processed any queries!")
-        
+
         self.true_positive = 0
         self.total_queries_processed = 0
         return performace
@@ -375,7 +377,7 @@ class AbsTask(ABC):
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
-        All downstreams tasks should fill out this method. 
+        All downstreams tasks should fill out this method.
         Uses whatever values that's been tracked & updated for the downstream task and calculate the metrics.
         Reset any values necessary (ie instance vars, class vars, etc.) for new eval on the next dataset.
 
