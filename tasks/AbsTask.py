@@ -72,18 +72,26 @@ class AbsTask(ABC):
         self.dataset_config: Dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
-        if task_generator is None:
-            self.task_generator = DefaultGenerator()
-        else:
-            self.task_generator = task_generator
+
+        self.task_generator = (
+            task_generator if task_generator is not None else DefaultGenerator()
+        )
         self.true_positive = 0
         self.total_queries_processed = 0
 
     @classmethod
     @abstractmethod
-    def get_default_task_name(cls):
+    def get_default_task_name(cls) -> str:
         """
         Returns the default name of the task.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_available_metrics(cls) -> str:
+        """
+        Returns the metrics available for a class.
         """
         pass
 
@@ -185,7 +193,12 @@ class AbsTask(ABC):
             table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
                 retrieved_tables = self._get_retrieval_results(
-                    retriever, query_batch, table_id_to_table, dataset_name, top_k, **kwargs
+                    retriever,
+                    query_batch,
+                    table_id_to_table,
+                    dataset_name,
+                    top_k,
+                    **kwargs,
                 )
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
                 self._fill_retrieval_results_with_table_strs(
@@ -203,7 +216,9 @@ class AbsTask(ABC):
                     f"number of queries processed: {self.total_queries_processed}"
                 )
             retrieval_performance = self._calculate_table_retrieval_performance(top_k)
-            downstream_task_performance = self._calculate_downstream_task_performance(**kwargs)
+            downstream_task_performance = self._calculate_downstream_task_performance(
+                **kwargs
+            )
 
             task_results[dataset_name] = TaskResultsDataModel(
                 retrieval_performance=retrieval_performance,
@@ -274,7 +289,7 @@ class AbsTask(ABC):
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
         # complete the results data model objects with table strings
-        self._fill_retrieval_results_with_table_strs( 
+        self._fill_retrieval_results_with_table_strs(
             retrieval_results, table_id_to_table
         )
         return retrieval_results
@@ -311,9 +326,12 @@ class AbsTask(ABC):
         Returns:
             a retrieval performance data model that contains the accuracy of the retrieval for a dataset on this task.
         """
-        performace = RetrievalPerformanceDataModel(
-            k=top_k, accuracy=self.true_positive / self.total_queries_processed
-        )
+        if self.total_queries_processed != 0:
+            performace = RetrievalPerformanceDataModel(
+                k=top_k, accuracy=self.true_positive / self.total_queries_processed
+            )
+        else:
+            raise ValueError("haven't processed any queries!")
 
         self.true_positive = 0
         self.total_queries_processed = 0
@@ -359,11 +377,12 @@ class AbsTask(ABC):
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
-        All downstreams tasks should fill out this method. 
+        All downstreams tasks should fill out this method.
         Uses whatever values that's been tracked & updated for the downstream task and calculate the metrics.
-        Reset any values necessary (ie instance vars, class vars, etc.) for the new eval on the next dataset.
+        Reset any values necessary (ie instance vars, class vars, etc.) for new eval on the next dataset.
+
         Parameters:
-            whatever needed. 
+            whatever needed.
         """
         pass
 
@@ -372,11 +391,11 @@ class AbsTask(ABC):
         retrieval_results: List[RetrievalResultDataModel],
         table_id_to_tables: Dict[str, List[List]],
     ) -> None:
-        '''
+        """
         Complete the retrieval result data model objects by including all the table strings.
-        '''
+        """
         for result in retrieval_results:
             result.retrieved_tables = [
                 markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieved_tables
+                for table_id in result.retrieval_results
             ]

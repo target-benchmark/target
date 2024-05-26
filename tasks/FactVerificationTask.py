@@ -43,8 +43,8 @@ class FactVerificationTask(AbsTask):
             **kwargs,
         )
 
-        # two lists, pred_answers contains the predicted answers, and ref_answers contains the ground truth answers. 
-        #True = 1, False = 0, Not Enough information = -1.
+        # two lists, pred_answers contains the predicted answers, and ref_answers contains the ground truth answers.
+        # True = 1, False = 0, Not Enough information = -1.
         self.pred_answers = []
         self.ref_answers = []
 
@@ -98,7 +98,7 @@ class FactVerificationTask(AbsTask):
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
-        Update metric tracked for fact verification's performance calculation. 
+        Update metric tracked for fact verification's performance calculation.
         Specifically, update the `self.pred_answers` and `self.ref_answers` lists
         based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
@@ -125,14 +125,18 @@ class FactVerificationTask(AbsTask):
         Metrics computed: accuracy, f1, precision, and recall.
         """
         accuracy = accuracy_score(self.ref_answers, self.pred_answers)
-        precision, recall, fbeta, _ = precision_recall_fscore_support(self.ref_answers, self.pred_answers, average="weighted")
+        precision, recall, fbeta, _ = precision_recall_fscore_support(
+            self.ref_answers, self.pred_answers, average="weighted"
+        )
 
-        result = FactVerificationTaskPerformanceDataModel(scores={
-            "accuracy": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1": fbeta
-        })
+        result = FactVerificationTaskPerformanceDataModel(
+            scores={
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "f1": fbeta,
+            }
+        )
 
         self.pred_answers = []
         self.ref_answers = []

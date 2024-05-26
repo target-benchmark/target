@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
+from typing import Dict, Optional
 
 
 class RetrievalPerformanceDataModel(BaseModel):
@@ -19,6 +20,13 @@ class DownstreamTaskPerformanceDataModel(BaseModel):
 class FactVerificationTaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
     task_name: str = Field(
         default="Fact Verification Task",
+        description="name of the downstream task",
+    )
+
+
+class TableQATaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
+    task_name: str = Field(
+        default="Table Question Answering Task",
         description="name of the downstream task",
     )
 

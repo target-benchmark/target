@@ -22,13 +22,14 @@ logging.basicConfig(
 # Get a logger
 logger = logging.getLogger(__name__)
 
-#TODO: Find a tool that works with this.
+# TODO: Find a tool that works with this.
+
 
 class TestTaskRunWithStdRetriever(unittest.TestCase):
 
     def setUp(self):
         self.retr_task = TableRetrievalTask()
-        self.retriever = MagicMock()
+        self.mock_retriever = MagicMock()
         self.mock_retriever.__class__ = AbsStandardizedEmbeddingRetriever
         self.mock_retriever.retrieve_batch.return_value = [
             RetrievalResultDataModel(
@@ -141,7 +142,6 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             constructed_task["fetaqa"].model_dump(),
             DEFAULT_FETAQA_DATASET_CONFIG.model_dump(),
         )
-
 
 
 if __name__ == "__main__":
