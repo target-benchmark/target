@@ -97,10 +97,10 @@ class QuestionAnsweringTask(AbsTask):
             for query, result in zip(query_batch, retrieval_results)
         ]
 
-    def _update_downstream_task_results(
+    def _update_downstream_task_metrics(
         self,
         query_batch: List[QueryForTasksDataModel],
-        downstream_answers: List[DownstreamGeneratedResultDataModel],
+        downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values you keep track of for the downstream tasks.
@@ -113,7 +113,7 @@ class QuestionAnsweringTask(AbsTask):
         )
         self.ref_answers.extend([query.answer for query in query_batch])
 
-    def _calculate_downstream_task_metrics(
+    def _calculate_downstream_task_performance(
         self, **kwargs
     ) -> TableQATaskPerformanceDataModel:
         """
