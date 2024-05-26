@@ -11,7 +11,6 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
-    DownstreamTaskPerformanceDataModel,
     TableQATaskPerformanceDataModel,
 )
 
@@ -21,7 +20,8 @@ from typing import List, Dict, Union
 
 class QuestionAnsweringTask(AbsTask):
 
-    AVAILABLE_METRICS = set(["bertscore", "bleurt", "sacrebleu", "rouge", "meteor"])
+    AVAILABLE_METRICS = set(["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"])
+    DEFAULT_METRICS = set(["bleu", "sacrebleu", "rouge"])
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class QuestionAnsweringTask(AbsTask):
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         lang: str = "en",
-        metrics: Union[str, List[str]] = "bertscore",
+        metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
         super().__init__(
@@ -108,7 +108,7 @@ class QuestionAnsweringTask(AbsTask):
         self.pred_answers.extend(
             [
                 downstream_answer.generated_results
-                for downstream_answer in downstream_answers
+                for downstream_answer in downstream_results
             ]
         )
         self.ref_answers.extend([query.answer for query in query_batch])

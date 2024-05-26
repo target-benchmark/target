@@ -89,16 +89,14 @@ class TestTableRetriever(unittest.TestCase):
             top_k=2,
         )
         res = results["dummy-dataset"]
-        self.assertIn("bertscore", res.downstream_task_performance.scores)
-        self.assertIn("precision", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("recall", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("f1", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("hashcode", res.downstream_task_performance.scores["bertscore"])
+        self.assertIn("bleu", res.downstream_task_performance.scores)
+        self.assertIn("sacrebleu", res.downstream_task_performance.scores)
+        self.assertIn("rouge", res.downstream_task_performance.scores)
         print(res)
 
     def test_specified_metrics(self):
         qa_task = QuestionAnsweringTask(
-            metrics=["bleurt", "sacrebleu", "rouge", "meteor"]
+            metrics=["bleurt", "sacrebleu", "rouge", "meteor", "bertscore"]
         )
         results = qa_task.task_run(
             retriever=self.mock_retriever,
@@ -109,6 +107,13 @@ class TestTableRetriever(unittest.TestCase):
             top_k=2,
         )
         res = results["dummy-dataset"]
+
+        self.assertIn("bertscore", res.downstream_task_performance.scores)
+        self.assertIn("precision", res.downstream_task_performance.scores["bertscore"])
+        self.assertIn("recall", res.downstream_task_performance.scores["bertscore"])
+        self.assertIn("f1", res.downstream_task_performance.scores["bertscore"])
+        self.assertIn("hashcode", res.downstream_task_performance.scores["bertscore"])
+
         self.assertIn("bleurt", res.downstream_task_performance.scores)
         self.assertIn("scores", res.downstream_task_performance.scores["bleurt"])
 
