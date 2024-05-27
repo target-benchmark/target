@@ -24,6 +24,12 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_queries_dataset_path="target-benchmark/infiagentda-queries",
 )
 
+DEFAULT_SPIDER_DATASET_CONFIG = HFDatasetConfigDataModel(
+    dataset_name="spider",
+    hf_corpus_dataset_path="target-benchmark/spider-corpus",
+    hf_queries_dataset_path="target-benchmark/spider-queries",
+)
+
 # TESTING ONLY
 DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="dummy-dataset",

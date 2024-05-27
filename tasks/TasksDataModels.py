@@ -30,6 +30,11 @@ class TableQATaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
         description="name of the downstream task",
     )
 
+class Text2SQLTaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
+    task_name: str = Field(
+        default="Text to SQL Task",
+        description="name of the downstream task",
+    )
 
 class TaskResultsDataModel(BaseModel):
     retrieval_performance: RetrievalPerformanceDataModel
