@@ -257,7 +257,7 @@ class TARGET:
         client.create_collection(
             collection_name=dataset_name,
             vectors_config=models.VectorParams(
-                size=vec_size, distance=models.Distance.DOT
+                size=vec_size, distance=models.Distance.COSINE
             ),
         )
         for corpus_dict in self.dataloaders[dataset_name].convert_corpus_table_to(

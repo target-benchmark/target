@@ -33,7 +33,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         self.dataset_name = "dummy-dataset"
         self.client.create_collection(
             collection_name=self.dataset_name,
-            vectors_config=models.VectorParams(size=1536, distance=models.Distance.DOT),
+            vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE),
         )
         self.test_dataset = {
             "Table1": [["some random table"], ["some item"]],

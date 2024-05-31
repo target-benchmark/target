@@ -50,11 +50,12 @@ def str_representation_to_array(array_repr: str) -> List:
 
 
 def convert_nested_list_to(
-    nested_list: List[List], output_format: Literal["array", "nested array", "pandas"]
+    nested_list: List[List], output_format: Literal["array", "nested array", "pandas", "dataframe"]
 ):
+    output_format = output_format.lower()
     if "array" in output_format:
         return nested_list
-    elif "pandas" in output_format:
+    elif "pandas" in output_format or "dataframe" in output_format:
         return array_of_arrays_to_df(nested_list)
 
 
@@ -76,11 +77,12 @@ def markdown_table_with_headers(nested_array: List[List]):
     return markdown
 
 
-def get_dummy_table_of_format(expected_format: str = "nested array"):
+def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe"] = "nested array"):
     dummy_table = [["header"], ["content"]]
-    if "array" in expected_format.lower():
+    expected_format = expected_format.lower()
+    if "array" in expected_format:
         return dummy_table
-    elif "dataframe" in expected_format.lower():
+    elif "dataframe" in expected_format or "pandas" in expected_format:
         return array_of_arrays_to_df(dummy_table)
     else:
         return dummy_table
