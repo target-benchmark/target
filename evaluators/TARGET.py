@@ -12,7 +12,7 @@ from dictionary_keys import METADATA_KEY_NAME
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
-    AbsStandardizedEmbeddingRetriever,
+    AbsStandardEmbeddingRetriever,
 )
 from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask
@@ -243,7 +243,7 @@ class TARGET:
 
     def embed_with_standardized_embeddings(
         self,
-        retriever: AbsStandardizedEmbeddingRetriever,
+        retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
     ) -> None:
@@ -306,14 +306,14 @@ class TARGET:
         Call this function to run the tasks! Woohoo!!!
 
         Parameters:
-            retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardizedEmbeddingRetriever or AbsCustomEmbeddingRetriver.
+            retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardEmbeddingRetriever or AbsCustomEmbeddingRetriver.
             splits (Union[str, List[str]], optional): splits of data to run the tasks on.
             batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
             top_k (int, optional): top k tables to retrieve.
         """
         all_results = {}
         loaded_datasets = set()
-        if isinstance(retriever, AbsStandardizedEmbeddingRetriever):
+        if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")
         elif isinstance(retriever, AbsCustomEmbeddingRetriever):

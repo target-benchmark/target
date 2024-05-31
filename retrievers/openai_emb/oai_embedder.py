@@ -1,10 +1,10 @@
-from retrievers import AbsStandardizedEmbeddingRetriever
+from retrievers import AbsStandardEmbeddingRetriever
 from typing import Dict, List
 from langchain_openai import OpenAIEmbeddings
 from dataset_loaders.utils import markdown_table_with_headers
 
 
-class OAIEmbedder(AbsStandardizedEmbeddingRetriever):
+class OAIEmbedder(AbsStandardEmbeddingRetriever):
 
     def __init__(self, expected_corpus_format: str = "nested array"):
         super().__init__(expected_corpus_format=expected_corpus_format)

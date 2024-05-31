@@ -11,7 +11,7 @@ from abc import abstractmethod
 from typing import List, Dict, Iterable
 
 
-class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
+class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
     """
     This retriever class includes both an embed query and an embed corpus method. If the user choose to inherit their retriever class after this, they need to implement both functions. The user implementated retriever is not expected to persist any data. Instead, as long as the embed corpus and embed query functions return a vector (list of floats) of the same dimension, the persistence of the data for the evaluation will be dealt with automatically.
 

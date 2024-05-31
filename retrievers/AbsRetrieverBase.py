@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class AbsRetrieverBase(ABC):
     """
-    A base class for all Target Retrievers. Serves super class to `AbsStandardizedEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
+    A base class for all Target Retrievers. Serves as the super class to `AbsStandardizedEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):

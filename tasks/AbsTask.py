@@ -17,8 +17,8 @@ from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from retrievers.AbsStandardizedEmbeddingRetriever import (
-    AbsStandardizedEmbeddingRetriever as StandardizedEmbRetr,
+from retrievers.AbsStandardEmbeddingRetriever import (
+    AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
