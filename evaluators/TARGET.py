@@ -247,7 +247,14 @@ class TARGET:
         dataset_name: str,
         client: QdrantClient,
     ) -> None:
+        '''
+        Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
+        Parameters:
+            retriever (AbsStandardizedEmbeddingRetriever): the retriever object
+            dataset_name (str): name of the dataset to embed
+            client (QdrantClient): an in memory qdrant vector db
+        '''
         vec_size = len(
             retriever.embed_corpus(
                 dataset_name,
