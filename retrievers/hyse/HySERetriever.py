@@ -1,17 +1,21 @@
 import json
 import os
 
-from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+import hnswlib
+import pandas as pd
+import pickle
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from typing import Dict, Iterable, Iterator, List
+
+from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
 
 
 class HyseRetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
-        script_dir: str,
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
@@ -168,3 +172,4 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         )
 
         return hypothetical_schemas
+
