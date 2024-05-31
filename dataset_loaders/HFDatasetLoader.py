@@ -56,9 +56,7 @@ class HFDatasetLoader(AbsDatasetLoader):
         if splits:
             if isinstance(splits, str):
                 splits = [splits]
-            for split in splits:
-                if split not in self.splits:
-                    self.splits.append(split)
+            self.splits = splits
         self._load_corpus()
         self._load_queries()
 

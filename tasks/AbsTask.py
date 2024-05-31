@@ -72,18 +72,26 @@ class AbsTask(ABC):
         self.dataset_config: Dict[str, DatasetConfigDataModel] = (
             self._construct_dataset_config(datasets_config, overwrite_default_datasets)
         )
-        if task_generator is None:
-            self.task_generator = DefaultGenerator()
-        else:
-            self.task_generator = task_generator
+
+        self.task_generator = (
+            task_generator if task_generator is not None else DefaultGenerator()
+        )
         self.true_positive = 0
         self.total_queries_processed = 0
 
     @classmethod
     @abstractmethod
-    def get_default_task_name(cls):
+    def get_default_task_name(cls) -> str:
         """
         Returns the default name of the task.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_available_metrics(cls) -> str:
+        """
+        Returns the metrics available for a class.
         """
         pass
 
@@ -185,7 +193,12 @@ class AbsTask(ABC):
             table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
             for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
                 retrieved_tables = self._get_retrieval_results(
-                    retriever, query_batch, dataset_name, top_k
+                    retriever,
+                    query_batch,
+                    table_id_to_table,
+                    dataset_name,
+                    top_k,
+                    **kwargs,
                 )
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
                 self._fill_retrieval_results_with_table_strs(
@@ -239,8 +252,10 @@ class AbsTask(ABC):
         self,
         retriever: AbsRetrieverBase,
         query_batch: List[QueryForTasksDataModel],
+        table_id_to_table: Dict[str, str],
         dataset_name: str,
         top_k: int,
+        **kwargs,
     ) -> List[RetrievalResultDataModel]:
         """
         Retrieves the top k results for each query in the batch using the specified retriever from a dataset.
@@ -255,9 +270,16 @@ class AbsTask(ABC):
             A list of retrieval result data models, each containing the top k results for a query.
         """
         if isinstance(retriever, StandardizedEmbRetr):
-            # TODO: figure out what to do with embedding here
-            # retreival_results = retriever.retrieve_batch(corpus_embedding=)
-            retrieval_results = {}
+            if CLIENT_KEY_NAME not in kwargs:
+                raise KeyError(
+                    f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever"
+                )
+            retrieval_results = retriever.retrieve_batch(
+                queries=query_batch,
+                dataset_name=dataset_name,
+                top_k=top_k,
+                client=kwargs.get(CLIENT_KEY_NAME),
+            )
         elif isinstance(retriever, CustomEmbRetr):
             retrieval_results = retriever.retrieve_batch(
                 queries=query_batch, dataset_name=dataset_name, top_k=top_k
@@ -266,7 +288,10 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
-
+        # complete the results data model objects with table strings
+        self._fill_retrieval_results_with_table_strs(
+            retrieval_results, table_id_to_table
+        )
         return retrieval_results
 
     def _update_retrieval_metrics(
@@ -301,9 +326,12 @@ class AbsTask(ABC):
         Returns:
             a retrieval performance data model that contains the accuracy of the retrieval for a dataset on this task.
         """
-        performace = RetrievalPerformanceDataModel(
-            k=top_k, accuracy=self.true_positive / self.total_queries_processed
-        )
+        if self.total_queries_processed != 0:
+            performace = RetrievalPerformanceDataModel(
+                k=top_k, accuracy=self.true_positive / self.total_queries_processed
+            )
+        else:
+            raise ValueError("haven't processed any queries!")
 
         self.true_positive = 0
         self.total_queries_processed = 0
@@ -349,6 +377,25 @@ class AbsTask(ABC):
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
         """
-        All downstreams tasks should fill out this method. uses whatever values that's been tracked & updated through the query eval, and calculate the metrics.
+        All downstreams tasks should fill out this method.
+        Uses whatever values that's been tracked & updated for the downstream task and calculate the metrics.
+        Reset any values necessary (ie instance vars, class vars, etc.) for new eval on the next dataset.
+
+        Parameters:
+            whatever needed.
         """
         pass
+
+    def _fill_retrieval_results_with_table_strs(
+        self,
+        retrieval_results: List[RetrievalResultDataModel],
+        table_id_to_tables: Dict[str, List[List]],
+    ) -> None:
+        """
+        Complete the retrieval result data model objects by including all the table strings.
+        """
+        for result in retrieval_results:
+            result.retrieved_tables = [
+                markdown_table_with_headers(table_id_to_tables[table_id])
+                for table_id in result.retrieval_results
+            ]

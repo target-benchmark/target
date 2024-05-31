@@ -1,6 +1,6 @@
 from ast import literal_eval
 import json
-from typing import List
+from typing import List, Literal
 import pandas as pd
 
 
@@ -49,6 +49,15 @@ def str_representation_to_array(array_repr: str) -> List:
     return array
 
 
+def convert_nested_list_to(
+    nested_list: List[List], output_format: Literal["array", "nested array", "pandas"]
+):
+    if "array" in output_format:
+        return nested_list
+    elif "pandas" in output_format:
+        return array_of_arrays_to_df(nested_list)
+
+
 def markdown_table_with_headers(nested_array: List[List]):
     # the first row of the array is the header
     headers = nested_array[0]
@@ -65,3 +74,13 @@ def markdown_table_with_headers(nested_array: List[List]):
     for row in data_rows:
         markdown += "| " + " | ".join(str(item) for item in row) + " |\n"
     return markdown
+
+
+def get_dummy_table_of_format(expected_format: str = "nested array"):
+    dummy_table = [["header"], ["content"]]
+    if "array" in expected_format.lower():
+        return dummy_table
+    elif "dataframe" in expected_format.lower():
+        return array_of_arrays_to_df(dummy_table)
+    else:
+        return dummy_table

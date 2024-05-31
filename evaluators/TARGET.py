@@ -5,7 +5,10 @@ from dataset_loaders.LoadersDataModels import (
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
 )
+from dataset_loaders.utils import get_dummy_table_of_format
 from evaluators.utils import find_tasks
+
+from dictionary_keys import METADATA_KEY_NAME
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
@@ -15,11 +18,16 @@ from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask
 from tasks.TasksDataModels import TaskResultsDataModel
 
+import os
+from evaluators.utils import find_tasks
+
 from datetime import datetime
 import logging
 import os
 
 from typing import Union, List, Dict
+
+from qdrant_client import QdrantClient, models
 
 
 class TARGET:
@@ -233,6 +241,52 @@ class TARGET:
             logger.addHandler(fh)
         return logger
 
+    def embed_with_standardized_embeddings(
+        self,
+        retriever: AbsStandardizedEmbeddingRetriever,
+        dataset_name: str,
+        client: QdrantClient,
+    ) -> None:
+
+        vec_size = len(
+            retriever.embed_corpus(
+                dataset_name,
+                get_dummy_table_of_format(retriever.get_expected_corpus_format()),
+            )
+        )
+        client.create_collection(
+            collection_name=dataset_name,
+            vectors_config=models.VectorParams(
+                size=vec_size, distance=models.Distance.DOT
+            ),
+        )
+        for corpus_dict in self.dataloaders[dataset_name].convert_corpus_table_to(
+            retriever.get_expected_corpus_format()
+        ):
+            vectors = []
+            metadata = []
+            for table_id, table in corpus_dict.items():
+                table_embedding = retriever.embed_corpus(dataset_name, table)
+                vectors.append(list(table_embedding))
+                metadata.append({METADATA_KEY_NAME: table_id})
+            client.upload_collection(
+                collection_name=dataset_name,
+                vectors=vectors,
+                payload=metadata,
+            )
+
+    def embed_with_custom_embeddings(
+        self,
+        retriever: AbsCustomEmbeddingRetriever,
+        dataset_name: str,
+    ) -> None:
+        retriever.embed_corpus(
+            dataset_name,
+            self.dataloaders[dataset_name].convert_corpus_table_to(
+                retriever.get_expected_corpus_format()
+            ),
+        )
+
     def run(
         self,
         retriever: AbsRetrieverBase,
@@ -252,6 +306,16 @@ class TARGET:
         """
         all_results = {}
         loaded_datasets = set()
+        if isinstance(retriever, AbsStandardizedEmbeddingRetriever):
+            standardized = True
+            client = QdrantClient(":memory:")
+        elif isinstance(retriever, AbsCustomEmbeddingRetriever):
+            standardized = False
+            client = None
+        else:
+            self.logger.warning(
+                "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
+            )
         for task_name, task in self.tasks.items():
             self.logger.info(f"Start running {task_name}...")
             self.logger.info("Start checking for new corpus to embed...")
@@ -264,25 +328,12 @@ class TARGET:
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
-                    if isinstance(retriever, AbsStandardizedEmbeddingRetriever):
-                        embeddings = retriever.embed_corpus(
-                            dataset_name,
-                            self.dataloaders[dataset_name].convert_corpus_table_to(
-                                retriever.get_expected_corpus_format()
-                            ),
-                        )
-                        # TODO: figure out what to do with the embedding
-                    elif isinstance(retriever, AbsCustomEmbeddingRetriever):
-                        retriever.embed_corpus(
-                            dataset_name,
-                            self.dataloaders[dataset_name].convert_corpus_table_to(
-                                retriever.get_expected_corpus_format()
-                            ),
+                    if standardized:
+                        self.embed_with_standardized_embeddings(
+                            retriever, dataset_name, client
                         )
                     else:
-                        self.logger.warning(
-                            "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
-                        )
+                        self.embed_with_custom_embeddings(retriever, dataset_name)
 
             self.logger.info("Finished embedding all new corpus!")
 
@@ -294,6 +345,7 @@ class TARGET:
                 batch_size=batch_size,
                 splits=splits,
                 top_k=top_k,
+                client=client,
                 **kwargs,
             )
             all_results[task_name] = task_result

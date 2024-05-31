@@ -23,14 +23,5 @@ class AbsRetrieverBase(ABC):
         return self.expected_corpus_format
 
     @abstractmethod
-    def retrieve(self, *args, **kwargs) -> List[str]:
-        """
-        The essential function for any Target Retriever. User have to implement this for the retriever class to work with evaluation pipeline.
-        Returns:
-            a dictionary mapping the query IDs to the list of possible tables retrieved.
-        """
-        pass
-
-    @abstractmethod
     def retrieve_batch(self, *args, **kwargs) -> List[RetrievalResultDataModel]:
         pass

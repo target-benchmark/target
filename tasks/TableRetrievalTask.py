@@ -16,6 +16,9 @@ from typing import List, Dict
 
 
 class TableRetrievalTask(AbsTask):
+    AVAILABLE_METRICS = set(["precision"])
+    DEFAULT_METRICS = set(["precision"])
+
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
@@ -35,13 +38,18 @@ class TableRetrievalTask(AbsTask):
     def get_default_task_name(cls) -> str:
         return "Table Retrieval Task"
 
+    @classmethod
+    def get_available_metrics(cls) -> str:
+        return str(cls.AVAILABLE_METRICS)
+
     def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for the class. MUST be implemented by any inherited task class.
         """
         # TODO: add more things here. this is for testing. carl note 4/10
         return {
-            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+            # DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+            DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG
         }
 
     def _get_downstream_task_results(
@@ -50,10 +58,6 @@ class TableRetrievalTask(AbsTask):
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
-        """
-        TODO: how to pass through the tables? nested arrays, etc
-        All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
-        """
         return []
 
     def _update_downstream_task_metrics(
@@ -61,15 +65,9 @@ class TableRetrievalTask(AbsTask):
         query_batch: List[QueryForTasksDataModel],
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
-        """
-        Update any values you keep track of for the downstream tasks.
-        """
         pass
 
     def _calculate_downstream_task_performance(
         self, **kwargs
     ) -> DownstreamTaskPerformanceDataModel:
-        """
-        All downstreams tasks should fill out this method. uses whatever values that's been tracked & updated through the query eval, and calculate the metrics.
-        """
         return DownstreamTaskPerformanceDataModel()
