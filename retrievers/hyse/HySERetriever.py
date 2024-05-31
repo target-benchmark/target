@@ -61,16 +61,24 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         ) as f:
             table_ids = pickle.load(f)
 
+        # generate s hypothetical schemas for given query
+        hypothetical_schemas_query = generate_hypothetical_schema(query, s)
+
+        # embed each hypothetical schema
+        hypothetical_schema_embeddings = []
+        for hypothetical_schema in hypothetical_schemas_query:
+            hypothetical_schema_embeddings = +_embed_schema(hypothetical_schema)
+
         # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
-        queries_retrieved_tables, distances = corpus_index.knn_query(
-            np.array([emb for emb in queries_hyse_df["embedding"]]),
-            # retrieves 10*2 tables, 10 tables per schema
-            k=int(top_k / 2),
+        retrieved_ids, distances = corpus_index.knn_query(
+            np.array(hypothetical_schema_embeddings),
+            # retrieves s*10 tables, 10 tables per hypothetical schema
+            k=int(top_k / s),
         )
 
-        retrieved_table_ids = [table_ids[id] for id in retrieved_ids[0]] + [
-            table_ids[id] for id in retrieved_ids[1]
-        ]
+        # Get original table_ids (table names) from the retrieved integer identifiers for each in s hypothetical schemas
+        for i in range(s):
+            retrieved_table_ids += [table_ids[id] for id in retrieved_ids[i]]
 
         return retrieved_table_ids
 
@@ -94,7 +102,7 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         for corpus_dict in corpus:
             # key = table_id, value = table
             for key, value in corpus_dict.items():
-                embedded_corpus[key] = _embed_table(key, value)
+                embedded_corpus[key] = _embed_schema(key, value)
 
         corpus_embeddings_df = (
             pd.DataFrame.from_records(embedded_corpus)
@@ -133,20 +141,22 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         ) as f:
             pickle.dump(corpus_embeddings_df.index.tolist(), f)
 
-    def _embed_table(table_id: str, table: List[List]) -> List[List]:
-        """Embed table using default openai embedding model, only using table header."""
+    def _embed_schema(table_id: str, table: List[List]) -> List[List]:
+        """Embed table using default openai embedding model, only using table header for now."""
 
         try:
             response = client.embeddings.create(
                 model="text-embedding-3-small",
+                # current: embed schema only
                 # todo: add table values
                 input=" ".join(table[0]),
             )
             return response.data[0].embedding
         except:
             print("error on: ", table_id)
+            return [[]]
 
-    def generate_hypothetical_schemas(query: str) -> List[List]:
+    def generate_hypothetical_schemas(query: str, s: int) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
 
         response = client.chat.completions.create(
@@ -156,8 +166,8 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
                     "role": "system",
                     # todo: add table values
                     # todo: expand to multi-table
-                    "content": """
-                  Generate exactly 2 table headers, which are different in semantics and size,
+                    "content": f"""
+                  Generate exactly {s} table headers, which are different in semantics and size,
                   of tables which could potentially be used to answer the given query.
                   Return a list in which each item is a list of table attributes (strings).
                   """,
@@ -172,4 +182,3 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         )
 
         return hypothetical_schemas
-
