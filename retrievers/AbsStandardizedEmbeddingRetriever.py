@@ -13,11 +13,13 @@ from typing import List, Dict, Iterable
 
 class AbsStandardizedEmbeddingRetriever(AbsRetrieverBase):
     """
-    This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
+    This retriever class includes both an embed query and an embed corpus method. If the user choose to inherit their retriever class after this, they need to implement both functions. The user implementated retriever is not expected to persist any data. Instead, as long as the embed corpus and embed query functions return a vector (list of floats) of the same dimension, the persistence of the data for the evaluation will be dealt with automatically.
 
     Some reasons to inherit from this class as opposed to `AbsCustomEmbeddingRetreiver`
-    - the embedding of your tool is simply a vector or array of floats.
-    - your retrieval system doesn't need any specific persistence formats or folder structure to work.
+    - the embedding of your tool is simply a vector or array of floats. example: the retriever is just an embedding model that produces vectors.
+    - your retrieval system doesn't need any specific persistence formats or folder structures to work.
+
+    To inherit from this class, fill out the `embed_query` and `embed_corpus` functions. 
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):

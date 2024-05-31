@@ -5,7 +5,9 @@ from dataset_loaders.LoadersDataModels import (
 from dataset_loaders.TargetDatasetConfig import *
 
 from generators.AbsGenerator import AbsGenerator
+from generators.DefaultGenerator import DefaultGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from generators.GeneratorPrompts import QA_SYSTEM_MESSAGE, QA_USER_MESSAGE
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -34,6 +36,8 @@ class QuestionAnsweringTask(AbsTask):
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
+        if not task_generator:
+            task_generator = DefaultGenerator(QA_SYSTEM_MESSAGE, QA_USER_MESSAGE)
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,

@@ -6,7 +6,7 @@ from dataset_loaders.TargetDatasetConfig import *
 
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
-from generators.GeneratorPrompts import DEFAULT_FACT_VER_SYSTEM_MESSAGE
+from generators.GeneratorPrompts import FACT_VER_SYSTEM_MESSAGE, FACT_VER_USER_MESSAGE
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
@@ -33,7 +33,8 @@ class FactVerificationTask(AbsTask):
     ):
         if task_generator == None:
             task_generator = DefaultGenerator(
-                system_message=DEFAULT_FACT_VER_SYSTEM_MESSAGE
+                system_message=FACT_VER_SYSTEM_MESSAGE,
+                user_message=FACT_VER_USER_MESSAGE
             )
         super().__init__(
             task_name=self.get_default_task_name(),

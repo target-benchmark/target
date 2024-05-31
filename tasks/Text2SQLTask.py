@@ -7,7 +7,7 @@ from dataset_loaders.TargetDatasetConfig import *
 from generators import DefaultGenerator
 from generators.AbsGenerator import AbsGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-from generators.GeneratorPrompts import DEFAULT_TEXT2SQL_USER_PROMPT
+from generators.GeneratorPrompts import TEXT2SQL_SYSTEM_PROMPT, TEXT2SQL_USER_PROMPT
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -35,7 +35,8 @@ class Text2SQLTask(AbsTask):
     ):
         if task_generator == None:
             task_generator = DefaultGenerator(
-                user_message=DEFAULT_TEXT2SQL_USER_PROMPT
+                system_message=TEXT2SQL_SYSTEM_PROMPT,
+                user_message=TEXT2SQL_USER_PROMPT,
             )        
         super().__init__(
             task_name=self.get_default_task_name(),
