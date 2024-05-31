@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 class AbsRetrieverBase(ABC):
     """
-    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsStandardizedEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
+    A base class for all Target Retrievers. Serves as a organization class, no function signatures are defined here, delegated to `AbsStandardEmbeddingRetriever` and `AbsCustomEmbeddingRetriever`
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):
