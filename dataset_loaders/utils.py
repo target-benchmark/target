@@ -1,6 +1,5 @@
-from ast import literal_eval
 import json
-from typing import List, Literal
+from typing import Any, List, Literal, Dict
 import pandas as pd
 
 
@@ -86,3 +85,46 @@ def get_dummy_table_of_format(expected_format: Literal["array", "nested array", 
         return array_of_arrays_to_df(dummy_table)
     else:
         return dummy_table
+
+
+def check_col(entry, col):
+    cur_type = None
+    types = []
+    for row in entry["table"][1:]:
+        cell = row[col]
+        try:
+            int(cell)
+            types.append(int)
+            continue
+        except:
+            pass
+        try:
+            float(cell)
+            types.append(float)
+            continue
+        except:
+            pass
+        return None
+    
+    if all([x == types[0] for x in types]):
+        return types[0]
+    else:
+        return None
+
+def interpret_numbers(entry: Dict[str, Any], table_col_name: str) -> Dict[str, Any]:
+    table_list = entry[table_col_name]
+    if len(table_list) > 1:
+        conv_indices = {}
+        for i in range(len(table_list[1])):
+            res = check_col(entry, i)
+            if res:
+                conv_indices[i] = res
+            
+        for row in table_list[1:]:
+            for conv_idx, conv_type in conv_indices.items():
+                try:
+                    row[conv_idx] = conv_type(row[conv_idx])
+                except:
+                    pass
+    
+    return entry

@@ -4,18 +4,21 @@ DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="fetaqa",
     hf_corpus_dataset_path="target-benchmark/fetaqa-corpus",
     hf_queries_dataset_path="target-benchmark/fetaqa-queries",
+    query_type="Table Question Answering",
 )
 
 DEFAULT_TABFACT_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="tab-fact",
     hf_corpus_dataset_path="target-benchmark/tabfact-corpus",
     hf_queries_dataset_path="target-benchmark/tabfact-queries",
+    query_type="Fact Verification",
 )
 
 DEFAULT_WIKITQ_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="wikitq",
     hf_corpus_dataset_path="target-benchmark/wikitq-corpus",
     hf_queries_dataset_path="target-benchmark/wikitq-queries",
+    query_type="Table Question Answering",
 )
 
 DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
@@ -28,6 +31,7 @@ DEFAULT_SPIDER_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="spider",
     hf_corpus_dataset_path="target-benchmark/spider-corpus",
     hf_queries_dataset_path="target-benchmark/spider-queries",
+    query_type="Text to SQL",
 )
 
 # TESTING ONLY

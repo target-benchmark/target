@@ -1,4 +1,4 @@
-from dataset_loaders.utils import array_of_arrays_to_df
+from dataset_loaders.utils import array_of_arrays_to_df, interpret_numbers
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from dictionary_keys import *
 
@@ -9,6 +9,23 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterable, Iterator
 from typing import Union, List, Dict
+
+class QueryType(Enum):
+    TEXT_2_SQL = "Text to SQL"
+    FACT_VERIFICATION = "Fact Verification"
+    TABLE_QA = "Table Question Answering"
+    OTHER = "Other"
+
+def set_query_type(string_rep: str) -> QueryType:
+    string_rep = string_rep.lower()
+    if string_rep in QueryType.FACT_VERIFICATION.value.lower():
+        return QueryType.FACT_VERIFICATION
+    elif string_rep in QueryType.TABLE_QA.value.lower():
+        return QueryType.TABLE_QA
+    elif string_rep in QueryType.TEXT_2_SQL.value.lower():
+        return QueryType.TEXT_2_SQL
+    else:
+        return QueryType.OTHER
 
 
 class AbsDatasetLoader(ABC):
@@ -76,29 +93,43 @@ class AbsDatasetLoader(ABC):
         self.query_col_name: str = query_col_name
         self.query_id_col_name: str = query_id_col_name
         self.answer_col_name: str = answer_col_name
-        self.query_type: str = query_type
+        self.query_type: QueryType = set_query_type(query_type)
         self.corpus: DatasetDict = None
         self.queries: DatasetDict = None
+        self.alt_corpus = None
 
+    
     def load(self, splits: Union[str, List[str]] = None) -> None:
         if not self.corpus or not self.queries:
             self._load(splits=splits)
 
-    @abstractmethod
     def _load(self, splits: Union[str, List[str]] = None) -> None:
         """
-        Load the dataset split.
-
-        This method should be implemented by subclasses to load specific splits of a dataset,
-        such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
+        Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
 
         Parameters:
-            splits(Union[str, List[str]], optional): The dataset split or splits to load. If none are provided, splits specified in self.splits should be loaded. self.splits will also be updated to reflect the splits actually loaded
-
-        Raises NotImplementedError: If the method is called on the abstract class directly.
-
+            splits (Union[str, List[str]], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
         """
-        raise NotImplementedError("Base class do not use!")
+        if splits:
+            if isinstance(splits, str):
+                splits = [splits]
+            self.splits = splits
+        self._load_corpus()
+        self._load_queries()
+        if self.query_type == QueryType.TEXT_2_SQL:
+            self.setup_text2sql_corpus()
+
+    def setup_text2sql_corpus(self) -> None:
+        '''
+        For text-2-sql datasets, have to convert some columns of the tables from string to numbers. 
+        self.alt_corpus will be used instead of self.corpus for passing data to other objects.
+        '''
+        if not self.corpus:
+            raise ValueError("Corpus has not been loaded yet!")
+        number_converted_corpus = {}
+        for split_name, split in self.corpus.items():
+            number_converted_corpus[split_name] = [interpret_numbers(entry, self.table_col_name) for entry in split]
+        self.alt_corpus = number_converted_corpus
 
     @abstractmethod
     def _load_corpus(self) -> None:
@@ -107,6 +138,21 @@ class AbsDatasetLoader(ABC):
     @abstractmethod
     def _load_queries(self) -> None:
         pass
+
+    def _write_table_to_path(self, table_name: Path, split_path: Path, nested_array: List[List]) -> None:
+        if format.lower() == "csv":
+            if "csv" not in table_name.suffix:
+                table_name = table_name / ".csv"
+            table_path = split_path / table_name
+            with open(table_path, "w", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(nested_array)
+        if format.lower() == "json":
+            if "json" not in table_name.suffix:
+                table_name = table_name / ".json"
+            table_path = split_path / table_name
+            # TODO: write JSON persistence logic
+            pass
 
     def persist_corpus_to(
         self, format: str, path: str = None, splits: Union[str, List[str]] = None
@@ -151,23 +197,18 @@ class AbsDatasetLoader(ABC):
             split_path = path_to_write_to / split
             if not split_path.exists():
                 split_path.mkdir(parents=True, exist_ok=True)
-            cur_split_dataset = self.corpus[split]
-            for batch in cur_split_dataset.iter(1):
-                table_name = Path(batch[self.table_id_col_name][0])
-                nested_array = batch[self.table_col_name][0]
-                if format.lower() == "csv":
-                    if "csv" not in table_name.suffix:
-                        table_name = table_name / ".csv"
-                    table_path = split_path / table_name
-                    with open(table_path, "w", newline="") as csvfile:
-                        writer = csv.writer(csvfile)
-                        writer.writerows(nested_array)
-                if format.lower() == "json":
-                    if "json" not in table_name.suffix:
-                        table_name = table_name / ".json"
-                    table_path = split_path / table_name
-                    # TODO: write JSON persistence logic
-                    pass
+            if self.alt_corpus:
+                cur_split_dataset = self.alt_corpus[split]
+                for entry in cur_split_dataset:
+                    table_name = Path(entry[self.table_id_col_name])
+                    nested_array = entry[self.table_col_name]
+                    self._write_table_to_path(table_name, split_path, nested_array)
+            else:
+                cur_split_dataset = self.corpus[split]
+                for batch in cur_split_dataset.iter(1):
+                    table_name = Path(batch[self.table_id_col_name][0])
+                    nested_array = batch[self.table_col_name][0]
+                    self._write_table_to_path(table_name, split_path, nested_array)
 
     def convert_corpus_table_to(
         self,
@@ -200,19 +241,32 @@ class AbsDatasetLoader(ABC):
                     f"split {splits} doesn't exist for the current dataset!"
                 )
 
+        output_format = output_format.lower()
         for split in splits:
             cur_split_dataset = self.corpus[split]
-            for batch in cur_split_dataset.iter(batch_size):
-                table_ids = batch[self.table_id_col_name]
-                tables = []
-                if "array" in output_format.lower():
-                    tables = batch[self.table_col_name]
-                elif "dataframe" in output_format.lower():
-                    tables = map(array_of_arrays_to_df, batch[self.table_col_name])
-                res_dict = {}
-                for key, value in zip(table_ids, tables):
-                    res_dict[key] = value
-                yield res_dict
+            if self.alt_corpus:
+                for i in range(0, len(cur_split_dataset), batch_size):
+                    cur_batch = cur_split_dataset[i : i + batch_size]
+                    res_dict = {}
+                    for entry in cur_batch:
+                        if "array" in output_format:
+                            res_dict[entry[self.table_id_col_name]] = entry[self.table_col_name]
+                        elif "dataframe" in output_format:
+                            res_dict[entry[self.table_id_col_name]] = array_of_arrays_to_df(entry[self.table_col_name])
+                    yield res_dict
+            
+            else:
+                for batch in cur_split_dataset.iter(batch_size):
+                    table_ids = batch[self.table_id_col_name]
+                    tables = []
+                    if "array" in output_format:
+                        tables = batch[self.table_col_name]
+                    elif "dataframe" in output_format:
+                        tables = map(array_of_arrays_to_df, batch[self.table_col_name])
+                    res_dict = {}
+                    for key, value in zip(table_ids, tables):
+                        res_dict[key] = value
+                    yield res_dict
 
     def get_table_id_to_table(
         self,
@@ -373,8 +427,3 @@ class AbsDatasetLoader(ABC):
         return self.queries.column_names
 
 
-class QueryType(Enum):
-    TEXT_2_SQL = "Text-2-Sql"
-    FACT_VERIFICATION = "Fact Verification"
-    TABLE_QA = "Table question answering"
-    OTHER = "Other"

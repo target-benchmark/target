@@ -1,5 +1,5 @@
 from dictionary_keys import *
-from typing import Dict, Optional, Union, List
+from typing import Dict, Literal, Optional, Union, List
 
 from pydantic import BaseModel, Field
 
@@ -59,7 +59,7 @@ class DatasetConfigDataModel(BaseModel):
         default=None,
         description="directory for where to persist the data to. defaults to None.",
     )
-    query_type: Optional[str] = Field(default=None, description="Type of query in this dataset.")
+    query_type: Optional[Literal["Fact Verification", "Text to SQL", "Table Question Answering", "Other"]] = Field(default=None, description="Type of query in this dataset.")
 
     aux: Optional[Dict] = Field(default=None, description="Any additional information related to the dataset.")
 

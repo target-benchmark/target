@@ -188,6 +188,16 @@ class AbsTask(ABC):
 
         logger.info(f"start task {self.task_name}")
 
+        self._task_setup(
+            retriever=retriever,
+            dataset_loaders=dataset_loaders,
+            logger=logger,
+            batch_size=batch_size,
+            splits=splits,
+            top_k=top_k,
+            **kwargs,
+        )
+        
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
@@ -226,6 +236,12 @@ class AbsTask(ABC):
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
+
+    def _task_setup(self, *args, **kwargs) -> None:
+        '''
+        Do any necessary setup you need in here.
+        '''
+        pass
 
     def _fill_retrieval_results_with_table_strs(
         self,

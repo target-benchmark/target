@@ -2,6 +2,7 @@ from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     QueryForTasksDataModel,
 )
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.TargetDatasetConfig import *
 
 from generators import DefaultGenerator
@@ -15,8 +16,8 @@ from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
     Text2SQLTaskPerformanceDataModel,
 )
+import duckdb
 
-import evaluate
 from typing import List, Dict, Union
 
 
@@ -62,6 +63,11 @@ class Text2SQLTask(AbsTask):
         elif "query_match" in metrics:
             self.evals = "match"
 
+        if self.evals == "all" or self.evals == "exec":
+            self.duckdb = duckdb.connect(database=':memory:', read_only=False)
+        else:
+            self.duckdb = None
+
         self.pred_answers = []
         self.ref_answers = []
 
@@ -82,6 +88,15 @@ class Text2SQLTask(AbsTask):
             # this is for testing!!
             DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG,
         }
+
+    def _task_setup(self, *args, **kwargs) -> None:
+        '''
+        Do any necessary setup you need in here.
+        '''
+        dataset_loaders: Dict[str, AbsDatasetLoader] = kwargs.get('dataset_loaders', {})
+        for dataset_name, dataloader in dataset_loaders.items():
+            pass # TODO: what even is fk pk referring to
+
 
     def _get_downstream_task_results(
         self,
