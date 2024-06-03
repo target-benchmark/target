@@ -2,6 +2,7 @@ import json
 import os
 
 import hnswlib
+import numpy as np
 import pandas as pd
 import pickle
 
@@ -12,10 +13,11 @@ from typing import Dict, Iterable, Iterator, List
 from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
 
 
-class HyseRetriever(AbsCustomEmbeddingRetriever):
+class HySERetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
+        out_dir: str,
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
@@ -25,8 +27,7 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
         )
-
-        self.out_dir = "hyse_files/"
+        self.out_dir = out_dir
 
     def retrieve(
         self,
@@ -60,14 +61,15 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
             os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "rb"
         ) as f:
             table_ids = pickle.load(f)
-
+        
+        s = 2
         # generate s hypothetical schemas for given query
-        hypothetical_schemas_query = generate_hypothetical_schema(query, s)
+        hypothetical_schemas_query = self.generate_hypothetical_schemas(query, s)
 
         # embed each hypothetical schema
         hypothetical_schema_embeddings = []
         for hypothetical_schema in hypothetical_schemas_query:
-            hypothetical_schema_embeddings = +_embed_schema(hypothetical_schema)
+            hypothetical_schema_embeddings += [self._embed_schema(table=hypothetical_schema)]
 
         # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
         retrieved_ids, distances = corpus_index.knn_query(
@@ -77,6 +79,7 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each in s hypothetical schemas
+        retrieved_table_ids = []
         for i in range(s):
             retrieved_table_ids += [table_ids[id] for id in retrieved_ids[i]]
 
@@ -95,40 +98,16 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        if not os.path.exists(self.out_dir):
-            os.mkdir(self.out_dir)
-
         embedded_corpus = {}
         for corpus_dict in corpus:
             # key = table_id, value = table
             for key, value in corpus_dict.items():
-                embedded_corpus[key] = _embed_schema(key, value)
+                embedded_corpus[key] = self._embed_schema(table=value, table_id=key)
 
-        corpus_embeddings_df = (
-            pd.DataFrame.from_records(embedded_corpus)
-            .transpose()
-            .rename({0: "embedding"}, axis=1)
+        corpus_index = self._construct_embedding_index(
+            list(embedded_corpus.keys()),
+            list(embedded_corpus.values())
         )
-
-        # Constructing index
-        corpus_index = hnswlib.Index(
-            space="cosine", dim=len(corpus_embeddings_df["embedding"][0])
-        )  # possible options are l2, cosine or ip
-
-        # Initializing index - the maximum number of elements should be known beforehand
-        corpus_index.init_index(
-            max_elements=corpus_embeddings_df.shape[0], ef_construction=200, M=16
-        )
-
-        # Element insertion (can be called several times):
-        corpus_index.add_items(
-            np.array([emb for emb in corpus_embeddings_df["embedding"]]),
-            corpus_embeddings_df.reset_index().index.tonumpy(),
-            corpus_embeddings_df,
-        )
-
-        # Controlling the recall by setting ef:
-        corpus_index.set_ef(50)  # ef should always be > k
 
         # Store table embedding index and table ids in distinct files
         with open(
@@ -139,13 +118,13 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         with open(
             os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "wb"
         ) as f:
-            pickle.dump(corpus_embeddings_df.index.tolist(), f)
+            pickle.dump(list(embedded_corpus.keys()), f)
 
-    def _embed_schema(table_id: str, table: List[List]) -> List[List]:
+
+    def _embed_schema(self, table: List[List], table_id: str = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
-
         try:
-            response = client.embeddings.create(
+            response = self.client.embeddings.create(
                 model="text-embedding-3-small",
                 # current: embed schema only
                 # todo: add table values
@@ -153,13 +132,40 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
             )
             return response.data[0].embedding
         except:
-            print("error on: ", table_id)
-            return [[]]
+            print("error on: ", table_id, e)
+            return []
 
-    def generate_hypothetical_schemas(query: str, s: int) -> List[List]:
+
+    def _construct_embedding_index(self, table_ids: List[List], table_embeddings: List[List]):
+
+        # Constructing index
+        corpus_index = hnswlib.Index(
+            space="cosine", dim=len(table_embeddings[0])
+        )  # possible options are l2, cosine or ip
+
+        # Initializing index - the maximum number of elements should be known beforehand
+        corpus_index.init_index(
+            max_elements=len(table_embeddings), ef_construction=200, M=16
+        )
+
+        # Element insertion (can be called several times):
+        corpus_index.add_items(
+            np.asarray(table_embeddings),
+            list(range(0,len(table_embeddings))),
+        )
+
+        # Controlling the recall by setting ef:
+        corpus_index.set_ef(50)  # ef should always be > k
+
+        return corpus_index
+
+
+
+    def generate_hypothetical_schemas(self, query: str, s: int) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
 
-        response = client.chat.completions.create(
+        # TODO: ensure correctness of output type and dimension
+        response = self.client.chat.completions.create(
             model="gpt-4o-2024-05-13",
             messages=[
                 {
@@ -169,7 +175,8 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
                     "content": f"""
                   Generate exactly {s} table headers, which are different in semantics and size,
                   of tables which could potentially be used to answer the given query.
-                  Return a list in which each item is a list of table attributes (strings).
+                  Return only a list in which each item is a list of table attributes (strings),
+                  without any surrounding numbers or text.
                   """,
                 },
                 {"role": "user", "content": f"{query}"},
@@ -180,5 +187,5 @@ class HyseRetriever(AbsCustomEmbeddingRetriever):
         hypothetical_schemas = eval(
             response.to_dict()["choices"][0]["message"]["content"]
         )
-
+        
         return hypothetical_schemas
