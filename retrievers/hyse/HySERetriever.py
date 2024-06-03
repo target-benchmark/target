@@ -43,7 +43,8 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             query (str): the actual query string.
 
             dataset_name (str): identifier for the dataset that these queries come from.
-            since retrieval evaluation can be done for multiple datasets, use this as a way of choosing which dataset's corpus to retrieve from.
+            since retrieval evaluation can be done for multiple datasets,
+            use this as a way of choosing which dataset's corpus to retrieve from.
 
             top_k (int): the top k tables to retrieve for each query
 
@@ -61,7 +62,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "rb"
         ) as f:
             table_ids = pickle.load(f)
-        
+
         s = 2
         # generate s hypothetical schemas for given query
         hypothetical_schemas_query = self.generate_hypothetical_schemas(query, s)
@@ -69,7 +70,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         # embed each hypothetical schema
         hypothetical_schema_embeddings = []
         for hypothetical_schema in hypothetical_schemas_query:
-            hypothetical_schema_embeddings += [self._embed_schema(table=hypothetical_schema)]
+            hypothetical_schema_embeddings += [
+                self._embed_schema(table=hypothetical_schema)
+            ]
 
         # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
         retrieved_ids, distances = corpus_index.knn_query(
@@ -105,8 +108,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 embedded_corpus[key] = self._embed_schema(table=value, table_id=key)
 
         corpus_index = self._construct_embedding_index(
-            list(embedded_corpus.keys()),
-            list(embedded_corpus.values())
+            list(embedded_corpus.keys()), list(embedded_corpus.values())
         )
 
         # Store table embedding index and table ids in distinct files
@@ -119,7 +121,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "wb"
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
-
 
     def _embed_schema(self, table: List[List], table_id: str = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
@@ -135,8 +136,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             print("error on: ", table_id, e)
             return []
 
-
-    def _construct_embedding_index(self, table_ids: List[List], table_embeddings: List[List]):
+    def _construct_embedding_index(
+        self, table_ids: List[List], table_embeddings: List[List]
+    ):
 
         # Constructing index
         corpus_index = hnswlib.Index(
@@ -151,15 +153,13 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         # Element insertion (can be called several times):
         corpus_index.add_items(
             np.asarray(table_embeddings),
-            list(range(0,len(table_embeddings))),
+            list(range(0, len(table_embeddings))),
         )
 
         # Controlling the recall by setting ef:
         corpus_index.set_ef(50)  # ef should always be > k
 
         return corpus_index
-
-
 
     def generate_hypothetical_schemas(self, query: str, s: int) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
@@ -187,5 +187,5 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         hypothetical_schemas = eval(
             response.to_dict()["choices"][0]["message"]["content"]
         )
-        
+
         return hypothetical_schemas
