@@ -27,6 +27,7 @@ class RetrieverEval:
         self.target = TARGET()
 
     def run_eval(self):
+        """Runs evaluation and writes results (retrieval, downsream task, total eval time) to a json file."""
         start = time.time()
         res = self.target.run(self.retriever, top_k=10)
         eval_time = time.time() - start
