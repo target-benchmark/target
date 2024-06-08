@@ -1,7 +1,45 @@
+from enum import Enum
 import json
 from typing import Any, List, Literal, Dict
 import pandas as pd
 
+class QueryType(Enum):
+    TEXT_2_SQL = "Text to SQL"
+    FACT_VERIFICATION = "Fact Verification"
+    TABLE_QA = "Table Question Answering"
+    OTHER = "Other"
+
+def set_query_type(string_rep: str) -> QueryType:
+    string_rep = string_rep.lower()
+    if string_rep in QueryType.FACT_VERIFICATION.value.lower():
+        return QueryType.FACT_VERIFICATION
+    elif string_rep in QueryType.TABLE_QA.value.lower():
+        return QueryType.TABLE_QA
+    elif string_rep in QueryType.TEXT_2_SQL.value.lower():
+        return QueryType.TEXT_2_SQL
+    else:
+        return QueryType.OTHER
+
+class DataFormat(Enum):
+    ARRAY = "array"
+    JSON = "json"
+    DF = "dataframe"
+
+def set_data_format(string_rep: str) -> DataFormat:
+    cleaned = string_rep.lower().strip()
+    if DataFormat.ARRAY in cleaned:
+        return DataFormat.ARRAY
+    elif DataFormat.JSON in cleaned:
+        return DataFormat.JSON
+    elif DataFormat.DF in cleaned or "pandas" in cleaned:
+        return DataFormat.DF
+    raise ValueError(f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'.")
+
+def enforce_split_literal(string_rep: str):
+    splits = ("test", "train", "validation")
+    if string_rep in splits:
+        return string_rep
+    raise ValueError(f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation")
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     """

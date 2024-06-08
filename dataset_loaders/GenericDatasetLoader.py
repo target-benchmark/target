@@ -1,6 +1,6 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dictionary_keys import *
-from typing import Union, List
+from typing import Literal
 
 from datasets import load_dataset, DatasetDict
 from pathlib import Path
@@ -18,7 +18,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
-        splits: Union[str, List[str]] = "test",
+        split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         query_type: str = "",
         **kwargs
@@ -45,7 +45,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
             query_col_name=query_col_name,
             query_id_col_name=query_id_col_name,
             answer_col_name=answer_col_name,
-            splits=splits,
+            split=split,
             data_directory=data_directory,
             query_type=query_type,
             **kwargs,
@@ -58,17 +58,15 @@ class GenericDatasetLoader(AbsDatasetLoader):
     def _load_corpus(self) -> None:
         if not self.corpus:
             self.corpus = DatasetDict()
-        for split in self.splits:
-            if split not in self.corpus:
-                self.corpus[split] = load_dataset(
-                    path=str(self.corpus_path), split=split
-                )
+        if self.split not in self.corpus:
+            self.corpus[self.split] = load_dataset(
+                path=str(self.corpus_path), split=self.split
+            )
 
     def _load_queries(self) -> None:
         if not self.queries:
             self.queries = DatasetDict()
-        for split in self.splits:
-            if split not in self.queries:
-                self.queries[split] = load_dataset(
-                    path=str(self.queries_path), split=split
-                )
+        if self.split not in self.queries:
+            self.queries[self.split] = load_dataset(
+                path=str(self.queries_path), split=self.split
+            )
