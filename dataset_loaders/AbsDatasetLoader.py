@@ -277,6 +277,22 @@ class AbsDatasetLoader(ABC):
             for table_id, table in batch.items():
                 mapping_dict[table_id] = table
         return mapping_dict
+    
+    def get_table_id_to_database_id(
+        self,
+        splits: Union[str, List[str]] = None,
+    ) -> Dict[str, Dict[str, str]]:
+        mapping_dict = {}
+        if isinstance(splits, str):
+            splits = [splits]
+        elif splits == None:
+            splits = self.splits
+        for split in splits:
+            dict_for_cur_split = {}
+            for entry in self.corpus[split]:
+                dict_for_cur_split[entry[self.table_id_col_name]] = entry[self.database_id_col_name]
+            mapping_dict[split] = dict_for_cur_split
+        return mapping_dict
 
     def get_queries_for_task(
         self, splits: Union[str, List[str]] = None, batch_size: int = 64

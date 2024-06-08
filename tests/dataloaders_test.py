@@ -6,6 +6,8 @@ class DataloadersTest(unittest.TestCase):
     def test_text2sql(self):
         spider_loader = HFDatasetLoader(**DEFAULT_SPIDER_DATASET_CONFIG.model_dump())
         self.assertEqual(spider_loader.query_type, QueryType.TEXT_2_SQL)
+        self.assertEqual(spider_loader.dataset_name, "spider")
+        print(spider_loader.dataset_name)
 
         spider_loader.load()
         self.assertIsNotNone(spider_loader.alt_corpus)
