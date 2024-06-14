@@ -19,7 +19,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
     - the embedding of your tool is simply a vector or array of floats. example: the retriever is just an embedding model that produces vectors.
     - your retrieval system doesn't need any specific persistence formats or folder structures to work.
 
-    To inherit from this class, fill out the `embed_query` and `embed_corpus` functions. 
+    To inherit from this class, fill out the `embed_query` and `embed_corpus` functions.
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):

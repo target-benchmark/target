@@ -58,7 +58,7 @@ class TestTableRetriever(unittest.TestCase):
             "Table4": [["fourth random table"], ["fourth item"]],
             "Table5": [["fifth random table"], ["fifth item"]],
         }
-        self.mock_dataset_loader.get_queries_for_task.side_effect = lambda splits, batch_size: iter(
+        self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 [
                     QueryForTasksDataModel(
@@ -85,7 +85,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="train",
             top_k=2,
         )
         res = results["dummy-dataset"]
@@ -103,7 +102,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="train",
             top_k=2,
         )
         res = results["dummy-dataset"]

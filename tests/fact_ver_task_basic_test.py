@@ -52,7 +52,7 @@ class TestTableRetriever(unittest.TestCase):
             "Table5": [["fact"], ["Today's temperature is 22.1 celsius."]],
         }
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda splits, batch_size: iter(
+            lambda batch_size: iter(
                 [
                     [
                         QueryForTasksDataModel(
@@ -81,7 +81,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(

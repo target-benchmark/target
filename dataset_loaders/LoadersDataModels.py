@@ -51,17 +51,21 @@ class DatasetConfigDataModel(BaseModel):
         default=ANSWER_COL_NAME,
         description="Name of the column that contains the downstream task answers.",
     )
-    splits: Union[str, List[str]] = Field(
+    split: Literal["test", "train", "validation"] = Field(
         default="test",
-        description="Split(s) to include. Defaults to only the test split.",
+        description="Split to include. Defaults to only the test split.",
     )
     data_directory: str = Field(
         default=None,
         description="directory for where to persist the data to. defaults to None.",
     )
-    query_type: Optional[Literal["Fact Verification", "Text to SQL", "Table Question Answering", "Other"]] = Field(default=None, description="Type of query in this dataset.")
+    query_type: Optional[
+        Literal["Fact Verification", "Text to SQL", "Table Question Answering", "Other"]
+    ] = Field(default=None, description="Type of query in this dataset.")
 
-    aux: Optional[Dict] = Field(default=None, description="Any additional information related to the dataset.")
+    aux: Optional[Dict] = Field(
+        default=None, description="Any additional information related to the dataset."
+    )
 
 
 class GenericDatasetConfigDataModel(DatasetConfigDataModel):

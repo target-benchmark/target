@@ -13,7 +13,11 @@ import os
 
 
 class DefaultGenerator(AbsGenerator):
-    def __init__(self, system_message: str = DEFAULT_SYSTEM_MESSAGE, user_message: str = DEFAULT_QA_USER_MESSAGE):
+    def __init__(
+        self,
+        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        user_message: str = DEFAULT_QA_USER_MESSAGE,
+    ):
         super().__init__()
         self.language_model = ChatOpenAI(
             model="gpt-4o",

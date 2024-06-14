@@ -157,7 +157,6 @@ class AbsTask(ABC):
         dataset_loaders: Dict[str, AbsDatasetLoader],
         logger: Logger,
         batch_size: int = 64,
-        splits: Union[str, List[str]] = "test",
         top_k: int = 5,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
@@ -169,7 +168,6 @@ class AbsTask(ABC):
             dataset_loaders (Dict[str, AbsDatasetLoader]): Dictionary of dataset loaders keyed by dataset names.
             logger (Logger): Logger instance to log the task execution details.
             batch_size (int): The number of items to process in a single batch. Default is 64.
-            splits (Union[str, List[str]], optional): Dataset split(s) to run the task on. Default is "test".
             top_k (int, optional): The top k tables to retrieve. Default is 5.
             **kwargs: Additional keyword arguments for fine-tuning the task execution.
 
@@ -188,20 +186,10 @@ class AbsTask(ABC):
 
         logger.info(f"start task {self.task_name}")
 
-        self._task_setup(
-            retriever=retriever,
-            dataset_loaders=dataset_loaders,
-            logger=logger,
-            batch_size=batch_size,
-            splits=splits,
-            top_k=top_k,
-            **kwargs,
-        )
-        
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
-            table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
-            for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
+            table_id_to_table = dataset_loader.get_table_id_to_table()
+            for query_batch in dataset_loader.get_queries_for_task(batch_size):
                 retrieved_tables = self._get_retrieval_results(
                     retriever,
                     query_batch,
@@ -236,12 +224,6 @@ class AbsTask(ABC):
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
-
-    def _task_setup(self, *args, **kwargs) -> None:
-        '''
-        Do any necessary setup you need in here.
-        '''
-        pass
 
     def _fill_retrieval_results_with_table_strs(
         self,

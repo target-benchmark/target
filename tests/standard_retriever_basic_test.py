@@ -33,7 +33,9 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         self.dataset_name = "dummy-dataset"
         self.client.create_collection(
             collection_name=self.dataset_name,
-            vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE),
+            vectors_config=models.VectorParams(
+                size=1536, distance=models.Distance.COSINE
+            ),
         )
         self.test_dataset = {
             "Table1": [["some random table"], ["some item"]],
@@ -59,7 +61,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
 
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda splits, batch_size: iter(
+            lambda batch_size: iter(
                 [
                     [
                         QueryForTasksDataModel(
@@ -88,7 +90,6 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
             client=self.client,
         )
@@ -96,7 +97,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
     def test_basic_full_run(self):
         # end to end test that includes the client being created and retrieval from the client
         targ = TARGET()
-        results = targ.run(self.retriever, splits="train")
+        results = targ.run(self.retriever, split="train")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,20 @@
-from dataset_loaders.utils import array_of_arrays_to_df, interpret_numbers, QueryType, set_query_type, DataFormat, set_data_format, enforce_split_literal
+from dataset_loaders.utils import (
+    InMemoryDataFormat,
+    array_of_arrays_to_df,
+    QueryType,
+    set_in_memory_data_format,
+    set_query_type,
+    enforce_split_literal,
+    write_table_to_path,
+    convert_corpus_entry_to_df,
+    convert_corpus_entry_to_dict,
+)
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from dictionary_keys import *
 
 from abc import ABC, abstractmethod
 import csv
-from datasets import DatasetDict
+from datasets import Dataset
 from pathlib import Path
 from typing import Iterable, Iterator, Literal
 from typing import Union, List, Dict
@@ -49,7 +59,7 @@ class AbsDatasetLoader(ABC):
 
             answer_col_name (str, optional): name of the column that contains the answer str. defaults to "answer".
 
-            splits (Union[str, List[str]], optional): splits of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
+            split (Literal["test", "train", "validation"], optional): split of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
 
             data_directory (str, optional): a directory where data files are stored. you don't have to provide one if you don't need to persist the file after loading it.
 
@@ -58,8 +68,8 @@ class AbsDatasetLoader(ABC):
         Instance Variables:
             aside from instance variables of the same name & purposes as the parameters, there's also:
 
-            self.corpus: a huggingface DatasetDict object containing the corpus dataset, remains None until load corpus is complete.
-            self.queries: a huggingface DatasetDict object containing the queries dataset, remains None until load queries is complete.
+            self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
+            self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
         """
 
         self.dataset_name: str = dataset_name
@@ -74,38 +84,15 @@ class AbsDatasetLoader(ABC):
         self.query_id_col_name: str = query_id_col_name
         self.answer_col_name: str = answer_col_name
         self.query_type: QueryType = set_query_type(query_type)
-        self.corpus: DatasetDict = None
-        self.queries: DatasetDict = None
+        self.corpus: Dataset = None
+        self.queries: Dataset = None
         self.alt_corpus = None
 
-    
     def load(self) -> None:
-        if not self.corpus or not self.queries:
-            self._load()
-
-    def _load(self) -> None:
-        """
-        Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
-
-        Parameters:
-            splits (Union[str, List[str]], optional): The dataset split or splits to load. Defaults to None, which will load train split or the split specified when constructing this Generic Dataset Loader object
-        """
-        self._load_corpus()
-        self._load_queries()
-        if self.query_type == QueryType.TEXT_2_SQL:
-            self.setup_text2sql_corpus()
-
-    def setup_text2sql_corpus(self) -> None:
-        '''
-        For text-2-sql datasets, have to convert some columns of the tables from string to numbers. 
-        self.alt_corpus will be used instead of self.corpus for passing data to other objects.
-        '''
         if not self.corpus:
-            raise ValueError("Corpus has not been loaded yet!")
-        number_converted_corpus = {}
-        for split_name, split in self.corpus.items():
-            number_converted_corpus[split_name] = [interpret_numbers(entry, self.table_col_name) for entry in split]
-        self.alt_corpus = number_converted_corpus
+            self._load_corpus()
+        if not self.queries:
+            self._load_queries()
 
     @abstractmethod
     def _load_corpus(self) -> None:
@@ -115,34 +102,18 @@ class AbsDatasetLoader(ABC):
     def _load_queries(self) -> None:
         pass
 
-    def _write_table_to_path(self, table_name: Path, split_path: Path, nested_array: List[List]) -> None:
-        if format.lower() == "csv":
-            if "csv" not in table_name.suffix:
-                table_name = table_name / ".csv"
-            table_path = split_path / table_name
-            with open(table_path, "w", newline="") as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(nested_array)
-        if format.lower() == "json":
-            if "json" not in table_name.suffix:
-                table_name = table_name / ".json"
-            table_path = split_path / table_name
-            # TODO: write JSON persistence logic
-            pass
-
     def persist_corpus_to(
-        self, format: str, path: str = None
+        self, format: Literal["csv", "json"], path: str = None
     ) -> None:
         """
         Saves the tables in the corpus to a specified location and format.
 
         Parameters:
-            format (str): The format in which to save the corpus (e.g., 'csv', 'json').
+            format (Literal["csv", "json"]): The format in which to save the corpus (e.g., 'csv', 'json').
             path (str, optional): The file system path where the corpus should be saved. creates directory if the directory doesn't exist. if no path is given, defaults to self.data_directory. if self.data_directory is also None, throw ValueError.
-            splits (Union[str, List[str]]): split names to persist. if non is provided, all splits will be persisted.
 
         Raises:
-            Runtime error if the corpus has not been loaded, or if the splits specified doesn't exist in the data dicts.
+            Runtime error if the corpus has not been loaded.
         """
         if not self.corpus:
             raise RuntimeError("Corpus has not been loaded!")
@@ -163,23 +134,16 @@ class AbsDatasetLoader(ABC):
         split_path = path_to_write_to / self.split
         if not split_path.exists():
             split_path.mkdir(parents=True, exist_ok=True)
-        if self.alt_corpus:
-            cur_split_dataset = self.alt_corpus[self.split]
-            for entry in cur_split_dataset:
-                table_name = Path(entry[self.table_id_col_name])
-                nested_array = entry[self.table_col_name]
-                self._write_table_to_path(table_name, split_path, nested_array)
-        else:
-            cur_split_dataset = self.corpus[self.split]
-            for batch in cur_split_dataset.iter(1):
-                table_name = Path(batch[self.table_id_col_name][0])
-                nested_array = batch[self.table_col_name][0]
-                self._write_table_to_path(table_name, split_path, nested_array)
+        cur_split_dataset = self.corpus[self.split]
+        for batch in cur_split_dataset.iter(1):
+            table_name = Path(batch[self.table_id_col_name][0])
+            nested_array = batch[self.table_col_name][0]
+            write_table_to_path(format, table_name, split_path, nested_array)
 
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
-        batch_size: int = 64,
+        batch_size: int = None,
     ) -> Iterable[Dict]:
         """
         convert the corpus table to a specific format in memory.
@@ -190,54 +154,38 @@ class AbsDatasetLoader(ABC):
             batch_size (int): number of tables to be outputted at once
 
         Returns:
-            a generator that contains a dictionary with the keys being the table_ids and the values being the corresponding table as an output_format object
+            a generator. depending on the batch size, each yield produces a dictionary with the keys being the column names and values being
+            - a single value if batch size is 0
+            - a list of values if batch size is greater than 0
         """
 
         if not self.corpus:
             raise RuntimeError("Corpus has not been loaded!")
 
-        output_format = output_format.lower()
-        
-        cur_split_dataset = self.corpus[self.split]
-        if self.alt_corpus:
-            for i in range(0, len(cur_split_dataset), batch_size):
-                cur_batch = cur_split_dataset[i : i + batch_size]
-                res_dict = {}
-                for entry in cur_batch:
-                    if "array" in output_format:
-                        res_dict[entry[self.table_id_col_name]] = entry[self.table_col_name]
-                    elif "dataframe" in output_format:
-                        res_dict[entry[self.table_id_col_name]] = array_of_arrays_to_df(entry[self.table_col_name])
-                yield res_dict
-        
+        in_memory_format = set_in_memory_data_format(output_format)
+        if in_memory_format == InMemoryDataFormat.DF:
+            converted_corpus = self.corpus.map(
+                lambda entry: convert_corpus_entry_to_df(self.table_col_name, entry)
+            )
+        elif in_memory_format == InMemoryDataFormat.DICTIONARY:
+            converted_corpus = self.corpus.map(
+                lambda entry: convert_corpus_entry_to_dict(self.table_col_name, entry)
+            )
         else:
-            for batch in cur_split_dataset.iter(batch_size):
-                table_ids = batch[self.table_id_col_name]
-                tables = []
-                if "array" in output_format:
-                    tables = batch[self.table_col_name]
-                elif "dataframe" in output_format:
-                    tables = map(array_of_arrays_to_df, batch[self.table_col_name])
-                res_dict = {}
-                for key, value in zip(table_ids, tables):
-                    res_dict[key] = value
-                yield res_dict
+            converted_corpus = self.corpus
+        if not batch_size:
+            for entry in converted_corpus:
+                yield entry
+        else:
+            for batch in converted_corpus.iter(batch_size):
+                yield batch
 
     def get_table_id_to_table(
         self,
     ) -> Dict[str, List[List]]:
         mapping_dict = {}
-        for batch in self.convert_corpus_table_to():
-            for table_id, table in batch.items():
-                mapping_dict[table_id] = table #TODO MODIFY THIS LOGIC
-        return mapping_dict
-    
-    def get_table_id_to_database_id(
-        self,
-    ) -> Dict[str, Dict[str, str]]:
-        mapping_dict = {}
-        for entry in self.corpus[self.split]:
-            mapping_dict[entry[self.table_id_col_name]] = entry[self.database_id_col_name]
+        for entry in self.convert_corpus_table_to():
+            mapping_dict[entry[self.table_id_col_name]] = entry[self.table_col_name]
         return mapping_dict
 
     def get_queries_for_task(
@@ -246,9 +194,7 @@ class AbsDatasetLoader(ABC):
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
 
-        
-        cur_queries_split = self.queries[self.split]
-        for batch in cur_queries_split.iter(batch_size):
+        for batch in self.queries.iter(batch_size):
             res_list = []
             query_ids = batch[self.query_id_col_name]
             queries = batch[self.query_col_name]
@@ -278,63 +224,36 @@ class AbsDatasetLoader(ABC):
         """
         return self.dataset_name
 
-    def get_corpus(self) -> DatasetDict:
+    def get_corpus(self) -> Dataset:
         """
         get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
 
-        Parameters:
-            splits(Union[str, List[str]], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
-
         Returns:
-            a DatasetDict object containing the corresponding splits from the dataset's corpus
+            a Dataset object
 
         Raises:
-            a runtime error if a specified split doesn't exist within the existing_dataset_dict.
+            a runtime error if corpus has not been loaded yet.
 
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
-        return self._get_dataset_dict_from_split(self.corpus)
+        return self.corpus
 
-    def get_queries(self) -> DatasetDict:
+    def get_queries(self) -> Dataset:
         """
         get the queries of the loaded dataset. if the dataset has not been loaded, raise an error.
 
-        Parameters:
-            splits(Union[str, List[str]], optional): optional, either a string or a list of strings, each string is a split name. if none is provided, the entire DatasetDict object is returned.
-
         Returns:
-            a DatasetDict object containing the corresponding splits from the dataset's queries.
+            a Dataset object
 
         Raises:
-            a runtime error if a specified split doesn't exist within the existing_dataset_dict.
+            a runtime error if queries has not been loaded yet.
         """
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
-        return self._get_dataset_dict_from_split(self.queries)
+        return self.queries
 
-    def _get_dataset_dict_from_split(
-        self, existing_dataset_dict: DatasetDict
-    ) -> DatasetDict:
-        """
-        get the dataset from specified splits
-
-        Parameters:
-            existing_dataset_dict (DatasetDict): a dataset dict to get splits from.
-            splits (Union[str, List[str]], optional): split names, can be a single name or a list of names. if none is provided, the entire DatasetDict object is returned.
-
-        Returns:
-            a DatasetDict object containing the requested splits.
-
-        Raises:
-            a runtime error if a specified split doesn't exist within the existing_dataset_dict.
-        """
-        dataset_splits = [
-            (self.split, existing_dataset_dict[self.split])
-        ]
-        return DatasetDict(dataset_splits)
-
-    def get_corpus_header(self) -> Dict[str, List[str]]:
+    def get_corpus_header(self) -> List[str]:
         """
         returns the header of this dataset's corpus
 
@@ -345,7 +264,7 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus.column_names
 
-    def get_queries_header(self) -> Dict[str, List[str]]:
+    def get_queries_header(self) -> List[str]:
         """
         returns the header of this dataset's queries
         Returns:
@@ -354,5 +273,3 @@ class AbsDatasetLoader(ABC):
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
         return self.queries.column_names
-
-

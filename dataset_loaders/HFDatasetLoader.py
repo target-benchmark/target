@@ -46,20 +46,14 @@ class HFDatasetLoader(AbsDatasetLoader):
         self.hf_corpus_dataset_path = hf_corpus_dataset_path
         self.hf_queries_dataset_path = hf_queries_dataset_path
 
-
-
     def _load_corpus(self) -> None:
         if not self.corpus:
-            self.corpus = DatasetDict()
-        if self.split not in self.corpus:
-            self.corpus[self.split] = load_dataset(
+            self.corpus = load_dataset(
                 path=self.hf_corpus_dataset_path, split=self.split
             )
 
     def _load_queries(self) -> None:
         if not self.queries:
-            self.queries = DatasetDict()
-        if self.split not in self.queries:
-            self.queries[self.split] = load_dataset(
+            self.queries = load_dataset(
                 path=self.hf_queries_dataset_path, split=self.split
             )

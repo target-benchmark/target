@@ -1,13 +1,17 @@
+import csv
 from enum import Enum
 import json
 from typing import Any, List, Literal, Dict
 import pandas as pd
+from pathlib import Path
+
 
 class QueryType(Enum):
     TEXT_2_SQL = "Text to SQL"
     FACT_VERIFICATION = "Fact Verification"
     TABLE_QA = "Table Question Answering"
     OTHER = "Other"
+
 
 def set_query_type(string_rep: str) -> QueryType:
     string_rep = string_rep.lower()
@@ -20,26 +24,77 @@ def set_query_type(string_rep: str) -> QueryType:
     else:
         return QueryType.OTHER
 
-class DataFormat(Enum):
-    ARRAY = "array"
-    JSON = "json"
-    DF = "dataframe"
 
-def set_data_format(string_rep: str) -> DataFormat:
+class PersistenceDataFormat(Enum):
+    JSON = "json"
+    CSV = "csv"
+
+
+def set_persistence_data_format(string_rep: str) -> PersistenceDataFormat:
     cleaned = string_rep.lower().strip()
-    if DataFormat.ARRAY in cleaned:
-        return DataFormat.ARRAY
-    elif DataFormat.JSON in cleaned:
-        return DataFormat.JSON
-    elif DataFormat.DF in cleaned or "pandas" in cleaned:
-        return DataFormat.DF
-    raise ValueError(f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'.")
+    if PersistenceDataFormat.JSON.value in cleaned:
+        return PersistenceDataFormat.JSON
+    elif PersistenceDataFormat.CSV.value in cleaned:
+        return PersistenceDataFormat.CSV
+    raise ValueError(
+        f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
+    )
+
+
+def write_table_to_path(
+    format: Literal["csv", "json"],
+    table_name: Path,
+    split_path: Path,
+    nested_array: List[List],
+) -> None:
+    persistence_format = set_persistence_data_format(format)
+    if persistence_format == PersistenceDataFormat.CSV:
+        if "csv" not in table_name.suffix:
+            table_name = table_name / ".csv"
+        table_path = split_path / table_name
+        with open(table_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(nested_array)
+    elif persistence_format == PersistenceDataFormat.JSON:
+        if "json" not in table_name.suffix:
+            table_name = table_name / ".json"
+        table_path = split_path / table_name
+        headers = nested_array[0]
+        rows = nested_array[1:]
+        # Create a list of dictionaries, each representing a row
+        dict_list = [dict(zip(headers, row)) for row in rows]
+
+        with open(table_path, "w") as file:
+            json.dump(dict_list, file, indent=4)  # 'indent=4' for pretty-printing
+
+
+class InMemoryDataFormat(Enum):
+    ARRAY = "array"
+    DF = "dataframe"
+    DICTIONARY = "dictionary"
+
+
+def set_in_memory_data_format(string_rep: str) -> InMemoryDataFormat:
+    cleaned = string_rep.lower().strip()
+    if InMemoryDataFormat.ARRAY.value in cleaned:
+        return InMemoryDataFormat.ARRAY
+    elif InMemoryDataFormat.DF.value in cleaned or "pandas" in cleaned:
+        return InMemoryDataFormat.DF
+    elif InMemoryDataFormat.DICTIONARY.value in cleaned:
+        return InMemoryDataFormat.DICTIONARY
+    raise ValueError(
+        f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
+    )
+
 
 def enforce_split_literal(string_rep: str):
     splits = ("test", "train", "validation")
     if string_rep in splits:
         return string_rep
-    raise ValueError(f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation")
+    raise ValueError(
+        f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation"
+    )
+
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     """
@@ -58,8 +113,25 @@ def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     return array_of_arrays_to_df(array)
 
 
-def array_of_arrays_to_df(array: List[List]):
+def array_of_arrays_to_df(array: List[List]) -> pd.DataFrame:
     return pd.DataFrame(data=array[1:], columns=array[0])
+
+
+def array_of_arrays_to_dict(array: List[List]) -> Dict:
+    headers = array[0]
+    rows = array[1:]
+    # Create a list of dictionaries, each representing a row
+    return [dict(zip(headers, row)) for row in rows]
+
+
+def convert_corpus_entry_to_df(col_name: str, entry: Dict) -> Dict:
+    entry[col_name] = array_of_arrays_to_df(entry[col_name])
+    return entry
+
+
+def convert_corpus_entry_to_dict(col_name: str, entry: Dict) -> Dict:
+    entry[col_name] = array_of_arrays_to_dict(entry[col_name])
+    return entry
 
 
 def str_representation_to_array(array_repr: str) -> List:
@@ -87,7 +159,8 @@ def str_representation_to_array(array_repr: str) -> List:
 
 
 def convert_nested_list_to(
-    nested_list: List[List], output_format: Literal["array", "nested array", "pandas", "dataframe"]
+    nested_list: List[List],
+    output_format: Literal["array", "nested array", "pandas", "dataframe"],
 ):
     output_format = output_format.lower()
     if "array" in output_format:
@@ -114,7 +187,11 @@ def markdown_table_with_headers(nested_array: List[List]):
     return markdown
 
 
-def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe"] = "nested array"):
+def get_dummy_table_of_format(
+    expected_format: Literal[
+        "array", "nested array", "pandas", "dataframe"
+    ] = "nested array"
+):
     dummy_table = [["header"], ["content"]]
     expected_format = expected_format.lower()
     if "array" in expected_format:
@@ -125,44 +202,23 @@ def get_dummy_table_of_format(expected_format: Literal["array", "nested array", 
         return dummy_table
 
 
-def check_col(entry, col):
-    cur_type = None
-    types = []
-    for row in entry["table"][1:]:
-        cell = row[col]
-        try:
-            int(cell)
-            types.append(int)
-            continue
-        except:
-            pass
-        try:
-            float(cell)
-            types.append(float)
-            continue
-        except:
-            pass
-        return None
-    
-    if all([x == types[0] for x in types]):
-        return types[0]
-    else:
-        return None
-
-def interpret_numbers(entry: Dict[str, Any], table_col_name: str) -> Dict[str, Any]:
-    table_list = entry[table_col_name]
-    if len(table_list) > 1:
-        conv_indices = {}
-        for i in range(len(table_list[1])):
-            res = check_col(entry, i)
-            if res:
-                conv_indices[i] = res
-            
-        for row in table_list[1:]:
-            for conv_idx, conv_type in conv_indices.items():
-                try:
-                    row[conv_idx] = conv_type(row[conv_idx])
-                except:
-                    pass
-    
-    return entry
+def write_table_to_path(
+    format: Literal["csv", "json"],
+    table_name: Path,
+    split_path: Path,
+    nested_array: List[List],
+) -> None:
+    format = format.lower()
+    if format.lower() == "csv":
+        if "csv" not in table_name.suffix:
+            table_name = table_name / ".csv"
+        table_path = split_path / table_name
+        with open(table_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(nested_array)
+    if format.lower() == "json":
+        if "json" not in table_name.suffix:
+            table_name = table_name / ".json"
+        table_path = split_path / table_name
+        # TODO: write JSON persistence logic
+        pass

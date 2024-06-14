@@ -25,7 +25,7 @@ from datetime import datetime
 import logging
 import os
 
-from typing import Union, List, Dict
+from typing import Literal, Union, List, Dict
 
 from qdrant_client import QdrantClient, models
 
@@ -66,10 +66,6 @@ class TARGET:
         )
         self.logger.info("Finished creating dataset config information.")
 
-        self.logger.info("Started creating data loader objects...")
-        self.dataloaders: Dict[str, AbsDatasetLoader] = self.create_dataloaders(
-            self.dataset_info
-        )
         self.logger.info("Finished creating dataset loaders. Finished setting up.")
 
     def load_tasks(
@@ -146,7 +142,7 @@ class TARGET:
             a dictionary mapping dataset names to dataset configs.
         """
         eval_dataset_config = {}
-        for task_name, task_object in tasks.items():
+        for _, task_object in tasks.items():
             dataset_config = task_object.get_dataset_config()
             for dataset_name, config in dataset_config.items():
                 if dataset_name not in eval_dataset_config:
@@ -154,7 +150,9 @@ class TARGET:
         return eval_dataset_config
 
     def create_dataloaders(
-        self, dataset_config: Dict[str, DatasetConfigDataModel]
+        self,
+        dataset_config: Dict[str, DatasetConfigDataModel],
+        split: Literal["test", "train", "validation"] = "test",
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
@@ -167,6 +165,7 @@ class TARGET:
         """
         eval_dataloaders = {}
         for dataset_name, config in dataset_config.items():
+            config.split = split
             if isinstance(config, HFDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = HFDatasetLoader(**config.model_dump())
             elif isinstance(config, GenericDatasetConfigDataModel):
@@ -182,14 +181,12 @@ class TARGET:
     def load_datasets_for_task(
         self,
         dataset_names: List[str],
-        splits: Union[str, List[str]] = "test",
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
 
         Parameters:
             dataset_names (List[str]): a list of names for the datasets to load.
-            splits (Union[str, List[str]], optional): a single split or a list of splits.
 
         Return:
             a dictionary mapping dataset name to the corresponding dataloader object.
@@ -202,7 +199,7 @@ class TARGET:
                 )
             else:
                 dataloader = self.dataloaders[dataset_name]
-                dataloader.load(splits=splits)
+                dataloader.load()
                 dataloaders_for_task[dataset_name] = dataloader
         return dataloaders_for_task
 
@@ -247,14 +244,14 @@ class TARGET:
         dataset_name: str,
         client: QdrantClient,
     ) -> None:
-        '''
+        """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
         Parameters:
             retriever (AbsStandardizedEmbeddingRetriever): the retriever object
             dataset_name (str): name of the dataset to embed
             client (QdrantClient): an in memory qdrant vector db
-        '''
+        """
         vec_size = len(
             retriever.embed_corpus(
                 dataset_name,
@@ -297,7 +294,7 @@ class TARGET:
     def run(
         self,
         retriever: AbsRetrieverBase,
-        splits: Union[str, List[str]] = "test",
+        split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 64,
         top_k: int = 5,
         **kwargs,
@@ -307,10 +304,15 @@ class TARGET:
 
         Parameters:
             retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardEmbeddingRetriever or AbsCustomEmbeddingRetriver.
-            splits (Union[str, List[str]], optional): splits of data to run the tasks on.
+            split (Literal["test", "train", "validation"], optional): split of data to run the tasks on.
             batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
             top_k (int, optional): top k tables to retrieve.
         """
+        self.logger.info("Started creating data loader objects...")
+        self.dataloaders: Dict[str, AbsDatasetLoader] = self.create_dataloaders(
+            self.dataset_info, split
+        )
+
         all_results = {}
         loaded_datasets = set()
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
@@ -323,13 +325,14 @@ class TARGET:
             self.logger.warning(
                 "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
             )
+
         for task_name, task in self.tasks.items():
             self.logger.info(f"Start running {task_name}...")
             self.logger.info("Start checking for new corpus to embed...")
             # load the datasets needed
             dataset_names = task.get_dataset_config().keys()
             dataloaders_for_task = self.load_datasets_for_task(
-                dataset_names=dataset_names, splits=splits
+                dataset_names=dataset_names
             )
 
             # call embed corpus on the retriever to embed/preprocess the tables
@@ -350,7 +353,6 @@ class TARGET:
                 dataset_loaders=dataloaders_for_task,
                 logger=self.logger,
                 batch_size=batch_size,
-                splits=splits,
                 top_k=top_k,
                 client=client,
                 **kwargs,

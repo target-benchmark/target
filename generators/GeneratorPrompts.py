@@ -11,7 +11,7 @@ FACT_VER_SYSTEM_MESSAGE = "Given the following evidence which may take the form 
 FACT_VER_USER_MESSAGE = "Please use the following table(s) to assign the statement the correct label. Tables: {table_str}\Statement: {query_str}"
 
 ## FOR TEXT TO SQL TASK ##
-TEXT2SQL_SYSTEM_PROMPT ="You are an expert and very smart data analyst."
+TEXT2SQL_SYSTEM_PROMPT = "You are an expert and very smart data analyst."
 TEXT2SQL_USER_PROMPT = """
 Below, you are presented with a database schema and a question.
 Your task is to read the schema, understand the question, and generate a

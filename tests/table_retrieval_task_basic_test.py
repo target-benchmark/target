@@ -45,7 +45,7 @@ class TestTableRetriever(unittest.TestCase):
         ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda splits, batch_size: iter(
+            lambda batch_size: iter(
                 [
                     [
                         QueryForTasksDataModel(
@@ -74,7 +74,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(
@@ -104,7 +103,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
         )
 

@@ -31,7 +31,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(feta_loader.query_col_name, "query")
         self.assertEqual(feta_loader.query_id_col_name, "query_id")
         self.assertEqual(feta_loader.answer_col_name, "answer")
-        self.assertEqual(feta_loader.splits, ["test"])
+        self.assertEqual(feta_loader.split, "test")
 
     def test_dataset_loaders_loading(self):
         feta_loader = self.evaluator.dataloaders["fetaqa"]
@@ -68,7 +68,7 @@ class TestEvaluator(unittest.TestCase):
         ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda splits, batch_size: iter(
+            lambda batch_size: iter(
                 [
                     [
                         QueryForTasksDataModel(

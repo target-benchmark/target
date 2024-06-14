@@ -34,7 +34,7 @@ class FactVerificationTask(AbsTask):
         if task_generator == None:
             task_generator = DefaultGenerator(
                 system_message=FACT_VER_SYSTEM_MESSAGE,
-                user_message=FACT_VER_USER_MESSAGE
+                user_message=FACT_VER_USER_MESSAGE,
             )
         super().__init__(
             task_name=self.get_default_task_name(),
