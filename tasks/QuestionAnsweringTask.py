@@ -76,7 +76,7 @@ class QuestionAnsweringTask(AbsTask):
         # TODO: add more things here. this is for testing. carl note 4/24
         return {
             # this is for testing!!
-            DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG,
+            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(

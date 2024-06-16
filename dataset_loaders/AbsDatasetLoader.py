@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 import csv
 from datasets import Dataset
 from pathlib import Path
-from typing import Iterable, Iterator, Literal
+from typing import Iterable, Iterator, Literal, Tuple
 from typing import Union, List, Dict
 
 
@@ -33,6 +33,7 @@ class AbsDatasetLoader(ABC):
         table_col_name: str = TABLE_COL_NAME,
         table_id_col_name: str = TABLE_ID_COL_NAME,
         database_id_col_name: str = DATABASE_ID_COL_NAME,
+        context_col_name:str = CONTEXT_COL_NAME,
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
@@ -80,6 +81,7 @@ class AbsDatasetLoader(ABC):
         self.table_col_name: str = table_col_name
         self.table_id_col_name: str = table_id_col_name
         self.database_id_col_name: str = database_id_col_name
+        self.context_col_name: str = context_col_name
         self.query_col_name: str = query_col_name
         self.query_id_col_name: str = query_id_col_name
         self.answer_col_name: str = answer_col_name
@@ -140,11 +142,19 @@ class AbsDatasetLoader(ABC):
             nested_array = batch[self.table_col_name][0]
             write_table_to_path(format, table_name, split_path, nested_array)
 
+    def corpus_batch_to_tuple(self, batch):
+        return (
+                    batch[self.database_id_col_name],
+                    batch[self.table_id_col_name],
+                    batch[self.table_col_name],
+                    batch[self.context_col_name]
+                )
+
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
-        batch_size: int = None,
-    ) -> Iterable[Dict]:
+        batch_size: int = 1,
+    ) -> Iterable[Tuple]:
         """
         convert the corpus table to a specific format in memory.
 
@@ -154,9 +164,11 @@ class AbsDatasetLoader(ABC):
             batch_size (int): number of tables to be outputted at once
 
         Returns:
-            a generator. depending on the batch size, each yield produces a dictionary with the keys being the column names and values being
-            - a single value if batch size is 0
+            a generator. depending on the batch size, each yield produces a tuple of
+            - a single values if batch size is 0
             - a list of values if batch size is greater than 0
+            the order of the values in the yielded tuple will be
+            (database id, table id, table content, context/metadata)
         """
 
         if not self.corpus:
@@ -173,18 +185,15 @@ class AbsDatasetLoader(ABC):
             )
         else:
             converted_corpus = self.corpus
-        if not batch_size:
-            for entry in converted_corpus:
-                yield entry
-        else:
-            for batch in converted_corpus.iter(batch_size):
-                yield batch
+        for batch in converted_corpus.iter(batch_size):
+            yield self.corpus_batch_to_tuple(batch)
 
     def get_table_id_to_table(
         self,
-    ) -> Dict[str, List[List]]:
+    ) -> Dict[Tuple[int, str], List[List]]:
         mapping_dict = {}
         for entry in self.convert_corpus_table_to():
+            key = (entry[self.database_id_col_name], entry[self.table_id_col_name]) 
             mapping_dict[entry[self.table_id_col_name]] = entry[self.table_col_name]
         return mapping_dict
 

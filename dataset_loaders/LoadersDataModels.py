@@ -37,6 +37,11 @@ class DatasetConfigDataModel(BaseModel):
         description="Name of the column that contains the dataset ids.",
     )
 
+    context_col_name: str = Field(
+        default=CONTEXT_COL_NAME,
+        description="Name of the column that contains the context(metadata, for example foreign keys in a text2sql dataset).",        
+    )
+
     query_id_col_name: str = Field(
         default=QUERY_ID_COL_NAME,
         description="Name of the column that contains the query ids.",

@@ -3,7 +3,7 @@ from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from abc import abstractmethod
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Tuple
 
 
 class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
@@ -67,13 +67,13 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[Tuple]) -> None:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (Iterable[Dict[str, object]]): an iterable of dictionaries, each dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
+            corpus (Iterable[Dict[str, object]]): an iterable of tuples, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in this order in the tuple).
 
         Returns:
             nothing. the persistence of the embedding must be dealt with the logic of this function itself, and the `retrieve` function should also know about the embedding results of this function so that retrieval can be done.

@@ -2,8 +2,7 @@ from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dictionary_keys import *
 from typing import Literal
 
-from datasets import load_dataset, DatasetDict
-from pathlib import Path
+from datasets import load_dataset
 
 
 class HFDatasetLoader(AbsDatasetLoader):
@@ -15,6 +14,7 @@ class HFDatasetLoader(AbsDatasetLoader):
         table_col_name: str = TABLE_COL_NAME,
         table_id_col_name: str = TABLE_ID_COL_NAME,
         database_id_col_name: str = DATABASE_ID_COL_NAME,
+        context_col_name:str = CONTEXT_COL_NAME,
         query_col_name: str = QUERY_COL_NAME,
         query_id_col_name: str = QUERY_ID_COL_NAME,
         answer_col_name: str = ANSWER_COL_NAME,
@@ -28,6 +28,7 @@ class HFDatasetLoader(AbsDatasetLoader):
             table_col_name=table_col_name,
             table_id_col_name=table_id_col_name,
             database_id_col_name=database_id_col_name,
+            context_col_name=context_col_name,
             query_col_name=query_col_name,
             query_id_col_name=query_id_col_name,
             answer_col_name=answer_col_name,

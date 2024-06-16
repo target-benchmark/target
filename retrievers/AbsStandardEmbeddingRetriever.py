@@ -1,9 +1,9 @@
-from typing import Iterable
+from typing import Iterable, Tuple
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import SearchRequest, ScoredPoint
 from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
-from dictionary_keys import CLIENT_KEY_NAME, METADATA_KEY_NAME
+from dictionary_keys import CLIENT_KEY_NAME, METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -54,7 +54,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
                     dataset_name=dataset_name,
                     query_id=query.query_id,
                     retrieval_results=[
-                        scored_point.payload[METADATA_KEY_NAME]
+                        (scored_point.payload[METADATA_DB_ID_KEY_NAME], scored_point.payload[METADATA_TABLE_ID_KEY_NAME])
                         for scored_point in result
                     ],
                 )
@@ -84,13 +84,13 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, table) -> List[float]:
+    def embed_corpus(self, dataset_name: str, corpus_entry: Tuple) -> List[float]:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (object): the table object (which the user can assume is in the format of self.expected_corpus_format).
+            corpus (tuple): entry in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in this order in the tuple).
 
         Returns:
             List[float]: embedding of the passed in table

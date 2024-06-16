@@ -74,11 +74,22 @@ class TestTableRetriever(unittest.TestCase):
             )
         )
 
+    def test_fact_ver_task_run_key_error(self):
+
+        with self.assertRaises(AssertionError):
+            result = self.fact_ver.task_run(
+                retriever=self.mock_retriever,
+                dataset_loaders={"dummy": self.mock_dataset_loader},
+                logger=logger,
+                batch_size=1,
+                top_k=2,
+            )
+
     def test_fact_ver_task_run(self):
 
         results = self.fact_ver.task_run(
             retriever=self.mock_retriever,
-            dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
+            dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
             top_k=2,
@@ -100,15 +111,15 @@ class TestTableRetriever(unittest.TestCase):
                     database_id=0,
                 ),
             ],
-            dataset_name="dummy-dataset",
+            dataset_name="fetaqa",
             top_k=2,
         )
         self.assertDictEqual(
-            results["dummy-dataset"].retrieval_performance.model_dump(),
+            results["fetaqa"].retrieval_performance.model_dump(),
             {"k": 2, "accuracy": 1.0, "precision": None, "recall": None},
         )
         self.assertDictEqual(
-            results["dummy-dataset"].downstream_task_performance.model_dump(),
+            results["fetaqa"].downstream_task_performance.model_dump(),
             {
                 "task_name": "Fact Verification Task",
                 "scores": {"accuracy": 1.0, "f1": 1.0, "precision": 1.0, "recall": 1.0},

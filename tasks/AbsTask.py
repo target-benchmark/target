@@ -199,9 +199,6 @@ class AbsTask(ABC):
                     **kwargs,
                 )
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
-                self._fill_retrieval_results_with_table_strs(
-                    retrieved_tables, table_id_to_table
-                )
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
@@ -383,17 +380,3 @@ class AbsTask(ABC):
             whatever needed.
         """
         pass
-
-    def _fill_retrieval_results_with_table_strs(
-        self,
-        retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_tables: Dict[str, List[List]],
-    ) -> None:
-        """
-        Complete the retrieval result data model objects by including all the table strings.
-        """
-        for result in retrieval_results:
-            result.retrieved_tables = [
-                markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieval_results
-            ]

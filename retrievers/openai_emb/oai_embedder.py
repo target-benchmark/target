@@ -1,5 +1,5 @@
 from retrievers import AbsStandardEmbeddingRetriever
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from langchain_openai import OpenAIEmbeddings
 from dataset_loaders.utils import markdown_table_with_headers
 
@@ -18,6 +18,6 @@ class OAIEmbedder(AbsStandardEmbeddingRetriever):
     ) -> List[float]:
         return self.embedding_model.embed_query(query)
 
-    def embed_corpus(self, dataset_name: str, table) -> List[float]:
-        table_str = markdown_table_with_headers(table)
+    def embed_corpus(self, dataset_name: str, corpus_entry: Tuple) -> List[float]:
+        table_str = markdown_table_with_headers(corpus_entry[2])
         return self.embedding_model.embed_query(table_str)

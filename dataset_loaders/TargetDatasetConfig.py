@@ -42,4 +42,5 @@ DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="dummy-dataset",
     hf_corpus_dataset_path="jixy2012/mock-hf-corpus-dataset",
     hf_queries_dataset_path="jixy2012/mock-hf-queries-dataset",
+    query_type="Table Question Answering",
 )

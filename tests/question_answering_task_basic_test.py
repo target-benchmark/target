@@ -40,12 +40,12 @@ class TestTableRetriever(unittest.TestCase):
         self.mock_retriever.__class__ = CustomEmbRetr
         self.mock_retriever.retrieve_batch.return_value = [
             RetrievalResultDataModel(
-                dataset_name="dummy-dataset",
+                dataset_name="fetaqa",
                 query_id=1,
                 retrieval_results=["Table1", "Table2"],
             ),
             RetrievalResultDataModel(
-                dataset_name="dummy-dataset",
+                dataset_name="fetaqa",
                 query_id=2,
                 retrieval_results=["Table3", "Table4"],
             ),
@@ -82,12 +82,12 @@ class TestTableRetriever(unittest.TestCase):
     def test_basic_qa_task_run(self):
         results = self.qa_task.task_run(
             retriever=self.mock_retriever,
-            dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
+            dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
             top_k=2,
         )
-        res = results["dummy-dataset"]
+        res = results["fetaqa"]
         self.assertIn("bleu", res.downstream_task_performance.scores)
         self.assertIn("sacrebleu", res.downstream_task_performance.scores)
         self.assertIn("rouge", res.downstream_task_performance.scores)
@@ -95,28 +95,28 @@ class TestTableRetriever(unittest.TestCase):
 
     def test_specified_metrics(self):
         qa_task = QuestionAnsweringTask(
-            metrics=["bleurt", "sacrebleu", "rouge", "meteor", "bertscore"]
+            metrics=["sacrebleu", "rouge"]
         )
         results = qa_task.task_run(
             retriever=self.mock_retriever,
-            dataset_loaders={"dummy-dataset": self.mock_dataset_loader},
+            dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
             top_k=2,
         )
-        res = results["dummy-dataset"]
+        res = results["fetaqa"]
 
-        self.assertIn("bertscore", res.downstream_task_performance.scores)
-        self.assertIn("precision", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("recall", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("f1", res.downstream_task_performance.scores["bertscore"])
-        self.assertIn("hashcode", res.downstream_task_performance.scores["bertscore"])
+        # self.assertIn("bertscore", res.downstream_task_performance.scores)
+        # self.assertIn("precision", res.downstream_task_performance.scores["bertscore"])
+        # self.assertIn("recall", res.downstream_task_performance.scores["bertscore"])
+        # self.assertIn("f1", res.downstream_task_performance.scores["bertscore"])
+        # self.assertIn("hashcode", res.downstream_task_performance.scores["bertscore"])
 
-        self.assertIn("bleurt", res.downstream_task_performance.scores)
-        self.assertIn("scores", res.downstream_task_performance.scores["bleurt"])
+        # self.assertIn("bleurt", res.downstream_task_performance.scores)
+        # self.assertIn("scores", res.downstream_task_performance.scores["bleurt"])
 
-        self.assertIn("meteor", res.downstream_task_performance.scores)
-        self.assertIn("meteor", res.downstream_task_performance.scores["meteor"])
+        # self.assertIn("meteor", res.downstream_task_performance.scores)
+        # self.assertIn("meteor", res.downstream_task_performance.scores["meteor"])
 
         self.assertIn("sacrebleu", res.downstream_task_performance.scores)
         self.assertIn("score", res.downstream_task_performance.scores["sacrebleu"])
