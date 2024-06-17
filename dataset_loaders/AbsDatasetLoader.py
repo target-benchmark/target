@@ -1,6 +1,5 @@
 from dataset_loaders.utils import (
     InMemoryDataFormat,
-    array_of_arrays_to_df,
     QueryType,
     set_in_memory_data_format,
     set_query_type,
@@ -9,15 +8,13 @@ from dataset_loaders.utils import (
     convert_corpus_entry_to_df,
     convert_corpus_entry_to_dict,
 )
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
+from dataset_loaders.LoadersDataModels import CorpusForRetrieversDataModel, QueryForTasksDataModel
 from dictionary_keys import *
 
 from abc import ABC, abstractmethod
-import csv
 from datasets import Dataset
 from pathlib import Path
-from typing import Iterable, Iterator, Literal, Tuple
-from typing import Union, List, Dict
+from typing import Dict, Iterable, List, Literal, Tuple
 
 
 class AbsDatasetLoader(ABC):
@@ -137,9 +134,9 @@ class AbsDatasetLoader(ABC):
         if not split_path.exists():
             split_path.mkdir(parents=True, exist_ok=True)
         cur_split_dataset = self.corpus[self.split]
-        for batch in cur_split_dataset.iter(1):
-            table_name = Path(batch[self.table_id_col_name][0])
-            nested_array = batch[self.table_col_name][0]
+        for entry in cur_split_dataset:
+            table_name = Path(entry[self.table_id_col_name])
+            nested_array = entry[self.table_col_name]
             write_table_to_path(format, table_name, split_path, nested_array)
 
     def corpus_batch_to_tuple(self, batch):
@@ -147,14 +144,14 @@ class AbsDatasetLoader(ABC):
                     batch[self.database_id_col_name],
                     batch[self.table_id_col_name],
                     batch[self.table_col_name],
-                    batch[self.context_col_name]
+                    batch[self.context_col_name] if self.context_col_name in batch else [{}]
                 )
 
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
         batch_size: int = 1,
-    ) -> Iterable[Tuple]:
+    ) -> Iterable[CorpusForRetrieversDataModel]:
         """
         convert the corpus table to a specific format in memory.
 
@@ -164,11 +161,7 @@ class AbsDatasetLoader(ABC):
             batch_size (int): number of tables to be outputted at once
 
         Returns:
-            a generator. depending on the batch size, each yield produces a tuple of
-            - a single values if batch size is 0
-            - a list of values if batch size is greater than 0
-            the order of the values in the yielded tuple will be
-            (database id, table id, table content, context/metadata)
+            a generator. each yield produces a CorpusForRetrieversDataModel object.
         """
 
         if not self.corpus:
@@ -193,8 +186,8 @@ class AbsDatasetLoader(ABC):
     ) -> Dict[Tuple[int, str], List[List]]:
         mapping_dict = {}
         for entry in self.convert_corpus_table_to():
-            key = (entry[self.database_id_col_name], entry[self.table_id_col_name]) 
-            mapping_dict[entry[self.table_id_col_name]] = entry[self.table_col_name]
+            key = (entry.database_id, entry.table_id)
+            mapping_dict[key] = entry.table
         return mapping_dict
 
     def get_queries_for_task(

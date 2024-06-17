@@ -58,7 +58,7 @@ class TARGET:
         self.tasks: Dict[str, AbsTask] = self.load_tasks(
             downstream_task_names, downstream_task_objects
         )
-        self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
+        self.logger.info(f"Finished loading tasks! Tasks loaded: {list(self.tasks.keys())}")
 
         self.logger.info("Started creating dataset information...")
         self.dataset_info: Dict[str, DatasetConfigDataModel] = self.create_dataset_info(
@@ -257,7 +257,7 @@ class TARGET:
         vec_size = len(
             retriever.embed_corpus(
                 dataset_name,
-                get_dummy_table_of_format(retriever.get_expected_corpus_format()),
+                (1, "", get_dummy_table_of_format(retriever.get_expected_corpus_format()), {}),
             )
         )
         client.delete_collection(collection_name=dataset_name)
@@ -273,13 +273,14 @@ class TARGET:
         for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
         ):
-            entry = tuple(item[0] for item in entry)
+            # entry = tuple(item[0] for item in entry)
+            print(f"this is the dataset entry: {entry}")
             table_embedding = retriever.embed_corpus(dataset_name, entry)
             vectors.append(list(table_embedding))
             metadata.append(
                 {
-                    METADATA_TABLE_ID_KEY_NAME: entry[cur_dataloader.table_id_col_name],
-                    METADATA_DB_ID_KEY_NAME: entry[cur_dataloader.database_id_col_name]
+                    METADATA_TABLE_ID_KEY_NAME: entry.table_id,
+                    METADATA_DB_ID_KEY_NAME: entry.database_id
                 }
             )
         client.upload_collection(
@@ -315,7 +316,7 @@ class TARGET:
         Parameters:
             retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardEmbeddingRetriever or AbsCustomEmbeddingRetriver.
             split (Literal["test", "train", "validation"], optional): split of data to run the tasks on.
-            batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
+            batch_size (int, optional): number of queries / number of tables to pass to the retriever at once.
             top_k (int, optional): top k tables to retrieve.
         """
         self.logger.info("Started creating data loader objects...")

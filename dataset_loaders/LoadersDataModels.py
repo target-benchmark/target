@@ -1,6 +1,6 @@
 from dictionary_keys import *
-from typing import Dict, Literal, Optional, Union, List
-
+from typing import Dict, Literal, Optional, Union, List, Any
+import pandas as pd
 from pydantic import BaseModel, Field
 
 
@@ -11,6 +11,13 @@ class QueryForTasksDataModel(BaseModel):
     query: str
     answer: str
 
+class CorpusForRetrieversDataModel(BaseModel):
+    database_id: Union[int, List[int]] = Field(description="a single or a list of database ids")
+    table_id: Union[str, List[str]] = Field(description="a single or a list of table ids")
+    table: Union[Union[List[List], pd.DataFrame, Dict], Union[List[List[List]], List[pd.DataFrame], List[Dict]]] = Field(
+        description="A single or a list of tables. the tables can be expected to be in the retriever's specified `expected_corpus_format`."
+    )
+    context: Union[Dict, List[Dict]] = Field(description="a single or a list of context dictionaries.")
 
 class DatasetConfigDataModel(BaseModel):
     """

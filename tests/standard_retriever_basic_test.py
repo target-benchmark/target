@@ -42,7 +42,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         vectors = []
         metadata = []
         for table_id, table in self.test_dataset.items():
-            table_embedding = self.retriever.embed_corpus(self.dataset_name, table)
+            table_embedding = self.retriever.embed_corpus(self.dataset_name, (1, table_id, table, {}))
             vectors.append(list(table_embedding))
             metadata.append({METADATA_TABLE_ID_KEY_NAME: table_id, METADATA_DB_ID_KEY_NAME: 1})
         self.client.upload_collection(
@@ -88,7 +88,14 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
 
     def test_basic_full_run(self):
         # end to end test that includes the client being created and retrieval from the client
-        targ = TARGET()
+        fetaqa_dummy_config = {
+            "dataset_name": "fetaqa",
+            "hf_corpus_dataset_path": "jixy2012/mock-hf-corpus-dataset",
+            "hf_queries_dataset_path": "jixy2012/mock-hf-queries-dataset",
+            "query_type": "Table Question Answering",
+        }
+        trt = TableRetrievalTask({"fetaqa": fetaqa_dummy_config}, True)
+        targ = TARGET(downstream_task_objects=trt)
         results = targ.run(self.retriever, split="train")
 
 
