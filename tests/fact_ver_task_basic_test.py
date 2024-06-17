@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from tasks import FactVerificationTask
 from tasks.TasksDataModels import *
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
@@ -35,42 +34,36 @@ class TestTableRetriever(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="dummy-dataset",
                 query_id=1,
-                retrieval_results=["Table1", "Table3"],
+                retrieval_results=[(0, "Table1"), (0, "Table3")],
             ),
             RetrievalResultDataModel(
                 dataset_name="dummy-dataset",
                 query_id=2,
-                retrieval_results=["Table5", "Table4"],
+                retrieval_results=[(0, "Table5"), (0, "Table4")],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_table_id_to_table.return_value = {
-            "Table1": [["fact"], ["Anna is 10 years old."]],
-            "Table2": [["fact"], ["I'm not a freak athlete."]],
-            "Table3": [["fact"], ["Jaylen Brown went to Cal."]],
-            "Table4": [["fact"], ["Minecraft is such a fun game."]],
-            "Table5": [["fact"], ["Today's temperature is 22.1 celsius."]],
+            (0, "Table1"): [["fact"], ["Anna is 10 years old."]],
+            (0, "Table2"): [["fact"], ["I'm not a freak athlete."]],
+            (0, "Table3"): [["fact"], ["Jaylen Brown went to Cal."]],
+            (0, "Table4"): [["fact"], ["Minecraft is such a fun game."]],
+            (0, "Table5"): [["fact"], ["Today's temperature is 22.1 celsius."]],
         }
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
             lambda batch_size: iter(
                 [
-                    [
-                        QueryForTasksDataModel(
-                            query_id=1,
-                            query="Jaylen Brown went to Stanford",
-                            answer="False",
-                            table_id="Table1",
-                            database_id=0,
-                        ),
-                        QueryForTasksDataModel(
-                            query_id=2,
-                            query="Today's temperature is in the low 20s.",
-                            answer="True",
-                            table_id="Table5",
-                            database_id=0,
-                        ),
-                    ]
-                ]
+                    {
+                        "query_id": [1, 2],
+                        "query": [
+                            "Jaylen Brown went to Stanford",
+                            "Today's temperature is in the low 20s.",
+                        ],
+                        "answer": ["False", "True"],
+                        "table_id": ["Table1", "Table5"],
+                        "database_id": [0, 0],
+                    }
+                ],
             )
         )
 
@@ -89,37 +82,31 @@ class TestTableRetriever(unittest.TestCase):
 
         results = self.fact_ver.task_run(
             retriever=self.mock_retriever,
-            dataset_loaders={"fetaqa": self.mock_dataset_loader},
+            dataset_loaders={"tab-fact": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
             top_k=2,
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(
-            queries=[
-                QueryForTasksDataModel(
-                    query_id=1,
-                    query="Jaylen Brown went to Stanford",
-                    answer="False",
-                    table_id="Table1",
-                    database_id=0,
-                ),
-                QueryForTasksDataModel(
-                    query_id=2,
-                    query="Today's temperature is in the low 20s.",
-                    answer="True",
-                    table_id="Table5",
-                    database_id=0,
-                ),
-            ],
-            dataset_name="fetaqa",
+            queries={
+                "query_id": [1, 2],
+                "query": [
+                    "Jaylen Brown went to Stanford",
+                    "Today's temperature is in the low 20s.",
+                ],
+                "answer": ["False", "True"],
+                "table_id": ["Table1", "Table5"],
+                "database_id": [0, 0],
+            },
+            dataset_name="tab-fact",
             top_k=2,
         )
         self.assertDictEqual(
-            results["fetaqa"].retrieval_performance.model_dump(),
+            results["tab-fact"].retrieval_performance.model_dump(),
             {"k": 2, "accuracy": 1.0, "precision": None, "recall": None},
         )
         self.assertDictEqual(
-            results["fetaqa"].downstream_task_performance.model_dump(),
+            results["tab-fact"].downstream_task_performance.model_dump(),
             {
                 "task_name": "Fact Verification Task",
                 "scores": {"accuracy": 1.0, "f1": 1.0, "precision": 1.0, "recall": 1.0},

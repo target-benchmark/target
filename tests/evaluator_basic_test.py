@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from evaluators.TARGET import TARGET
 from dataset_loaders.TargetDatasetConfig import DEFAULT_FETAQA_DATASET_CONFIG
 from retrievers.AbsCustomEmbeddingRetriever import (
@@ -34,12 +33,6 @@ class TestEvaluator(unittest.TestCase):
             self.evaluator.dataset_info, "train"
         )["fetaqa"]
         self.assertEqual(feta_loader.dataset_name, "fetaqa")
-        self.assertEqual(feta_loader.table_col_name, "table")
-        self.assertEqual(feta_loader.table_id_col_name, "table_id")
-        self.assertEqual(feta_loader.database_id_col_name, "database_id")
-        self.assertEqual(feta_loader.query_col_name, "query")
-        self.assertEqual(feta_loader.query_id_col_name, "query_id")
-        self.assertEqual(feta_loader.answer_col_name, "answer")
         self.assertEqual(feta_loader.split, "train")
 
     def test_dataset_loaders_loading(self):
@@ -82,35 +75,26 @@ class TestEvaluator(unittest.TestCase):
                 RetrievalResultDataModel(
                     dataset_name="fetaqa",
                     query_id=1,
-                    retrieval_results=["Table1", "Table2"],
+                    retrieval_results=[(0, "Table1"), (0, "Table2")],
                 ),
                 RetrievalResultDataModel(
                     dataset_name="fetaqa",
                     query_id=2,
-                    retrieval_results=["Table3", "Table4"],
+                    retrieval_results=[(0, "Table3"), (0, "Table4")],
                 ),
             ]
             mock_dataset_loader = MagicMock()
             mock_dataset_loader.get_queries_for_task.side_effect = (
                 lambda batch_size: iter(
                     [
-                        [
-                            QueryForTasksDataModel(
-                                query_id=1,
-                                query="Test query",
-                                answer="Test answer",
-                                table_id="Table1",
-                                database_id=0,
-                            ),
-                            QueryForTasksDataModel(
-                                query_id=2,
-                                query="Test query 2",
-                                answer="Test answer 2",
-                                table_id="Table5",
-                                database_id=0,
-                            ),
-                        ]
-                    ]
+                        {
+                            "query_id": [1, 2],
+                            "query": ["Test query", "Test query 2"],
+                            "answer": ["Test answer", "Test answer 2"],
+                            "table_id": ["Table1", "Table5"],
+                            "database_id": [0, 0],
+                        }
+                    ],
                 )
             )
             mock_func.return_value = {"fetaqa": mock_dataset_loader}

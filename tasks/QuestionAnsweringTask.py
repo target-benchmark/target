@@ -1,9 +1,8 @@
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
-    QueryForTasksDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-
+from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
@@ -81,7 +80,7 @@ class QuestionAnsweringTask(AbsTask):
 
     def _get_downstream_task_results(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
@@ -92,20 +91,24 @@ class QuestionAnsweringTask(AbsTask):
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
-                query_id=query.query_id,
+                query_id=query_id,
                 generated_results=self.task_generator.generate(
                     table_str="\n".join(
                         table_str for table_str in result.retrieved_tables
                     ),
-                    query=query.query,
+                    query=query_str,
                 ),
             )
-            for query, result in zip(query_batch, retrieval_results)
+            for query_id, query_str, result in zip(
+                query_batch[QUERY_ID_COL_NAME],
+                query_batch[QUERY_COL_NAME],
+                retrieval_results,
+            )
         ]
 
     def _update_downstream_task_metrics(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
@@ -117,7 +120,9 @@ class QuestionAnsweringTask(AbsTask):
                 for downstream_answer in downstream_results
             ]
         )
-        self.ref_answers.extend([query.answer for query in query_batch])
+        self.ref_answers.extend(
+            [query_answer for query_answer in query_batch[ANSWER_COL_NAME]]
+        )
 
     def _calculate_downstream_task_performance(
         self, **kwargs

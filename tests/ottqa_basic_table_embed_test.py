@@ -31,8 +31,10 @@ class TestOTTQARetriever(unittest.TestCase):
 
     def test_corpus_keys(self):
         # Test to check if corpus keys are as expected
-        expected_keys = ['database_id', 'table_id', 'table', 'context']
-        self.assertEqual(set(self.fetaqa_loader.corpus.column_names), set(expected_keys))
+        expected_keys = ["database_id", "table_id", "table", "context"]
+        self.assertEqual(
+            set(self.fetaqa_loader.corpus.column_names), set(expected_keys)
+        )
 
     def test_single_retrieve(self):
         # Test the retrieve function

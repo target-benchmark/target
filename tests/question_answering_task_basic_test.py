@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from tasks import QuestionAnsweringTask
 from tasks.TasksDataModels import *
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
@@ -42,41 +41,35 @@ class TestTableRetriever(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=1,
-                retrieval_results=["Table1", "Table2"],
+                retrieval_results=[(0, "Table1"), (0, "Table2")],
             ),
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=2,
-                retrieval_results=["Table3", "Table4"],
+                retrieval_results=[(0, "Table3"), (0, "Table4")],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_table_id_to_table.return_value = {
-            "Table1": [["some random table"], ["some item"]],
-            "Table2": [["some other random table"], ["another item"]],
-            "Table3": [["third random table"], ["third item"]],
-            "Table4": [["fourth random table"], ["fourth item"]],
-            "Table5": [["fifth random table"], ["fifth item"]],
+            (0, "Table1"): [["some random table"], ["some item"]],
+            (0, "Table2"): [["some other random table"], ["another item"]],
+            (0, "Table3"): [["third random table"], ["third item"]],
+            (0, "Table4"): [["fourth random table"], ["fourth item"]],
+            (0, "Table5"): [["fifth random table"], ["fifth item"]],
         }
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
-                [
-                    QueryForTasksDataModel(
-                        query_id=1,
-                        query="Test query",
-                        answer="I'm sorry, but I can't provide the information you're looking for because you didn't provide any tables or specific questions. Could you please provide more details?",
-                        table_id="Table1",
-                        database_id=0,
-                    ),
-                    QueryForTasksDataModel(
-                        query_id=2,
-                        query="Test query 2",
-                        answer="I'm sorry, but I can't provide the information you're looking for because you didn't provide any tables or specific questions. Could you please provide more details?",
-                        table_id="Table5",
-                        database_id=0,
-                    ),
-                ]
-            ]
+                {
+                    "query_id": [1, 2],
+                    "query": ["Test query", "Test query 2"],
+                    "answer": [
+                        "I'm sorry, but I can't provide the information you're looking for because you didn't provide any tables or specific questions. Could you please provide more details?",
+                        "I'm sorry, but I can't provide the information you're looking for because you didn't provide any tables or specific questions. Could you please provide more details?",
+                    ],
+                    "table_id": ["Table1", "Table5"],
+                    "database_id": [0, 0],
+                }
+            ],
         )
 
     def test_basic_qa_task_run(self):
@@ -94,9 +87,7 @@ class TestTableRetriever(unittest.TestCase):
         print(res)
 
     def test_specified_metrics(self):
-        qa_task = QuestionAnsweringTask(
-            metrics=["sacrebleu", "rouge"]
-        )
+        qa_task = QuestionAnsweringTask(metrics=["sacrebleu", "rouge"])
         results = qa_task.task_run(
             retriever=self.mock_retriever,
             dataset_loaders={"fetaqa": self.mock_dataset_loader},

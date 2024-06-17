@@ -5,6 +5,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 """Interactive mode for the tfidf DrQA retriever module."""
+import ast
 
 from .drqa import retriever
 from .utils import convert_table_representation, TFIDFBuilder
@@ -33,14 +34,20 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
     ) -> List[str]:
         ranker = self.rankers[dataset_name]
         doc_names, doc_scores = ranker.closest_docs(query, top_k)
-        return doc_names
+        return [ast.literal_eval(doc_name) for doc_name in doc_names]
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         if not os.path.exists(self.out_dir):
             os.mkdir(self.out_dir)
         converted_corpus = {}
         for entry in corpus:
-            converted_corpus[entry["table_id"]] = convert_table_representation(entry["table_id"], entry["table"])
+            for db_id, table_id, table in zip(
+                entry["database_id"], entry["table_id"], entry["table"]
+            ):
+                tup = (db_id, table_id)
+                converted_corpus[str(tup)] = convert_table_representation(
+                    db_id, table_id, table
+                )
         file_name = "temp_data.json"
 
         # Write the dictionary to a file in JSON format

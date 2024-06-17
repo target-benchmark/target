@@ -1,4 +1,4 @@
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
+from dictionary_keys import QUERY_ID_COL_NAME, QUERY_COL_NAME
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -23,19 +23,21 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
 
     def retrieve_batch(
         self,
-        queries: List[QueryForTasksDataModel],
+        queries: Dict[str, List],
         dataset_name: str,
         top_k: int,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
-        for query in queries:
+        for query_id, query_str in zip(
+            queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]
+        ):
             retrieval_results.append(
                 RetrievalResultDataModel(
                     dataset_name=dataset_name,
-                    query_id=query.query_id,
+                    query_id=query_id,
                     retrieval_results=self.retrieve(
-                        query.query, dataset_name, top_k, **kwargs
+                        query_str, dataset_name, top_k, **kwargs
                     ),
                 )
             )
@@ -67,13 +69,13 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, corpus: Iterable[Tuple]) -> None:
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (Iterable[Dict[str, object]]): an iterable of tuples, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in this order in the tuple).
+            corpus (Iterable[Dict[str, object]]): an iterable of dicts, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
 
         Returns:
             nothing. the persistence of the embedding must be dealt with the logic of this function itself, and the `retrieve` function should also know about the embedding results of this function so that retrieval can be done.

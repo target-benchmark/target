@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
 from evaluators import TARGET
 from tasks.TableRetrievalTask import TableRetrievalTask
@@ -42,9 +41,14 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         vectors = []
         metadata = []
         for table_id, table in self.test_dataset.items():
-            table_embedding = self.retriever.embed_corpus(self.dataset_name, (1, table_id, table, {}))
+            table_embedding = self.retriever.embed_corpus(
+                self.dataset_name,
+                {"database_id": 1, "table_id": table_id, "table": table, "context": {}},
+            )
             vectors.append(list(table_embedding))
-            metadata.append({METADATA_TABLE_ID_KEY_NAME: table_id, METADATA_DB_ID_KEY_NAME: 1})
+            metadata.append(
+                {METADATA_TABLE_ID_KEY_NAME: table_id, METADATA_DB_ID_KEY_NAME: 1}
+            )
         self.client.upload_collection(
             collection_name=self.dataset_name,
             vectors=vectors,
@@ -55,23 +59,14 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
             lambda batch_size: iter(
                 [
-                    [
-                        QueryForTasksDataModel(
-                            query_id=1,
-                            query="Test query",
-                            answer="Test answer",
-                            table_id="Table1",
-                            database_id=0,
-                        ),
-                        QueryForTasksDataModel(
-                            query_id=2,
-                            query="Test query 2",
-                            answer="Test answer 2",
-                            table_id="Table5",
-                            database_id=0,
-                        ),
-                    ]
-                ]
+                    {
+                        "query_id": [1, 2],
+                        "query": ["Test query", "Test query 2"],
+                        "answer": ["Test answer", "Test answer 2"],
+                        "table_id": ["Table1", "Table5"],
+                        "database_id": [0, 0],
+                    }
+                ],
             )
         )
 

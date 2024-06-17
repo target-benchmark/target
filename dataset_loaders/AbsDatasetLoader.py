@@ -8,7 +8,6 @@ from dataset_loaders.utils import (
     convert_corpus_entry_to_df,
     convert_corpus_entry_to_dict,
 )
-from dataset_loaders.LoadersDataModels import CorpusForRetrieversDataModel, QueryForTasksDataModel
 from dictionary_keys import *
 
 from abc import ABC, abstractmethod
@@ -27,13 +26,6 @@ class AbsDatasetLoader(ABC):
     def __init__(
         self,
         dataset_name: str,
-        table_col_name: str = TABLE_COL_NAME,
-        table_id_col_name: str = TABLE_ID_COL_NAME,
-        database_id_col_name: str = DATABASE_ID_COL_NAME,
-        context_col_name:str = CONTEXT_COL_NAME,
-        query_col_name: str = QUERY_COL_NAME,
-        query_id_col_name: str = QUERY_ID_COL_NAME,
-        answer_col_name: str = ANSWER_COL_NAME,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         query_type: str = None,
@@ -44,18 +36,6 @@ class AbsDatasetLoader(ABC):
 
         Parameters:
             dataset_name (str): a string for the name of the dataset. required
-
-            table_col_name (str, optional): name of the column that contains the nested array tables. defaults to "table", you can leave as default if working with any TARGET datasets. If user were to use custom datasets with different header names, this name can be adjusted accordingly.
-
-            table_id_col_name (str, optional): name of the column that contains the unique identifiers of the tables. defaults to "table_id" across all TARGET datasets.
-
-            database_id_col_name (str, optional): name of the column that contains the database id, this column exists in both queries and corpus datasets, and TARGET datasets loaders work on the assumption that the column name remains the same across the queries and corpus datasets. defaults to "database_id".
-
-            query_col_name (str, optional): name of the column that contains the query strings. defaults to "query".
-
-            query_id_col_name (str, optional): name of the column that contains the query ids. defaults to "query_id".
-
-            answer_col_name (str, optional): name of the column that contains the answer str. defaults to "answer".
 
             split (Literal["test", "train", "validation"], optional): split of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
 
@@ -75,13 +55,6 @@ class AbsDatasetLoader(ABC):
         if data_directory and Path(data_directory).suffix:
             raise ValueError(f"this path {data_directory} looks like a path to a file.")
         self.data_directory: str = data_directory
-        self.table_col_name: str = table_col_name
-        self.table_id_col_name: str = table_id_col_name
-        self.database_id_col_name: str = database_id_col_name
-        self.context_col_name: str = context_col_name
-        self.query_col_name: str = query_col_name
-        self.query_id_col_name: str = query_id_col_name
-        self.answer_col_name: str = answer_col_name
         self.query_type: QueryType = set_query_type(query_type)
         self.corpus: Dataset = None
         self.queries: Dataset = None
@@ -135,23 +108,15 @@ class AbsDatasetLoader(ABC):
             split_path.mkdir(parents=True, exist_ok=True)
         cur_split_dataset = self.corpus[self.split]
         for entry in cur_split_dataset:
-            table_name = Path(entry[self.table_id_col_name])
-            nested_array = entry[self.table_col_name]
+            table_name = Path(entry[TABLE_ID_COL_NAME])
+            nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
-
-    def corpus_batch_to_tuple(self, batch):
-        return (
-                    batch[self.database_id_col_name],
-                    batch[self.table_id_col_name],
-                    batch[self.table_col_name],
-                    batch[self.context_col_name] if self.context_col_name in batch else [{}]
-                )
 
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
         batch_size: int = 1,
-    ) -> Iterable[CorpusForRetrieversDataModel]:
+    ) -> Iterable[Dict]:
         """
         convert the corpus table to a specific format in memory.
 
@@ -161,7 +126,7 @@ class AbsDatasetLoader(ABC):
             batch_size (int): number of tables to be outputted at once
 
         Returns:
-            a generator. each yield produces a CorpusForRetrieversDataModel object.
+            a generator. each yield produces a dictionary with keys "table_id", "table", "database_id", "context".
         """
 
         if not self.corpus:
@@ -170,52 +135,37 @@ class AbsDatasetLoader(ABC):
         in_memory_format = set_in_memory_data_format(output_format)
         if in_memory_format == InMemoryDataFormat.DF:
             converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_df(self.table_col_name, entry)
+                lambda entry: convert_corpus_entry_to_df(TABLE_COL_NAME, entry)
             )
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
             converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_dict(self.table_col_name, entry)
+                lambda entry: convert_corpus_entry_to_dict(TABLE_COL_NAME, entry)
             )
         else:
             converted_corpus = self.corpus
         for batch in converted_corpus.iter(batch_size):
-            yield self.corpus_batch_to_tuple(batch)
+            yield batch
 
     def get_table_id_to_table(
         self,
     ) -> Dict[Tuple[int, str], List[List]]:
         mapping_dict = {}
         for entry in self.convert_corpus_table_to():
-            key = (entry.database_id, entry.table_id)
-            mapping_dict[key] = entry.table
+            for database_id, table_id, table in zip(
+                entry[DATABASE_ID_COL_NAME],
+                entry[TABLE_ID_COL_NAME],
+                entry[TABLE_COL_NAME],
+            ):
+                key = (database_id, table_id)
+                mapping_dict[key] = table
         return mapping_dict
 
-    def get_queries_for_task(
-        self, batch_size: int = 64
-    ) -> Iterable[List[QueryForTasksDataModel]]:
+    def get_queries_for_task(self, batch_size: int = 64) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
-
         for batch in self.queries.iter(batch_size):
-            res_list = []
-            query_ids = batch[self.query_id_col_name]
-            queries = batch[self.query_col_name]
-            database_ids = batch[self.database_id_col_name]
-            table_ids = batch[self.table_id_col_name]
-            answers = batch[self.answer_col_name]
-            for query_id, query, database_id, table_id, answer in zip(
-                query_ids, queries, database_ids, table_ids, answers
-            ):
-                res_list.append(
-                    QueryForTasksDataModel(
-                        table_id=table_id,
-                        database_id=database_id,
-                        query_id=query_id,
-                        query=query,
-                        answer=answer,
-                    )
-                )
-            yield res_list
+            print(f"yielded batch: {batch}", flush=True)
+            yield batch
 
     def get_dataset_name(self) -> str:
         """
