@@ -164,7 +164,6 @@ class AbsDatasetLoader(ABC):
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
         for batch in self.queries.iter(batch_size):
-            print(f"yielded batch: {batch}", flush=True)
             yield batch
 
     def get_dataset_name(self) -> str:

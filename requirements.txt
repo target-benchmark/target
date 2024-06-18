@@ -1,5 +1,6 @@
 datasets==2.19.0
 evaluate==0.4.2
+hnswlib==0.8.0
 git+https://github.com/google-research/bleurt.git
 langchain==0.1.16
 langchain-community==0.0.34
@@ -11,8 +12,9 @@ numpy==1.26.4
 pandas==2.2.2
 pexpect==4.9.0
 pydantic==2.7.1
-python_dateutil==2.9.0
-qdrant-client==1.9.1
+python-dateutil==2.9.0
+python-dotenv1.0.1==1.0.1
+qdrant_client==1.9.1
 regex==2023.10.3
 rouge_score==0.1.2
 sacrebleu==2.4.2
