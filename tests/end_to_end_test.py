@@ -9,7 +9,6 @@ import os
 class TestEndToEnd(unittest.TestCase):
     def setUp(self):
         self.ottqa_retriever = OTTQARetriever()
-
         self.target = TARGET()
 
     def test_run(self):

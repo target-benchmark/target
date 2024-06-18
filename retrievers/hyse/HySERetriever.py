@@ -5,19 +5,20 @@ import hnswlib
 import numpy as np
 import pandas as pd
 import pickle
-
+from dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
 from dotenv import load_dotenv
 from openai import OpenAI
-from typing import Dict, Iterable, Iterator, List
+from typing import Dict, Iterable, Iterator, List, Tuple
 
 from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
-
+file_dir = os.path.dirname(os.path.realpath(__file__))
+default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")
 
 class HySERetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
-        out_dir: str,
+        out_dir: str = default_out_dir,
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
@@ -28,6 +29,8 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             api_key=os.getenv("OPENAI_API_KEY"),
         )
         self.out_dir = out_dir
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir, exist_ok=True)
 
     def retrieve(
         self,
@@ -35,7 +38,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[str]:
+    ) -> List[Tuple[int, str]]:
         """
         Directly retrieves the predicted relevant tables for the query.
 
@@ -59,9 +62,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             corpus_index = pickle.load(f)
 
         with open(
-            os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "rb"
+            os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "rb"
         ) as f:
-            table_ids = pickle.load(f)
+            db_table_ids = pickle.load(f)
 
         s = 2
         # generate s hypothetical schemas for given query
@@ -82,30 +85,27 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each in s hypothetical schemas
-        retrieved_table_ids = []
+        retrieved_full_ids = []
         for i in range(s):
-            retrieved_table_ids += [table_ids[id] for id in retrieved_ids[i]]
+            retrieved_full_ids += [db_table_ids[id] for id in retrieved_ids[i]]
 
-        return retrieved_table_ids
+        return retrieved_full_ids
 
-    def embed_corpus(self, dataset_name: str, corpus: Iterable[dict]):
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Cunction to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-
-            corpus (Iterable[Dict[str, object]]): an iterable of dictionaries,
-            each dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
-
+            corpus (Iterable[Dict[str, List]]): an iterable of dicts, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
         embedded_corpus = {}
         for corpus_dict in corpus:
-            # key = table_id, value = table
-            for key, value in corpus_dict.items():
-                embedded_corpus[key] = self._embed_schema(table=value, table_id=key)
+            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+                tup_id = (db_id, table_id)
+                embedded_corpus[tup_id] = self._embed_schema(table=table, id=tup_id)
 
         corpus_index = self._construct_embedding_index(
             list(embedded_corpus.keys()), list(embedded_corpus.values())
@@ -118,11 +118,11 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             pickle.dump(corpus_index, f)
 
         with open(
-            os.path.join(self.out_dir, f"table_ids_{dataset_name}.pkl"), "wb"
+            os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "wb"
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
 
-    def _embed_schema(self, table: List[List], table_id: str = None) -> List[List]:
+    def _embed_schema(self, table: List[List], id: Tuple[int, str] = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
         try:
             response = self.client.embeddings.create(
@@ -132,12 +132,12 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 input=" ".join(table[0]),
             )
             return response.data[0].embedding
-        except:
-            print("error on: ", table_id, e)
+        except Exception as e:
+            print("error on: ", id, e)
             return []
 
     def _construct_embedding_index(
-        self, table_ids: List[List], table_embeddings: List[List]
+        self, ids: List[Tuple[int, str]], table_embeddings: List[List]
     ):
 
         # Constructing index
