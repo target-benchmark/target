@@ -1,16 +1,10 @@
 import csv
-from enum import Enum
+from dataset_loaders.DatasetLoaderEnums import *
 import json
-from typing import Any, List, Literal, Dict
+from typing import List, Literal, Dict
 import pandas as pd
 from pathlib import Path
 
-
-class QueryType(Enum):
-    TEXT_2_SQL = "Text to SQL"
-    FACT_VERIFICATION = "Fact Verification"
-    TABLE_QA = "Table Question Answering"
-    OTHER = "Other"
 
 
 def set_query_type(string_rep: str) -> QueryType:
@@ -23,11 +17,6 @@ def set_query_type(string_rep: str) -> QueryType:
         return QueryType.TEXT_2_SQL
     else:
         return QueryType.OTHER
-
-
-class PersistenceDataFormat(Enum):
-    JSON = "json"
-    CSV = "csv"
 
 
 def set_persistence_data_format(string_rep: str) -> PersistenceDataFormat:
@@ -68,10 +57,6 @@ def write_table_to_path(
             json.dump(dict_list, file, indent=4)  # 'indent=4' for pretty-printing
 
 
-class InMemoryDataFormat(Enum):
-    ARRAY = "array"
-    DF = "dataframe"
-    DICTIONARY = "dictionary"
 
 
 def set_in_memory_data_format(string_rep: str) -> InMemoryDataFormat:
