@@ -1,6 +1,8 @@
 from dataset_loaders.utils import (
     InMemoryDataFormat,
     QueryType,
+    array_of_arrays_to_df,
+    array_of_arrays_to_dict,
     set_in_memory_data_format,
     set_query_type,
     enforce_split_literal,
@@ -12,11 +14,23 @@ from dictionary_keys import *
 
 from abc import ABC, abstractmethod
 from datasets import Dataset
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+import gdown
+import os
 from pathlib import Path
+import shutil
 from typing import Dict, Iterable, List, Literal, Tuple
+import zipfile
 
+file_dir = os.path.dirname(os.path.realpath(__file__))
+default_download_dir = os.path.join(file_dir, "text_2_sql_datasets")
+default_spider_path = os.path.join(default_download_dir, "spider_dataset")
+spider_download_url = "https://drive.google.com/uc?id=1iRDVHLr4mX2wQKSgA9J8Pire73Jahh0m"
 
-class AbsDatasetLoader(ABC):
+default_bird_path = os.path.join(default_download_dir, "bird_dataset")
+bird_download_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip"
+
+class Text2SQLDatasetLoader(AbsDatasetLoader):
     """
     The abstrack super class of target dataset loaders.
     This class contains implementations of utility functions shared by subclasses,
@@ -28,7 +42,6 @@ class AbsDatasetLoader(ABC):
         dataset_name: str,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
-        query_type: str = None,
         **kwargs,
     ):
         """
@@ -49,27 +62,39 @@ class AbsDatasetLoader(ABC):
             self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
             self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
         """
+        assert dataset_name == "spider" or dataset_name == "bird", f"we don't allow customized text2sql datasets yet. try spider or bird instead"
+        assert split == "test", f"currently only the test split is supported for text2sql"
+        super().__init__(
+            dataset_name=dataset_name,
+            split=split,
+            data_directory=data_directory,
+            query_type="Text to SQL",
+            kwargs=kwargs
+        )
+        self.corpus: Dict = None
+        self.queries: Dict = None
+        if dataset_name == "spider":
+            self._download_spider()
+        elif dataset_name == "bird":
+            self._download_bird()
+        
+    def _download_spider(self):
+        if not os.path.exists(default_download_dir):
+            os.makedirs(default_download_dir, exist_ok=True)
+        else:
+            return
+        path_to_zip = os.path.join(default_download_dir, "spider.zip")
+        gdown.download(spider_download_url, output=path_to_zip, quiet=False)
+        with zipfile.ZipFile(path_to_zip, 'r') as zip_ref:
+            # Unzip all the contents
+            zip_ref.extractall(default_download_dir)
+        os.remove(path_to_zip)
+        mac_configs = os.path.join(default_download_dir, "__MACOSX")
+        if os.path.exists(mac_configs):
+            shutil.rmtree(mac_configs)
 
-        self.dataset_name: str = dataset_name
-        self.split = enforce_split_literal(split)
-        if data_directory and Path(data_directory).suffix:
-            raise ValueError(f"this path {data_directory} looks like a path to a file.")
-        self.data_directory: str = data_directory
-        self.query_type: QueryType = set_query_type(query_type)
-        self.corpus: Dataset = None
-        self.queries: Dataset = None
-
-    def load(self) -> None:
-        if not self.corpus:
-            self._load_corpus()
-        if not self.queries:
-            self._load_queries()
-
-    @abstractmethod
     def _load_corpus(self) -> None:
         pass
-
-    @abstractmethod
     def _load_queries(self) -> None:
         pass
 
@@ -105,9 +130,9 @@ class AbsDatasetLoader(ABC):
         split_path = path_to_write_to / self.split
         if not split_path.exists():
             split_path.mkdir(parents=True, exist_ok=True)
-        for entry in self.corpus:
-            table_name = Path(entry[TABLE_ID_COL_NAME])
-            nested_array = entry[TABLE_COL_NAME]
+        for i in range(len(self.corpus[TABLE_COL_NAME])):
+            table_name = Path(self.corpus[TABLE_ID_COL_NAME][i])
+            nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
 
     def convert_corpus_table_to(
@@ -131,49 +156,40 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus has not been loaded!")
 
         in_memory_format = set_in_memory_data_format(output_format)
+        converted_corpus = self.corpus.copy()
         if in_memory_format == InMemoryDataFormat.DF:
-            converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_df(TABLE_COL_NAME, entry)
-            )
+            df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
+            converted_corpus[TABLE_COL_NAME] = df_tables
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_dict(TABLE_COL_NAME, entry)
-            )
+            dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
+            converted_corpus[TABLE_COL_NAME] = dict_tables
         else:
             converted_corpus = self.corpus
-        for batch in converted_corpus.iter(batch_size):
-            yield batch
-
-    def get_table_id_to_table(
-        self,
-    ) -> Dict[Tuple[int, str], List[List]]:
-        mapping_dict = {}
-        for entry in self.convert_corpus_table_to():
-            for database_id, table_id, table in zip(
-                entry[DATABASE_ID_COL_NAME],
-                entry[TABLE_ID_COL_NAME],
-                entry[TABLE_COL_NAME],
-            ):
-                key = (database_id, table_id)
-                mapping_dict[key] = table
-        return mapping_dict
+        for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
+            res = {}
+            # Use list comprehensions to extract each column
+            res[TABLE_COL_NAME] = self.corpus[TABLE_COL_NAME][i:i + batch_size]
+            res[DATABASE_ID_COL_NAME] = self.corpus[DATABASE_ID_COL_NAME][i:i + batch_size]
+            res[TABLE_ID_COL_NAME] = self.corpus[TABLE_ID_COL_NAME][i:i + batch_size]
+            res[CONTEXT_COL_NAME] = self.corpus[CONTEXT_COL_NAME][i:i + batch_size]
+            yield res
 
     def get_queries_for_task(self, batch_size: int = 64) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
-        for batch in self.queries.iter(batch_size):
-            yield batch
+        
+        for i in range(0, len(self.queries[QUERY_COL_NAME]), batch_size):
+            res = {}
+            # Use list comprehensions to extract each column
+            res[QUERY_COL_NAME] = self.queries[QUERY_COL_NAME][i:i + batch_size]
+            res[QUERY_ID_COL_NAME] = self.queries[QUERY_ID_COL_NAME][i:i + batch_size]
+            res[DATABASE_ID_COL_NAME] = self.queries[DATABASE_ID_COL_NAME][i:i + batch_size]
+            res[TABLE_ID_COL_NAME] = self.queries[TABLE_ID_COL_NAME][i:i + batch_size]
+            res[ANSWER_COL_NAME] = self.queries[ANSWER_COL_NAME][i:i + batch_size]
+            yield res
 
-    def get_dataset_name(self) -> str:
-        """
-        returns the name of the dataset
 
-        Returns:
-            a string which is the name of the dataset
-        """
-        return self.dataset_name
-
-    def get_corpus(self) -> Dataset:
+    def get_corpus(self) -> List[Dict]:
         """
         get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
 
@@ -188,7 +204,7 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus
 
-    def get_queries(self) -> Dataset:
+    def get_queries(self) -> List[Dict]:
         """
         get the queries of the loaded dataset. if the dataset has not been loaded, raise an error.
 
@@ -211,7 +227,7 @@ class AbsDatasetLoader(ABC):
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
-        return self.corpus.column_names
+        return list(self.corpus[0].keys)
 
     def get_queries_header(self) -> List[str]:
         """
@@ -221,4 +237,4 @@ class AbsDatasetLoader(ABC):
         """
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
-        return self.queries.column_names
+        return list(self.queries[0].keys)
