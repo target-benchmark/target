@@ -1,6 +1,6 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dictionary_keys import *
-from typing import Union, List
+from typing import Literal
 
 from datasets import load_dataset, DatasetDict
 from pathlib import Path
@@ -12,13 +12,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
         dataset_name: str,
         dataset_path: str,
         datafile_ext: str = None,
-        table_col_name: str = TABLE_COL_NAME,
-        table_id_col_name: str = TABLE_ID_COL_NAME,
-        database_id_col_name: str = DATABASE_ID_COL_NAME,
-        query_col_name: str = QUERY_COL_NAME,
-        query_id_col_name: str = QUERY_ID_COL_NAME,
-        answer_col_name: str = ANSWER_COL_NAME,
-        splits: Union[str, List[str]] = "test",
+        split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         query_type: str = "",
         **kwargs
@@ -39,51 +33,28 @@ class GenericDatasetLoader(AbsDatasetLoader):
         """
         super().__init__(
             dataset_name=dataset_name,
-            table_col_name=table_col_name,
-            table_id_col_name=table_id_col_name,
-            database_id_col_name=database_id_col_name,
-            query_col_name=query_col_name,
-            query_id_col_name=query_id_col_name,
-            answer_col_name=answer_col_name,
-            splits=splits,
+            split=split,
             data_directory=data_directory,
-            query_type=query_type**kwargs,
+            query_type=query_type,
+            **kwargs,
         )
         self.dataset_path = Path(dataset_path)
         self.corpus_path = self.dataset_path / "corpus"
         self.queries_path = self.dataset_path / "queries"
         self.datafile_ext = datafile_ext
 
-    def _load(self, splits: Union[str, List[str]] = None) -> None:
-        """
-        Load specific splits of a dataset, such as 'train', 'test', or 'validation'. It can accept either a single split as a string or a list of splits.
-
-        Parameters:
-            splits(Union[str, List[str]], optional): The dataset split or splits to load. Defaults to None, which will load test split or the split specified when constructing this Generic Dataset Loader object
-        """
-        if splits:
-            if isinstance(splits, str):
-                splits = [splits]
-            for split in splits:
-                if split not in self.splits:
-                    self.splits.append(split)
-        self._load_corpus()
-        self._load_queries()
-
     def _load_corpus(self) -> None:
         if not self.corpus:
             self.corpus = DatasetDict()
-        for split in self.splits:
-            if split not in self.corpus:
-                self.corpus[split] = load_dataset(
-                    path=str(self.corpus_path), split=split
-                )
+        if self.split not in self.corpus:
+            self.corpus[self.split] = load_dataset(
+                path=str(self.corpus_path), split=self.split
+            )
 
     def _load_queries(self) -> None:
         if not self.queries:
             self.queries = DatasetDict()
-        for split in self.splits:
-            if split not in self.queries:
-                self.queries[split] = load_dataset(
-                    path=str(self.queries_path), split=split
-                )
+        if self.split not in self.queries:
+            self.queries[self.split] = load_dataset(
+                path=str(self.queries_path), split=self.split
+            )

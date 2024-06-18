@@ -1,11 +1,12 @@
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
-    QueryForTasksDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-
+from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
 from generators.AbsGenerator import AbsGenerator
+from generators.DefaultGenerator import DefaultGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from generators.GeneratorPrompts import QA_SYSTEM_MESSAGE, QA_USER_MESSAGE
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -34,6 +35,8 @@ class QuestionAnsweringTask(AbsTask):
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
+        if not task_generator:
+            task_generator = DefaultGenerator(QA_SYSTEM_MESSAGE, QA_USER_MESSAGE)
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
@@ -72,12 +75,12 @@ class QuestionAnsweringTask(AbsTask):
         # TODO: add more things here. this is for testing. carl note 4/24
         return {
             # this is for testing!!
-            DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG,
+            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
@@ -88,20 +91,24 @@ class QuestionAnsweringTask(AbsTask):
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
-                query_id=query.query_id,
+                query_id=query_id,
                 generated_results=self.task_generator.generate(
                     table_str="\n".join(
                         table_str for table_str in result.retrieved_tables
                     ),
-                    query=query.query,
+                    query=query_str,
                 ),
             )
-            for query, result in zip(query_batch, retrieval_results)
+            for query_id, query_str, result in zip(
+                query_batch[QUERY_ID_COL_NAME],
+                query_batch[QUERY_COL_NAME],
+                retrieval_results,
+            )
         ]
 
     def _update_downstream_task_metrics(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
@@ -113,7 +120,9 @@ class QuestionAnsweringTask(AbsTask):
                 for downstream_answer in downstream_results
             ]
         )
-        self.ref_answers.extend([query.answer for query in query_batch])
+        self.ref_answers.extend(
+            [query_answer for query_answer in query_batch[ANSWER_COL_NAME]]
+        )
 
     def _calculate_downstream_task_performance(
         self, **kwargs

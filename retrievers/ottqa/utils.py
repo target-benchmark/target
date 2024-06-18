@@ -179,12 +179,12 @@ def build_corpus(tables: dict, tmp_file: str):
 
 
 def convert_table_representation(
-    table_id: str, table_contents: List[List]
+    database_id, table_id: str, table_contents: List[List]
 ) -> Dict[str, object]:
     table_headers = table_contents[0]
     table_data = table_contents[1:]
     return {
-        "uid": table_id,
+        "uid": str((database_id, table_id)),
         "title": table_id,
         "header": table_headers,
         "data": table_data,

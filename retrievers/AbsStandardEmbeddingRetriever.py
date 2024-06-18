@@ -1,9 +1,13 @@
-from typing import Iterable
+from typing import Iterable, Tuple
+from dictionary_keys import QUERY_COL_NAME, QUERY_ID_COL_NAME
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import SearchRequest, ScoredPoint
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
-from dictionary_keys import CLIENT_KEY_NAME, METADATA_KEY_NAME
+from dictionary_keys import (
+    CLIENT_KEY_NAME,
+    METADATA_TABLE_ID_KEY_NAME,
+    METADATA_DB_ID_KEY_NAME,
+)
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -13,11 +17,13 @@ from typing import List, Dict, Iterable
 
 class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
     """
-    This retriever class provides both a retrieve and embed method. If the user choose to inherit their custom class after this, they need to implement both functions. The retrieve class will now take in an additional `corpus_embedding` parameter, so they don't need to deal with embedded persistence explicitly here, as the embeddings will be provided at retrieval time.
+    This retriever class includes both an embed query and an embed corpus method. If the user choose to inherit their retriever class after this, they need to implement both functions. The user implementated retriever is not expected to persist any data. Instead, as long as the embed corpus and embed query functions return a vector (list of floats) of the same dimension, the persistence of the data for the evaluation will be dealt with automatically.
 
     Some reasons to inherit from this class as opposed to `AbsCustomEmbeddingRetreiver`
-    - the embedding of your tool is simply a vector or array of floats.
-    - your retrieval system doesn't need any specific persistence formats or folder structure to work.
+    - the embedding of your tool is simply a vector or array of floats. example: the retriever is just an embedding model that produces vectors.
+    - your retrieval system doesn't need any specific persistence formats or folder structures to work.
+
+    To inherit from this class, fill out the `embed_query` and `embed_corpus` functions.
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):
@@ -29,7 +35,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
 
     def retrieve_batch(
         self,
-        queries: List[QueryForTasksDataModel],
+        queries: Dict[str, List],
         dataset_name: str,
         top_k: int,
         **kwargs,
@@ -40,19 +46,24 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
                 f"missing key {CLIENT_KEY_NAME} in kwargs. must be included to use standardized embedding retriever."
             )
         client: QdrantClient = kwargs.get(CLIENT_KEY_NAME)
-        for query in queries:
+        for query_id, query_str in zip(
+            queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]
+        ):
             result = client.search(
                 collection_name=dataset_name,
-                query_vector=self.embed_query(query.query, dataset_name, **kwargs),
+                query_vector=self.embed_query(query_str, dataset_name, **kwargs),
                 limit=top_k,
                 with_payload=True,
             )
             retrieval_results.append(
                 RetrievalResultDataModel(
                     dataset_name=dataset_name,
-                    query_id=query.query_id,
+                    query_id=query_id,
                     retrieval_results=[
-                        scored_point.payload[METADATA_KEY_NAME]
+                        (
+                            scored_point.payload[METADATA_DB_ID_KEY_NAME],
+                            scored_point.payload[METADATA_TABLE_ID_KEY_NAME],
+                        )
                         for scored_point in result
                     ],
                 )
@@ -82,13 +93,13 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, table) -> List[float]:
+    def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> List[float]:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (object): the table object (which the user can assume is in the format of self.expected_corpus_format).
+            corpus (Dict): entry in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (with these exact keys in the dictionary).
 
         Returns:
             List[float]: embedding of the passed in table

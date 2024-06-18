@@ -18,6 +18,6 @@ class OAIEmbedder(AbsStandardEmbeddingRetriever):
     ) -> List[float]:
         return self.embedding_model.embed_query(query)
 
-    def embed_corpus(self, dataset_name: str, table) -> List[float]:
-        table_str = markdown_table_with_headers(table)
+    def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> List[float]:
+        table_str = markdown_table_with_headers(corpus_entry["table"])
         return self.embedding_model.embed_query(table_str)

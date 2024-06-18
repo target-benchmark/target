@@ -8,7 +8,14 @@ from dataset_loaders.LoadersDataModels import (
 from dataset_loaders.utils import get_dummy_table_of_format
 from evaluators.utils import find_tasks
 
-from dictionary_keys import METADATA_KEY_NAME
+from dictionary_keys import (
+    CONTEXT_COL_NAME,
+    METADATA_DB_ID_KEY_NAME,
+    METADATA_TABLE_ID_KEY_NAME,
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
@@ -25,7 +32,7 @@ from datetime import datetime
 import logging
 import os
 
-from typing import Union, List, Dict
+from typing import Literal, Union, List, Dict
 
 from qdrant_client import QdrantClient, models
 
@@ -58,19 +65,18 @@ class TARGET:
         self.tasks: Dict[str, AbsTask] = self.load_tasks(
             downstream_task_names, downstream_task_objects
         )
-        self.logger.info(f"Finished loading tasks! Tasks loaded: {self.tasks.keys()}")
+        self.logger.info(
+            f"Finished loading tasks! Tasks loaded: {list(self.tasks.keys())}"
+        )
 
         self.logger.info("Started creating dataset information...")
         self.dataset_info: Dict[str, DatasetConfigDataModel] = self.create_dataset_info(
             self.tasks
         )
-        self.logger.info("Finished creating dataset config information.")
-
-        self.logger.info("Started creating data loader objects...")
-        self.dataloaders: Dict[str, AbsDatasetLoader] = self.create_dataloaders(
-            self.dataset_info
+        self.logger.info(
+            "Finished creating dataset config information. Finished setting up."
         )
-        self.logger.info("Finished creating dataset loaders. Finished setting up.")
+        self.dataloaders = {}
 
     def load_tasks(
         self,
@@ -117,9 +123,9 @@ class TARGET:
             task_name = task_obj.get_task_name()
             if task_name in loaded_tasks:
                 self.logger.warning(
-                    f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
+                    f"task by name {task_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
                 )
-            loaded_tasks[task_default_name] = task_class()
+            loaded_tasks[task_name] = task_obj
         return loaded_tasks
 
     def get_loaded_tasks(self) -> List[str]:
@@ -146,7 +152,7 @@ class TARGET:
             a dictionary mapping dataset names to dataset configs.
         """
         eval_dataset_config = {}
-        for task_name, task_object in tasks.items():
+        for _, task_object in tasks.items():
             dataset_config = task_object.get_dataset_config()
             for dataset_name, config in dataset_config.items():
                 if dataset_name not in eval_dataset_config:
@@ -154,7 +160,9 @@ class TARGET:
         return eval_dataset_config
 
     def create_dataloaders(
-        self, dataset_config: Dict[str, DatasetConfigDataModel]
+        self,
+        dataset_config: Dict[str, DatasetConfigDataModel],
+        split: Literal["test", "train", "validation"] = "test",
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
@@ -167,6 +175,13 @@ class TARGET:
         """
         eval_dataloaders = {}
         for dataset_name, config in dataset_config.items():
+            if (
+                dataset_name in self.dataloaders
+                and config.split == self.dataloaders[dataset_name].split
+            ):
+                # if the dataset with the same name and the same split already exists, no need to do anything
+                continue
+            config.split = split
             if isinstance(config, HFDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = HFDatasetLoader(**config.model_dump())
             elif isinstance(config, GenericDatasetConfigDataModel):
@@ -182,14 +197,12 @@ class TARGET:
     def load_datasets_for_task(
         self,
         dataset_names: List[str],
-        splits: Union[str, List[str]] = "test",
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
 
         Parameters:
             dataset_names (List[str]): a list of names for the datasets to load.
-            splits (Union[str, List[str]], optional): a single split or a list of splits.
 
         Return:
             a dictionary mapping dataset name to the corresponding dataloader object.
@@ -202,7 +215,7 @@ class TARGET:
                 )
             else:
                 dataloader = self.dataloaders[dataset_name]
-                dataloader.load(splits=splits)
+                dataloader.load()
                 dataloaders_for_task[dataset_name] = dataloader
         return dataloaders_for_task
 
@@ -247,51 +260,74 @@ class TARGET:
         dataset_name: str,
         client: QdrantClient,
     ) -> None:
+        """
+        Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
+        Parameters:
+            retriever (AbsStandardizedEmbeddingRetriever): the retriever object
+            dataset_name (str): name of the dataset to embed
+            client (QdrantClient): an in memory qdrant vector db
+        """
         vec_size = len(
             retriever.embed_corpus(
                 dataset_name,
-                get_dummy_table_of_format(retriever.get_expected_corpus_format()),
+                {
+                    DATABASE_ID_COL_NAME: 1,
+                    TABLE_ID_COL_NAME: "",
+                    TABLE_COL_NAME: get_dummy_table_of_format(
+                        retriever.get_expected_corpus_format()
+                    ),
+                    CONTEXT_COL_NAME: {},
+                },
             )
         )
+        client.delete_collection(collection_name=dataset_name)
         client.create_collection(
             collection_name=dataset_name,
             vectors_config=models.VectorParams(
-                size=vec_size, distance=models.Distance.DOT
+                size=vec_size, distance=models.Distance.COSINE
             ),
         )
-        for corpus_dict in self.dataloaders[dataset_name].convert_corpus_table_to(
+        cur_dataloader = self.dataloaders[dataset_name]
+        vectors = []
+        metadata = []
+        for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
         ):
-            vectors = []
-            metadata = []
-            for table_id, table in corpus_dict.items():
-                table_embedding = retriever.embed_corpus(dataset_name, table)
-                vectors.append(list(table_embedding))
-                metadata.append({METADATA_KEY_NAME: table_id})
-            client.upload_collection(
-                collection_name=dataset_name,
-                vectors=vectors,
-                payload=metadata,
+            entry = {key: value[0] for key, value in entry.items()}
+            print(f"this is the dataset entry: {entry}")
+            table_embedding = retriever.embed_corpus(dataset_name, entry)
+            vectors.append(list(table_embedding))
+            metadata.append(
+                {
+                    METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
+                    METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
+                }
             )
+        client.upload_collection(
+            collection_name=dataset_name,
+            vectors=vectors,
+            payload=metadata,
+        )
 
     def embed_with_custom_embeddings(
         self,
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
+        batch_size: int,
     ) -> None:
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
-                retriever.get_expected_corpus_format()
+                retriever.get_expected_corpus_format(), batch_size
             ),
         )
 
     def run(
         self,
         retriever: AbsRetrieverBase,
-        splits: Union[str, List[str]] = "test",
-        batch_size: int = 64,
+        split: Literal["test", "train", "validation"] = "test",
+        batch_size: int = 1,
         top_k: int = 5,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
@@ -300,10 +336,15 @@ class TARGET:
 
         Parameters:
             retriever (AbsRetrieverBase): a retriever that either inherits from AbsStandardEmbeddingRetriever or AbsCustomEmbeddingRetriver.
-            splits (Union[str, List[str]], optional): splits of data to run the tasks on.
-            batch_size (int, optional): number of queries / number of tables to pass to the retriever at once. TODO: figure out if this is still relevant?
+            split (Literal["test", "train", "validation"], optional): split of data to run the tasks on.
+            batch_size (int, optional): number of queries / number of tables to pass to the retriever at once.
             top_k (int, optional): top k tables to retrieve.
         """
+        self.logger.info("Started creating data loader objects...")
+        self.dataloaders: Dict[str, AbsDatasetLoader] = (
+            self.dataloaders | self.create_dataloaders(self.dataset_info, split)
+        )
+
         all_results = {}
         loaded_datasets = set()
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
@@ -316,13 +357,14 @@ class TARGET:
             self.logger.warning(
                 "the retriever passed in is in the wrong format! it doens't inherit from any target retriever classes. "
             )
+
         for task_name, task in self.tasks.items():
             self.logger.info(f"Start running {task_name}...")
             self.logger.info("Start checking for new corpus to embed...")
             # load the datasets needed
             dataset_names = task.get_dataset_config().keys()
             dataloaders_for_task = self.load_datasets_for_task(
-                dataset_names=dataset_names, splits=splits
+                dataset_names=dataset_names
             )
 
             # call embed corpus on the retriever to embed/preprocess the tables
@@ -333,7 +375,9 @@ class TARGET:
                             retriever, dataset_name, client
                         )
                     else:
-                        self.embed_with_custom_embeddings(retriever, dataset_name)
+                        self.embed_with_custom_embeddings(
+                            retriever, dataset_name, batch_size
+                        )
 
             self.logger.info("Finished embedding all new corpus!")
 
@@ -343,7 +387,6 @@ class TARGET:
                 dataset_loaders=dataloaders_for_task,
                 logger=self.logger,
                 batch_size=batch_size,
-                splits=splits,
                 top_k=top_k,
                 client=client,
                 **kwargs,

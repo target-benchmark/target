@@ -1,6 +1,5 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.LoadersDataModels import (
-    QueryForTasksDataModel,
     DatasetConfigDataModel,
     HFDatasetConfigDataModel,
     GenericDatasetConfigDataModel,
@@ -157,7 +156,6 @@ class AbsTask(ABC):
         dataset_loaders: Dict[str, AbsDatasetLoader],
         logger: Logger,
         batch_size: int = 64,
-        splits: Union[str, List[str]] = "test",
         top_k: int = 5,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
@@ -169,7 +167,6 @@ class AbsTask(ABC):
             dataset_loaders (Dict[str, AbsDatasetLoader]): Dictionary of dataset loaders keyed by dataset names.
             logger (Logger): Logger instance to log the task execution details.
             batch_size (int): The number of items to process in a single batch. Default is 64.
-            splits (Union[str, List[str]], optional): Dataset split(s) to run the task on. Default is "test".
             top_k (int, optional): The top k tables to retrieve. Default is 5.
             **kwargs: Additional keyword arguments for fine-tuning the task execution.
 
@@ -190,8 +187,8 @@ class AbsTask(ABC):
 
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
-            table_id_to_table = dataset_loader.get_table_id_to_table(splits=splits)
-            for query_batch in dataset_loader.get_queries_for_task(splits, batch_size):
+            table_id_to_table = dataset_loader.get_table_id_to_table()
+            for query_batch in dataset_loader.get_queries_for_task(batch_size):
                 retrieved_tables = self._get_retrieval_results(
                     retriever,
                     query_batch,
@@ -201,9 +198,6 @@ class AbsTask(ABC):
                     **kwargs,
                 )
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
-                self._fill_retrieval_results_with_table_strs(
-                    retrieved_tables, table_id_to_table
-                )
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
@@ -244,14 +238,14 @@ class AbsTask(ABC):
         """
         for result in retrieval_results:
             result.retrieved_tables = [
-                markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieval_results
+                markdown_table_with_headers(table_id_to_tables[id])
+                for id in result.retrieval_results
             ]
 
     def _get_retrieval_results(
         self,
         retriever: AbsRetrieverBase,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         table_id_to_table: Dict[str, str],
         dataset_name: str,
         top_k: int,
@@ -262,7 +256,7 @@ class AbsTask(ABC):
 
         Parameters:
             retriever (AbsRetrieverBase): The retriever for fetching the results.
-            query_batch (List[QueryForTasksDataModel]): A list of queries for which results are to be retrieved.
+            query_batch (Dict[str, List]): A dictionary of list of queries for which results are to be retrieved.
             dataset_name (str): The name of the dataset to retrieve results from.
             top_k (int): The number of top results to retrieve for each query.
 
@@ -296,21 +290,28 @@ class AbsTask(ABC):
 
     def _update_retrieval_metrics(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         new_retrieved_tables: List[RetrievalResultDataModel],
     ) -> None:
         """
         Updates the tracked retrieval metrics with the new retrieval results.
 
         Parameters:
-            query_batch (List[QueryForTasksDataModel]): queries & the corresponding gold table and gold answer.
+            query_batch (Dict[str, List]): queries & the corresponding gold table and gold answer.
             new_retrieved_tables (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
 
         Returns:
             None
         """
-        for query, retrieval_result in zip(query_batch, new_retrieved_tables):
-            if query.table_id in retrieval_result.retrieval_results:
+        for db_id, table_id, retrieval_result in zip(
+            query_batch[DATABASE_ID_COL_NAME],
+            query_batch[TABLE_ID_COL_NAME],
+            new_retrieved_tables,
+        ):
+            if (
+                db_id,
+                table_id,
+            ) in retrieval_result.retrieval_results:
                 self.true_positive += 1
             self.total_queries_processed += 1
 
@@ -340,7 +341,7 @@ class AbsTask(ABC):
     @abstractmethod
     def _get_downstream_task_results(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
@@ -348,7 +349,7 @@ class AbsTask(ABC):
         Given the query and the retrieval results, generate downstream task results. Uses the tasks's generator to generate the downstream task result.
 
         Parameters:
-            query_batch (List[QueryForTasksDataModel]): Datamodel objects, contains queries to generate answers for.
+            query_batch (Dict[str, List]): dictionaries, contains queries to generate answers for.
             retrieval_results (List[RetrievalResultDataModel]): retrieved tables.
             dataset_name (str): Name of the dataset.
 
@@ -360,14 +361,14 @@ class AbsTask(ABC):
     @abstractmethod
     def _update_downstream_task_metrics(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         """
         Update any values needed for the calculation of metrics for the downstream tasks. For example, if the task is table fact verification, update the tp, fp, tn, fn in order to caluclate f1, accuracy, etc.
 
         Parameters:
-            query_batch (List[QueryForTasksDataModel]): Data model objects, contains gold tables and gold answer for the query.
+            query_batch (Dict[str, List]): dictionaries, contains gold tables and gold answer for the query.
             downstream_results (List[DownstreamGeneratedResultDataModel]): generated downstream answers.
         """
         pass
@@ -385,17 +386,3 @@ class AbsTask(ABC):
             whatever needed.
         """
         pass
-
-    def _fill_retrieval_results_with_table_strs(
-        self,
-        retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_tables: Dict[str, List[List]],
-    ) -> None:
-        """
-        Complete the retrieval result data model objects by including all the table strings.
-        """
-        for result in retrieval_results:
-            result.retrieved_tables = [
-                markdown_table_with_headers(table_id_to_tables[table_id])
-                for table_id in result.retrieval_results
-            ]

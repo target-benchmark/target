@@ -1,7 +1,84 @@
-from ast import literal_eval
+import csv
+from dataset_loaders.DatasetLoaderEnums import *
 import json
-from typing import List, Literal
+from typing import List, Literal, Dict
 import pandas as pd
+from pathlib import Path
+
+
+
+def set_query_type(string_rep: str) -> QueryType:
+    string_rep = string_rep.lower()
+    if string_rep in QueryType.FACT_VERIFICATION.value.lower():
+        return QueryType.FACT_VERIFICATION
+    elif string_rep in QueryType.TABLE_QA.value.lower():
+        return QueryType.TABLE_QA
+    elif string_rep in QueryType.TEXT_2_SQL.value.lower():
+        return QueryType.TEXT_2_SQL
+    else:
+        return QueryType.OTHER
+
+
+def set_persistence_data_format(string_rep: str) -> PersistenceDataFormat:
+    cleaned = string_rep.lower().strip()
+    if PersistenceDataFormat.JSON.value in cleaned:
+        return PersistenceDataFormat.JSON
+    elif PersistenceDataFormat.CSV.value in cleaned:
+        return PersistenceDataFormat.CSV
+    raise ValueError(
+        f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
+    )
+
+
+def write_table_to_path(
+    format: Literal["csv", "json"],
+    table_name: Path,
+    split_path: Path,
+    nested_array: List[List],
+) -> None:
+    persistence_format = set_persistence_data_format(format)
+    if persistence_format == PersistenceDataFormat.CSV:
+        if "csv" not in table_name.suffix:
+            table_name = table_name / ".csv"
+        table_path = split_path / table_name
+        with open(table_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(nested_array)
+    elif persistence_format == PersistenceDataFormat.JSON:
+        if "json" not in table_name.suffix:
+            table_name = table_name / ".json"
+        table_path = split_path / table_name
+        headers = nested_array[0]
+        rows = nested_array[1:]
+        # Create a list of dictionaries, each representing a row
+        dict_list = [dict(zip(headers, row)) for row in rows]
+
+        with open(table_path, "w") as file:
+            json.dump(dict_list, file, indent=4)  # 'indent=4' for pretty-printing
+
+
+
+
+def set_in_memory_data_format(string_rep: str) -> InMemoryDataFormat:
+    cleaned = string_rep.lower().strip()
+    if InMemoryDataFormat.ARRAY.value in cleaned:
+        return InMemoryDataFormat.ARRAY
+    elif InMemoryDataFormat.DF.value in cleaned or "pandas" in cleaned:
+        return InMemoryDataFormat.DF
+    elif InMemoryDataFormat.DICTIONARY.value in cleaned:
+        return InMemoryDataFormat.DICTIONARY
+    raise ValueError(
+        f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
+    )
+
+
+def enforce_split_literal(string_rep: str):
+    splits = ("test", "train", "validation")
+    if string_rep in splits:
+        return string_rep
+    raise ValueError(
+        f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation"
+    )
 
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
@@ -21,8 +98,25 @@ def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
     return array_of_arrays_to_df(array)
 
 
-def array_of_arrays_to_df(array: List[List]):
+def array_of_arrays_to_df(array: List[List]) -> pd.DataFrame:
     return pd.DataFrame(data=array[1:], columns=array[0])
+
+
+def array_of_arrays_to_dict(array: List[List]) -> Dict:
+    headers = array[0]
+    rows = array[1:]
+    # Create a list of dictionaries, each representing a row
+    return [dict(zip(headers, row)) for row in rows]
+
+
+def convert_corpus_entry_to_df(col_name: str, entry: Dict) -> Dict:
+    entry[col_name] = array_of_arrays_to_df(entry[col_name])
+    return entry
+
+
+def convert_corpus_entry_to_dict(col_name: str, entry: Dict) -> Dict:
+    entry[col_name] = array_of_arrays_to_dict(entry[col_name])
+    return entry
 
 
 def str_representation_to_array(array_repr: str) -> List:
@@ -50,11 +144,13 @@ def str_representation_to_array(array_repr: str) -> List:
 
 
 def convert_nested_list_to(
-    nested_list: List[List], output_format: Literal["array", "nested array", "pandas"]
+    nested_list: List[List],
+    output_format: Literal["array", "nested array", "pandas", "dataframe"],
 ):
+    output_format = output_format.lower()
     if "array" in output_format:
         return nested_list
-    elif "pandas" in output_format:
+    elif "pandas" in output_format or "dataframe" in output_format:
         return array_of_arrays_to_df(nested_list)
 
 
@@ -76,11 +172,38 @@ def markdown_table_with_headers(nested_array: List[List]):
     return markdown
 
 
-def get_dummy_table_of_format(expected_format: str = "nested array"):
+def get_dummy_table_of_format(
+    expected_format: Literal[
+        "array", "nested array", "pandas", "dataframe"
+    ] = "nested array"
+):
     dummy_table = [["header"], ["content"]]
-    if "array" in expected_format.lower():
+    expected_format = expected_format.lower()
+    if "array" in expected_format:
         return dummy_table
-    elif "dataframe" in expected_format.lower():
+    elif "dataframe" in expected_format or "pandas" in expected_format:
         return array_of_arrays_to_df(dummy_table)
     else:
         return dummy_table
+
+
+def write_table_to_path(
+    format: Literal["csv", "json"],
+    table_name: Path,
+    split_path: Path,
+    nested_array: List[List],
+) -> None:
+    format = format.lower()
+    if format.lower() == "csv":
+        if "csv" not in table_name.suffix:
+            table_name = table_name / ".csv"
+        table_path = split_path / table_name
+        with open(table_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(nested_array)
+    if format.lower() == "json":
+        if "json" not in table_name.suffix:
+            table_name = table_name / ".json"
+        table_path = split_path / table_name
+        # TODO: write JSON persistence logic
+        pass
