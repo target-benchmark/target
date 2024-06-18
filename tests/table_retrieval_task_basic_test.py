@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
 from tasks.TableRetrievalTask import TableRetrievalTask
 from tasks.TasksDataModels import *
 from dataset_loaders.HFDatasetLoader import HFDatasetLoader
@@ -35,35 +34,26 @@ class TestTableRetriever(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=1,
-                retrieval_results=["Table1", "Table2"],
+                retrieval_results=[(0, "Table1"), (0, "Table2")],
             ),
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=2,
-                retrieval_results=["Table3", "Table4"],
+                retrieval_results=[(0, "Table3"), (0, "Table4")],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
         self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda splits, batch_size: iter(
+            lambda batch_size: iter(
                 [
-                    [
-                        QueryForTasksDataModel(
-                            query_id=1,
-                            query="Test query",
-                            answer="Test answer",
-                            table_id="Table1",
-                            database_id=0,
-                        ),
-                        QueryForTasksDataModel(
-                            query_id=2,
-                            query="Test query 2",
-                            answer="Test answer 2",
-                            table_id="Table5",
-                            database_id=0,
-                        ),
-                    ]
-                ]
+                    {
+                        "query_id": [1, 2],
+                        "query": ["Test query", "Test query 2"],
+                        "answer": ["Test answer", "Test answer 2"],
+                        "table_id": ["Table1", "Table5"],
+                        "database_id": [0, 0],
+                    }
+                ],
             )
         )
 
@@ -74,26 +64,16 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
         )
         self.mock_retriever.retrieve_batch.assert_called_once_with(
-            queries=[
-                QueryForTasksDataModel(
-                    query_id=1,
-                    query="Test query",
-                    answer="Test answer",
-                    table_id="Table1",
-                    database_id=0,
-                ),
-                QueryForTasksDataModel(
-                    query_id=2,
-                    query="Test query 2",
-                    answer="Test answer 2",
-                    table_id="Table5",
-                    database_id=0,
-                ),
-            ],
+            queries={
+                "query_id": [1, 2],
+                "query": ["Test query", "Test query 2"],
+                "answer": ["Test answer", "Test answer 2"],
+                "table_id": ["Table1", "Table5"],
+                "database_id": [0, 0],
+            },
             dataset_name="fetaqa",
             top_k=2,
         )
@@ -104,7 +84,6 @@ class TestTableRetriever(unittest.TestCase):
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
-            splits="test",
             top_k=2,
         )
 
@@ -118,7 +97,7 @@ class TestTableRetriever(unittest.TestCase):
             retr_perf.model_dump(),
             {"k": 2, "accuracy": 0.5, "precision": None, "recall": None},
         )
-        self.assertEqual(downs_perf.model_dump(), {"task_name": None})
+        self.assertEqual(downs_perf.model_dump(), {"task_name": None, "scores": None})
         self.assertEqual(self.retr_task.true_positive, 0)
         self.assertEqual(self.retr_task.total_queries_processed, 0)
 
@@ -130,6 +109,7 @@ class TestTableRetriever(unittest.TestCase):
                     "dataset_name": "wikitq",
                     "hf_corpus_dataset_path": "target-benchmark/wikitq-corpus",
                     "hf_queries_dataset_path": "target-benchmark/wikitq-queries",
+                    "query_type": "Table Question Answering",
                 }
             }
         )

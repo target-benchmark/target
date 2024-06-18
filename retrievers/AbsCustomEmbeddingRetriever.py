@@ -1,20 +1,17 @@
-from dataset_loaders.LoadersDataModels import QueryForTasksDataModel
+from dictionary_keys import QUERY_ID_COL_NAME, QUERY_COL_NAME
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from abc import abstractmethod
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Tuple
 
 
 class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
     """
-    This interface includes the retrieve method and an encode method that doesn't expect a return value. If your retrieval tool already has table embedding/encoding persistence built in, this is the preferred class to inherit from for your custom retriever, as you can just ignore the encode method. At retrieval time, it is assumed that the **table embeddings are no longer needed to be provided** for the retrieval to work.
-    Reasons for providing this encoding method is:
-    - it's not expected of the users to deal with setting up `TargetDatasetloaders` directly, since at the time of instantiation it may be unclear which datasets needs to be preprocessed. We'd like to delegate this responsibilty to the `TARGET` class during the eval process.
-    - remain symmetric to the `AbsStandardizedEmbeddingRetriever`
+    This interface includes the retrieve method and an encode method that doesn't expect a return value. If your retrieval tool already has table embedding/encoding persistence built in, this is the preferred class to inherit from for your retriever. At retrieval time, it is assumed that the **table embeddings are no longer needed to be provided** for the retrieval to work.
     Some possible reasons to inherit from this class and not `AbsStandardizedEmbeddingRetriever`:
     - you have a custom format of embedding for the tables (ie directory structure, file formats, etc).
-    - your tool already deals with the persistence of the embedding, in which case the embedding method can just pass & do nothing.
+    - your tool already deals with the persistence of the embedding.
     """
 
     def __init__(self, expected_corpus_format: str = "nested array"):
@@ -26,19 +23,21 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
 
     def retrieve_batch(
         self,
-        queries: List[QueryForTasksDataModel],
+        queries: Dict[str, List],
         dataset_name: str,
         top_k: int,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
-        for query in queries:
+        for query_id, query_str in zip(
+            queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]
+        ):
             retrieval_results.append(
                 RetrievalResultDataModel(
                     dataset_name=dataset_name,
-                    query_id=query.query_id,
+                    query_id=query_id,
                     retrieval_results=self.retrieve(
-                        query.query, dataset_name, top_k, **kwargs
+                        query_str, dataset_name, top_k, **kwargs
                     ),
                 )
             )
@@ -51,7 +50,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[str]:
+    ) -> List[Tuple[int, str]]:
         """
         Directly retrieves the corresponding tables for the query. Works under the assumption that the embeddings are available when this function is called, and the retriever should be able to get the right tables with the query provided without any additional information about the corpus.
 
@@ -65,7 +64,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
             any additional kwargs you'd like to include.
 
         Returns:
-            List[str]: the list of table ids of the retrieved tables.
+            List[Tuple[int, str]]: the list of tuples each identifying one table retrieved, each tuple is the (database id, table id) of the retrieved table.
         """
         pass
 
@@ -76,7 +75,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
-            corpus (Iterable[Dict[str, object]]): an iterable of dictionaries, each dictionary mapping the table id to the table object (which the user can assume is in the format of self.expected_corpus_format).
+            corpus (Iterable[Dict[str, object]]): an iterable of dicts, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
 
         Returns:
             nothing. the persistence of the embedding must be dealt with the logic of this function itself, and the `retrieve` function should also know about the embedding results of this function so that retrieval can be done.

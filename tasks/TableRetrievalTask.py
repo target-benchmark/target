@@ -1,9 +1,8 @@
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
-    QueryForTasksDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-
+from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
 from generators.AbsGenerator import AbsGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
@@ -48,13 +47,12 @@ class TableRetrievalTask(AbsTask):
         """
         # TODO: add more things here. this is for testing. carl note 4/10
         return {
-            # DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
-            DEFAULT_DUMMY_DATASET_CONFIG.dataset_name: DEFAULT_DUMMY_DATASET_CONFIG
+            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
@@ -62,7 +60,7 @@ class TableRetrievalTask(AbsTask):
 
     def _update_downstream_task_metrics(
         self,
-        query_batch: List[QueryForTasksDataModel],
+        query_batch: Dict[str, List],
         downstream_results: List[DownstreamGeneratedResultDataModel],
     ) -> None:
         pass
