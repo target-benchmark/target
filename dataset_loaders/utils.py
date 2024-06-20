@@ -6,7 +6,6 @@ import pandas as pd
 from pathlib import Path
 
 
-
 def set_query_type(string_rep: str) -> QueryType:
     string_rep = string_rep.lower()
     if string_rep in QueryType.FACT_VERIFICATION.value.lower():
@@ -55,8 +54,6 @@ def write_table_to_path(
 
         with open(table_path, "w") as file:
             json.dump(dict_list, file, indent=4)  # 'indent=4' for pretty-printing
-
-
 
 
 def set_in_memory_data_format(string_rep: str) -> InMemoryDataFormat:

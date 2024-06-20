@@ -11,8 +11,10 @@ from openai import OpenAI
 from typing import Dict, Iterable, Iterator, List, Tuple
 
 from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")
+
 
 class HySERetriever(AbsCustomEmbeddingRetriever):
 
@@ -38,7 +40,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[Tuple[int, str]]:
+    ) -> List[Tuple]:
         """
         Directly retrieves the predicted relevant tables for the query.
 
@@ -103,7 +105,11 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         """
         embedded_corpus = {}
         for corpus_dict in corpus:
-            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+            for db_id, table_id, table in zip(
+                corpus_dict[DATABASE_ID_COL_NAME],
+                corpus_dict[TABLE_ID_COL_NAME],
+                corpus_dict[TABLE_COL_NAME],
+            ):
                 tup_id = (db_id, table_id)
                 embedded_corpus[tup_id] = self._embed_schema(table=table, id=tup_id)
 
@@ -122,7 +128,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
 
-    def _embed_schema(self, table: List[List], id: Tuple[int, str] = None) -> List[List]:
+    def _embed_schema(self, table: List[List], id: Tuple = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
         try:
             response = self.client.embeddings.create(
@@ -137,7 +143,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             return []
 
     def _construct_embedding_index(
-        self, ids: List[Tuple[int, str]], table_embeddings: List[List]
+        self, ids: List[Tuple], table_embeddings: List[List]
     ):
 
         # Constructing index

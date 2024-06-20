@@ -6,7 +6,7 @@ from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-from generators.GeneratorPrompts import QA_SYSTEM_MESSAGE, QA_USER_MESSAGE
+from generators.GeneratorPrompts import QA_SYSTEM_PROMPT, QA_USER_PROMPT
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -36,7 +36,7 @@ class QuestionAnsweringTask(AbsTask):
         **kwargs,
     ):
         if not task_generator:
-            task_generator = DefaultGenerator(QA_SYSTEM_MESSAGE, QA_USER_MESSAGE)
+            task_generator = DefaultGenerator(QA_SYSTEM_PROMPT, QA_USER_PROMPT)
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,

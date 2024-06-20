@@ -2,12 +2,15 @@ from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-
+from dataset_loaders.Text2SQLDatasetLoader import (
+    default_spider_database_path,
+    default_bird_database_path,
+)
 from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
 
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
-from generators.GeneratorPrompts import FACT_VER_SYSTEM_PROMPT, FACT_VER_USER_PROMPT
+from generators.GeneratorPrompts import TEXT2SQL_SYSTEM_PROMPT, TEXT2SQL_USER_PROMPT
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
@@ -16,47 +19,69 @@ from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
-
+import os
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_recall_fscore_support
-from typing import List, Dict
+import sqlite3
+from typing import List, Dict, Literal, Union
 
 
-class FactVerificationTask(AbsTask):
-    AVAILABLE_METRICS = ["accuracy", "f1", "precision", "recall"]
+class Text2SQLTask(AbsTask):
+
+    AVAILABLE_METRICS = set(["execution_accuracy", "query_match"])
+    DEFAULT_METRICS = set(["execution_accuracy", "query_match"])
 
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
+        metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
+        assert (
+            datasets_config == None
+        ), "currently text2sql task doesn't accept custom dataset config. update coming soon..."
         if task_generator == None:
             task_generator = DefaultGenerator(
-                system_message=FACT_VER_SYSTEM_PROMPT,
-                user_message=FACT_VER_USER_PROMPT,
+                system_message=TEXT2SQL_SYSTEM_PROMPT,
+                user_message=TEXT2SQL_USER_PROMPT,
             )
         super().__init__(
             task_name=self.get_default_task_name(),
-            datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
+            datasets_config=None,
+            overwrite_default_datasets=False,
             task_generator=task_generator,
             **kwargs,
         )
 
-        # two lists, pred_answers contains the predicted answers, and ref_answers contains the ground truth answers.
-        # True = 1, False = 0, Not Enough information = -1.
-        self.pred_answers = []
-        self.ref_answers = []
+        if isinstance(metrics, str):
+            metrics = [metrics]
+
+        self.evals = ""
+        for metric in metrics:
+            if metric not in Text2SQLTask.AVAILABLE_METRICS:
+                raise ValueError(
+                    f"the metric {metric} is not one of the available metrics!"
+                )
+        if "execution_accuracy" in metrics and "query_match" in metrics:
+            self.evals = "all"
+        elif "execution_accuracy" in metrics:
+            self.evals = "exec"
+        elif "query_match" in metrics:
+            self.evals = "match"
+
+        # two lists, pred_sql contains the predicted sql queries, and ref_sql contains the ground truth sql queries.
+        self.pred_sql = []
+        self.ref_sql = []
 
     @classmethod
     def get_default_task_name(cls) -> str:
-        return "Fact Verification Task"
+        return "Text to SQL Task"
 
     @classmethod
     def get_available_metrics(cls) -> str:
-        return str(FactVerificationTask.AVAILABLE_METRICS)
+        return str(Text2SQLTask.AVAILABLE_METRICS)
 
     def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
@@ -65,9 +90,29 @@ class FactVerificationTask(AbsTask):
             TabFact
             TODO: more to come
         """
-        return {
+        return {  # TODO: FIX with actual text2sql dataset configs
             DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
         }
+
+    def _get_schema(self, dataset_name: Literal["spider", "bird"], database_id: str):
+        assert (
+            dataset_name == "spider" or dataset_name == "bird"
+        ), f"dataset {dataset_name} is not supported. only spider and bird are supporteded currently"
+        if dataset_name == "spider":
+            path_to_db_files = default_spider_database_path
+        else:
+            path_to_db_files = default_bird_database_path
+        db_path = os.path.join(path_to_db_files, database_id, f"{database_id}.sqlite")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name, sql FROM sqlite_schema WHERE type='table'")
+
+        # Fetch and print the schema of each table
+        tables = cur.fetchall()
+        schema_str = ""
+        for table in tables:
+            schema_str += f"Table Name: {table[0]}\n Schema:\n{table[1]}\n"
+        return schema_str
 
     def _get_downstream_task_results(
         self,
@@ -84,10 +129,11 @@ class FactVerificationTask(AbsTask):
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
                     table_str="\n".join(
-                        table_str for table_str in result.retrieved_tables
+                        self._get_schema(id[0]) for id in result.retrieval_results
                     ),
                     query=query_str,
                 ),
+                # TODO: add the db id + f"\t{id[0]}",
             )
             for query_id, query_str, result in zip(
                 query_batch[QUERY_ID_COL_NAME],
@@ -106,20 +152,13 @@ class FactVerificationTask(AbsTask):
         Specifically, update the `self.pred_answers` and `self.ref_answers` lists
         based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
-        for downstream_answer in downstream_results:
-            if "true" in downstream_answer.generated_results.lower():
-                self.pred_answers.append(1)
-            elif "false" in downstream_answer.generated_results.lower():
-                self.pred_answers.append(0)
-            else:
-                self.pred_answers.append(-1)
-        for query_answer in query_batch[ANSWER_COL_NAME]:
-            if "true" in query_answer.lower():
-                self.ref_answers.append(1)
-            elif "false" in query_answer.lower():
-                self.ref_answers.append(0)
-            else:
-                self.ref_answers.append(-1)
+        self.pred_answers.extend(
+            [
+                downstream_answer.generated_results
+                for downstream_answer in downstream_results
+            ]
+        )
+        self.ref_answers.extend(query_batch[ANSWER_COL_NAME])
 
     def _calculate_downstream_task_performance(
         self, **kwargs

@@ -50,7 +50,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[Tuple[int, str]]:
+    ) -> List[Tuple]:
         """
         Directly retrieves the corresponding tables for the query. Works under the assumption that the embeddings are available when this function is called, and the retriever should be able to get the right tables with the query provided without any additional information about the corpus.
 
@@ -64,7 +64,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
             any additional kwargs you'd like to include.
 
         Returns:
-            List[Tuple[int, str]]: the list of tuples each identifying one table retrieved, each tuple is the (database id, table id) of the retrieved table.
+            List[Tuple]: the list of tuples each identifying one table retrieved, each tuple is the (database id, table id) of the retrieved table.
         """
         pass
 

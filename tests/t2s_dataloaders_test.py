@@ -13,6 +13,7 @@ class T2SDataloadersTest(unittest.TestCase):
             dataset_name="spider",
         )
         spider_loader._download_spider()
+        spider_loader._download_bird()
 
 
 if __name__ == "__main__":

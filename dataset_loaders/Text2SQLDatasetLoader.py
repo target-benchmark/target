@@ -1,3 +1,4 @@
+import requests
 from dataset_loaders.utils import (
     InMemoryDataFormat,
     QueryType,
@@ -22,13 +23,16 @@ import shutil
 from typing import Dict, Iterable, List, Literal, Tuple
 import zipfile
 
-file_dir = os.path.dirname(os.path.realpath(__file__))
-default_download_dir = os.path.join(file_dir, "text_2_sql_datasets")
-default_spider_path = os.path.join(default_download_dir, "spider_dataset")
+file_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+default_download_dir = os.path.join(file_dir, ".text_2_sql_datasets")
+default_spider_path = os.path.join(default_download_dir, "spider")
+default_spider_database_path = os.path.join(default_spider_path, "test_database")
 spider_download_url = "https://drive.google.com/uc?id=1iRDVHLr4mX2wQKSgA9J8Pire73Jahh0m"
 
-default_bird_path = os.path.join(default_download_dir, "bird_dataset")
+default_bird_path = os.path.join(default_download_dir, "bird")
+default_bird_database_path = os.path.join(default_bird_path, "dev_databases")
 bird_download_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip"
+
 
 class Text2SQLDatasetLoader(AbsDatasetLoader):
     """
@@ -62,14 +66,18 @@ class Text2SQLDatasetLoader(AbsDatasetLoader):
             self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
             self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
         """
-        assert dataset_name == "spider" or dataset_name == "bird", f"we don't allow customized text2sql datasets yet. try spider or bird instead"
-        assert split == "test", f"currently only the test split is supported for text2sql"
+        assert (
+            dataset_name == "spider" or dataset_name == "bird"
+        ), f"we don't allow customized text2sql datasets yet. try spider or bird instead"
+        assert (
+            split == "test"
+        ), f"currently only the test split is supported for text2sql"
         super().__init__(
             dataset_name=dataset_name,
             split=split,
             data_directory=data_directory,
             query_type="Text to SQL",
-            kwargs=kwargs
+            kwargs=kwargs,
         )
         self.corpus: Dict = None
         self.queries: Dict = None
@@ -77,15 +85,15 @@ class Text2SQLDatasetLoader(AbsDatasetLoader):
             self._download_spider()
         elif dataset_name == "bird":
             self._download_bird()
-        
+
     def _download_spider(self):
         if not os.path.exists(default_download_dir):
             os.makedirs(default_download_dir, exist_ok=True)
-        else:
+        if os.path.exists(default_spider_path):
             return
         path_to_zip = os.path.join(default_download_dir, "spider.zip")
         gdown.download(spider_download_url, output=path_to_zip, quiet=False)
-        with zipfile.ZipFile(path_to_zip, 'r') as zip_ref:
+        with zipfile.ZipFile(path_to_zip, "r") as zip_ref:
             # Unzip all the contents
             zip_ref.extractall(default_download_dir)
         os.remove(path_to_zip)
@@ -93,8 +101,37 @@ class Text2SQLDatasetLoader(AbsDatasetLoader):
         if os.path.exists(mac_configs):
             shutil.rmtree(mac_configs)
 
+    def _download_bird(self):
+        if not os.path.exists(default_download_dir):
+            os.makedirs(default_download_dir, exist_ok=True)
+        if os.path.exists(default_bird_path):
+            return
+        path_to_zip = os.path.join(default_download_dir, "bird.zip")
+        with requests.get(bird_download_url, stream=True) as response:
+            response.raise_for_status()  # This will raise an exception for HTTP error codes
+            with open(path_to_zip, "wb") as file:
+                for chunk in response.iter_content(
+                    chunk_size=8192
+                ):  # Adjust chunk size as needed
+                    file.write(chunk)
+        with zipfile.ZipFile(path_to_zip, "r") as zip_ref:
+            # Unzip all the contents
+            zip_ref.extractall(default_download_dir)
+        os.rename(os.path.join(default_download_dir, "dev"), default_bird_path)
+
+        path_to_db_zip = os.path.join(default_bird_path, "dev_databases.zip")
+        with zipfile.ZipFile(path_to_db_zip, "r") as zip_ref:
+            # Unzip all the contents
+            zip_ref.extractall(default_bird_path)
+        os.remove(path_to_zip)
+        os.remove(path_to_db_zip)
+        mac_configs = os.path.join(default_download_dir, "__MACOSX")
+        if os.path.exists(mac_configs):
+            shutil.rmtree(mac_configs)
+
     def _load_corpus(self) -> None:
         pass
+
     def _load_queries(self) -> None:
         pass
 
@@ -161,33 +198,38 @@ class Text2SQLDatasetLoader(AbsDatasetLoader):
             df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = df_tables
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
+            dict_tables = list(
+                map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME])
+            )
             converted_corpus[TABLE_COL_NAME] = dict_tables
         else:
             converted_corpus = self.corpus
         for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
             res = {}
             # Use list comprehensions to extract each column
-            res[TABLE_COL_NAME] = self.corpus[TABLE_COL_NAME][i:i + batch_size]
-            res[DATABASE_ID_COL_NAME] = self.corpus[DATABASE_ID_COL_NAME][i:i + batch_size]
-            res[TABLE_ID_COL_NAME] = self.corpus[TABLE_ID_COL_NAME][i:i + batch_size]
-            res[CONTEXT_COL_NAME] = self.corpus[CONTEXT_COL_NAME][i:i + batch_size]
+            res[TABLE_COL_NAME] = self.corpus[TABLE_COL_NAME][i : i + batch_size]
+            res[DATABASE_ID_COL_NAME] = self.corpus[DATABASE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            res[TABLE_ID_COL_NAME] = self.corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+            res[CONTEXT_COL_NAME] = self.corpus[CONTEXT_COL_NAME][i : i + batch_size]
             yield res
 
     def get_queries_for_task(self, batch_size: int = 64) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
-        
+
         for i in range(0, len(self.queries[QUERY_COL_NAME]), batch_size):
             res = {}
             # Use list comprehensions to extract each column
-            res[QUERY_COL_NAME] = self.queries[QUERY_COL_NAME][i:i + batch_size]
-            res[QUERY_ID_COL_NAME] = self.queries[QUERY_ID_COL_NAME][i:i + batch_size]
-            res[DATABASE_ID_COL_NAME] = self.queries[DATABASE_ID_COL_NAME][i:i + batch_size]
-            res[TABLE_ID_COL_NAME] = self.queries[TABLE_ID_COL_NAME][i:i + batch_size]
-            res[ANSWER_COL_NAME] = self.queries[ANSWER_COL_NAME][i:i + batch_size]
+            res[QUERY_COL_NAME] = self.queries[QUERY_COL_NAME][i : i + batch_size]
+            res[QUERY_ID_COL_NAME] = self.queries[QUERY_ID_COL_NAME][i : i + batch_size]
+            res[DATABASE_ID_COL_NAME] = self.queries[DATABASE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            res[TABLE_ID_COL_NAME] = self.queries[TABLE_ID_COL_NAME][i : i + batch_size]
+            res[ANSWER_COL_NAME] = self.queries[ANSWER_COL_NAME][i : i + batch_size]
             yield res
-
 
     def get_corpus(self) -> List[Dict]:
         """
