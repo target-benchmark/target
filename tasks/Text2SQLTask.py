@@ -6,7 +6,13 @@ from dataset_loaders.Text2SQLDatasetLoader import (
     default_spider_database_path,
     default_bird_database_path,
 )
-from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
+from dictionary_keys import (
+    ANSWER_COL_NAME,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
+    DATABASE_ID_COL_NAME,
+    DIFFICULTY_COL_NAME,
+)
 
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
@@ -19,9 +25,9 @@ from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
+from tasks.utils import evaluate_ves
 import os
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import precision_recall_fscore_support
+
 import sqlite3
 from typing import List, Dict, Literal, Union
 
@@ -74,6 +80,8 @@ class Text2SQLTask(AbsTask):
         # two lists, pred_sql contains the predicted sql queries, and ref_sql contains the ground truth sql queries.
         self.pred_sql = []
         self.ref_sql = []
+        self.difficulties = []
+        self.current_dataset: str = None
 
     @classmethod
     def get_default_task_name(cls) -> str:
@@ -123,6 +131,8 @@ class Text2SQLTask(AbsTask):
         """
         Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
         """
+        if not self.current_dataset:
+            self.current_dataset = dataset_name
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,
@@ -158,7 +168,17 @@ class Text2SQLTask(AbsTask):
                 for downstream_answer in downstream_results
             ]
         )
-        self.ref_answers.extend(query_batch[ANSWER_COL_NAME])
+        for downstream_answer in downstream_results:
+            split_list = downstream_answer.generated_results.split("\t", 1)
+            if len(split_list) < 2:
+                raise ValueError(
+                    f"could not parse the sql and the corresponding database. given result: {downstream_answer.generated_results}"
+                )
+            self.pred_sql.append((split_list[0], split_list[1]))
+        self.ref_sql.extend(
+            list(zip(query_batch[ANSWER_COL_NAME], query_batch[DATABASE_ID_COL_NAME]))
+        )
+        self.difficulties.extend(query_batch[DIFFICULTY_COL_NAME])
 
     def _calculate_downstream_task_performance(
         self, **kwargs
@@ -167,20 +187,24 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
-        accuracy = accuracy_score(self.ref_answers, self.pred_answers)
-        precision, recall, fbeta, _ = precision_recall_fscore_support(
-            self.ref_answers, self.pred_answers, average="weighted"
-        )
+        db_path = ""
+        if self.current_dataset == "bird":
+            db_path = default_bird_database_path
+        elif self.current_dataset == "spider":
+            db_path = default_spider_database_path
+        else:
+            raise ValueError(
+                f"currently only supports bird and spider datasets. {self.current_dataset} is not supported"
+            )
 
         result = FactVerificationTaskPerformanceDataModel(
-            scores={
-                "accuracy": accuracy,
-                "precision": precision,
-                "recall": recall,
-                "f1": fbeta,
-            }
+            scores=evaluate_ves(
+                self.pred_sql, self.ref_sql, self.difficulties, db_path, 1, 60
+            )
         )
 
-        self.pred_answers = []
-        self.ref_answers = []
+        self.pred_sql = []
+        self.ref_sql = []
+        self.difficulties = []
+        self.current_dataset = None
         return result
