@@ -12,10 +12,6 @@ import time
 import math
 
 
-def result_callback(result):
-    exec_result.append(result)
-
-
 def clean_abnormal(input):
     input = np.asarray(input)
     processed_list = []
@@ -116,11 +112,12 @@ def run_sqls_parallel(
     num_cpus=1,
     iterate_num=100,
     meta_time_out=30.0,
-):
+) -> List[Dict[str, Union[int, float]]]:
     pool = mp.Pool(processes=num_cpus)
+    results = []
     for i, sql_pair in enumerate(zip(pred_sqls, gt_sqls)):
         predicted_sql, ground_truth = sql_pair
-        pool.apply_async(
+        future_result = pool.apply_async(
             execute_model,
             args=(
                 predicted_sql,
@@ -130,10 +127,13 @@ def run_sqls_parallel(
                 iterate_num,
                 meta_time_out,
             ),
-            callback=result_callback,
         )
+        results.append(future_result)
+
     pool.close()
     pool.join()
+    exec_result = [result.get() for result in results]  # Safely collect results
+    return exec_result
 
 
 def sort_results(list_of_dicts):
@@ -187,7 +187,7 @@ def evaluate_ves(
     meta_time_out: float,
 ) -> Dict[str, Dict[str, Union[int, float]]]:
 
-    run_sqls_parallel(
+    exec_result = run_sqls_parallel(
         predicted_sqls,
         ground_truth_sqls,
         db_root_path,
