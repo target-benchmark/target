@@ -2,6 +2,7 @@ import os
 import pdb
 import sys
 import json
+from typing import List, Tuple
 import numpy as np
 import argparse
 import sqlite3
@@ -36,13 +37,15 @@ def execute_sql(sql, cursor):
 
 
 def iterated_execute_sql(
-    predicted_sql, ground_truth, predicted_db_path, ground_truth_db_path, iterate_num
+    predicted_sql_and_db: Tuple[str, str], ground_truth_sql_and_db: Tuple[str, str], db_root_path: str, iterate_num
 ):
+    predicted_sql, predicted_db = predicted_sql_and_db
+    ground_truth, ground_truth_db = ground_truth_sql_and_db
     # given a predicted sql, ground truth sql, and the respective db paths of each, get efficiency results.
-    pred_conn = sqlite3.connect(predicted_db_path)
+    pred_conn = sqlite3.connect(os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite"))
     pred_cursor = pred_conn.cursor()
 
-    gt_conn = sqlite3.connect(ground_truth_db_path)
+    gt_conn = sqlite3.connect(os.path.join(db_root_path, ground_truth_db, f"{ground_truth_db}.sqlite"))
     gt_cursor = gt_conn.cursor()
 
     diff_list = []
@@ -71,13 +74,12 @@ def iterated_execute_sql(
 
 
 def execute_model(
-    predicted_sql,
-    ground_truth,
-    pred_db_path,
-    gt_db_path,
-    idx,
-    iterate_num,
-    meta_time_out,
+    predicted_sql: Tuple[str, str],
+    ground_truth: Tuple[str, str],
+    db_root_path: str,
+    idx: int,
+    iterate_num: int,
+    meta_time_out: float,
 ):
     try:
         # you can personalize the total timeout number
@@ -86,7 +88,7 @@ def execute_model(
         time_ratio = func_timeout(
             meta_time_out * iterate_num,
             iterated_execute_sql,
-            args=(predicted_sql, ground_truth, pred_db_path, gt_db_path, iterate_num),
+            args=(predicted_sql, ground_truth, db_root_path, iterate_num),
         )
     except KeyboardInterrupt:
         sys.exit(0)
@@ -124,18 +126,16 @@ def package_sqls(sql_path, db_root_path, mode="gpt", data_mode="dev"):
     return clean_sqls, db_path_list
 
 
-def run_sqls_parallel(sqls, db_paths, num_cpus=1, iterate_num=100, meta_time_out=30.0):
+def run_sqls_parallel(pred_sqls: List[Tuple[str, str]], gt_sqls: List[Tuple[str, str]], db_root_path: str, num_cpus=1, iterate_num=100, meta_time_out=30.0):
     pool = mp.Pool(processes=num_cpus)
-    for i, sql_pair in enumerate(sqls):
+    for i, sql_pair in enumerate(zip(pred_sqls, gt_sqls)):
         predicted_sql, ground_truth = sql_pair
-        pred_db_path, gt_db_path = db_paths[i]
         pool.apply_async(
             execute_model,
             args=(
                 predicted_sql,
                 ground_truth,
-                pred_db_path,
-                gt_db_path,
+                db_root_path,
                 i,
                 iterate_num,
                 meta_time_out,
@@ -204,75 +204,64 @@ def print_data(score_lists, count_lists):
     print("{:20} {:<20.2f} {:<20.2f} {:<20.2f} {:<20.2f}".format("ves", *score_lists))
 
 
-if __name__ == "__main__":
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "--predicted_sql_path", type=str, required=True, default=""
-    )
-    args_parser.add_argument("--ground_truth_path", type=str, required=True, default="")
-    args_parser.add_argument("--data_mode", type=str, required=True, default="dev")
-    args_parser.add_argument("--db_root_path", type=str, required=True, default="")
-    args_parser.add_argument("--num_cpus", type=int, default=1)
-    args_parser.add_argument("--meta_time_out", type=float, default=30.0)
-    args_parser.add_argument("--mode_gt", type=str, default="gt")
-    args_parser.add_argument("--mode_predict", type=str, default="gpt")
-    args_parser.add_argument("--diff_json_path", type=str, default="")
-    args = args_parser.parse_args()
-    exec_result = []
+# if __name__ == "__main__":
+#     args_parser = argparse.ArgumentParser()
+#     args_parser.add_argument(
+#         "--predicted_sql_path", type=str, required=True, default=""
+#     )
+#     args_parser.add_argument("--ground_truth_path", type=str, required=True, default="")
+#     args_parser.add_argument("--data_mode", type=str, required=True, default="dev")
+#     args_parser.add_argument("--db_root_path", type=str, required=True, default="")
+#     args_parser.add_argument("--num_cpus", type=int, default=1)
+#     args_parser.add_argument("--meta_time_out", type=float, default=30.0)
+#     args_parser.add_argument("--mode_gt", type=str, default="gt")
+#     args_parser.add_argument("--mode_predict", type=str, default="gpt")
+#     args_parser.add_argument("--diff_json_path", type=str, default="")
+#     args = args_parser.parse_args()
+#     exec_result = []
 
-    pred_queries, db_paths = package_sqls(
-        args.predicted_sql_path,
-        args.db_root_path,
-        mode=args.mode_predict,
-        data_mode=args.data_mode,
-    )
-    # generate gt sqls:
-    gt_queries, db_paths_gt = package_sqls(
-        args.ground_truth_path, args.db_root_path, mode="gt", data_mode=args.data_mode
-    )
+#     pred_queries, db_paths = package_sqls(
+#         args.predicted_sql_path,
+#         args.db_root_path,
+#         mode=args.mode_predict,
+#         data_mode=args.data_mode,
+#     )
+#     # generate gt sqls:
+#     gt_queries, db_paths_gt = package_sqls(
+#         args.ground_truth_path, args.db_root_path, mode="gt", data_mode=args.data_mode
+#     )
 
-    query_pairs = list(zip(pred_queries, gt_queries))
-    run_sqls_parallel(
-        query_pairs,
-        db_places=db_paths,
-        num_cpus=args.num_cpus,
-        meta_time_out=args.meta_time_out,
-    )
-    exec_result = sort_results(exec_result)
-    print("start calculate")
-    simple_ves, moderate_ves, challenging_ves, ves, count_lists = compute_ves_by_diff(
-        exec_result, args.diff_json_path
-    )
-    score_lists = [simple_ves, moderate_ves, challenging_ves, ves]
-    print_data(score_lists, count_lists)
-    print(
-        "==========================================================================================="
-    )
-    print("Finished evaluation")
+#     query_pairs = list(zip(pred_queries, gt_queries))
+#     run_sqls_parallel(
+#         query_pairs,
+#         db_places=db_paths,
+#         num_cpus=args.num_cpus,
+#         meta_time_out=args.meta_time_out,
+#     )
+#     exec_result = sort_results(exec_result)
+#     print("start calculate")
+#     simple_ves, moderate_ves, challenging_ves, ves, count_lists = compute_ves_by_diff(
+#         exec_result, args.diff_json_path
+#     )
+#     score_lists = [simple_ves, moderate_ves, challenging_ves, ves]
+#     print_data(score_lists, count_lists)
+#     print(
+#         "==========================================================================================="
+#     )
+#     print("Finished evaluation")
 
 
 def evaluation_ves(
-    predicted_sql_path,
-    ground_truth_path,
+    predicted_sqls: List[Tuple[str, str]],
+    ground_truth_sqls: List[Tuple[str, str]],
     db_root_path,
-    mode_predict,
-    data_mode,
     num_cpus,
     meta_time_out,
     difficulty_json_path,
 ):
-    pred_queries, pred_db_paths = package_sqls(
-        predicted_sql_path, db_root_path, mode=mode_predict, data_mode=data_mode
-    )
-    # generate gt sqls:
-    gt_queries, gt_db_paths = package_sqls(
-        ground_truth_path, db_root_path, mode="gt", data_mode=data_mode
-    )
 
-    query_pairs = list(zip(pred_queries, gt_queries))
-    db_pairs = list(zip(pred_db_paths, gt_db_paths))
     run_sqls_parallel(
-        query_pairs, db_paths=db_pairs, num_cpus=num_cpus, meta_time_out=meta_time_out
+        predicted_sqls, ground_truth_sqls, db_root_path, num_cpus=num_cpus, meta_time_out=meta_time_out
     )
     exec_result = sort_results(exec_result)
     print("start calculate")
