@@ -33,9 +33,7 @@ class Text2SQLGenerater(DefaultGenerator):
             messages=[
                 SystemMessage(content=(system_message)),
                 HumanMessagePromptTemplate.from_template(
-                    PromptTemplate(
-                        template=user_message,
-                    )
+                    user_message
                 ),
             ],
             input_variables=["table_str", "query_str"],
@@ -44,3 +42,6 @@ class Text2SQLGenerater(DefaultGenerator):
             },
         )
         self.chain = self.chat_template | self.language_model | self.output_parser
+
+    def generate(self, table_str: str, query: str) -> str:
+        return self.chain.invoke({"table_str": table_str, "query_str": query})        
