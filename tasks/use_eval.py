@@ -18,7 +18,7 @@ scores = evaluate_ves(
     gold_sqls,
     difficulties,
     db_path,
-    1,
+    3,
     60
 )
 
