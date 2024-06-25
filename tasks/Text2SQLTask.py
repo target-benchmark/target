@@ -25,7 +25,7 @@ from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
-from tasks.utils import evaluate_ves
+from tasks.utils import evaluate_sql_execution
 import os
 
 import sqlite3
@@ -34,8 +34,8 @@ from typing import List, Dict, Literal, Union
 
 class Text2SQLTask(AbsTask):
 
-    AVAILABLE_METRICS = set(["execution_accuracy", "query_match"])
-    DEFAULT_METRICS = set(["execution_accuracy", "query_match"])
+    AVAILABLE_METRICS = set(["execution_accuracy", "execution_ves"])
+    DEFAULT_METRICS = set(["execution_accuracy"])
 
     def __init__(
         self,
@@ -64,18 +64,14 @@ class Text2SQLTask(AbsTask):
         if isinstance(metrics, str):
             metrics = [metrics]
 
-        self.evals = ""
         for metric in metrics:
             if metric not in Text2SQLTask.AVAILABLE_METRICS:
                 raise ValueError(
                     f"the metric {metric} is not one of the available metrics!"
                 )
-        if "execution_accuracy" in metrics and "query_match" in metrics:
-            self.evals = "all"
-        elif "execution_accuracy" in metrics:
-            self.evals = "exec"
-        elif "query_match" in metrics:
-            self.evals = "match"
+        self.include_ves = False
+        if "execution_ves" in metrics:
+            self.include_ves = True
 
         # two lists, pred_sql contains the predicted sql queries, and ref_sql contains the ground truth sql queries.
         self.pred_sql = []
@@ -198,8 +194,8 @@ class Text2SQLTask(AbsTask):
             )
 
         result = FactVerificationTaskPerformanceDataModel(
-            scores=evaluate_ves(
-                self.pred_sql, self.ref_sql, self.difficulties, db_path, 1, 60
+            scores=evaluate_sql_execution(
+                self.pred_sql, self.ref_sql, self.difficulties, db_path, 1, 60, self.include_ves
             )
         )
 
