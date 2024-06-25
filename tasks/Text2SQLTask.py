@@ -23,7 +23,7 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from tasks.AbsTask import AbsTask
 from tasks.TasksDataModels import (
-    FactVerificationTaskPerformanceDataModel,
+    Text2SQLTaskPerformanceDataModel,
 )
 from tasks.utils import evaluate_sql_execution
 import os
@@ -178,7 +178,7 @@ class Text2SQLTask(AbsTask):
 
     def _calculate_downstream_task_performance(
         self, **kwargs
-    ) -> FactVerificationTaskPerformanceDataModel:
+    ) -> Text2SQLTaskPerformanceDataModel:
         """
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
@@ -193,9 +193,15 @@ class Text2SQLTask(AbsTask):
                 f"currently only supports bird and spider datasets. {self.current_dataset} is not supported"
             )
 
-        result = FactVerificationTaskPerformanceDataModel(
+        result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(
-                self.pred_sql, self.ref_sql, self.difficulties, db_path, 1, 60, self.include_ves
+                self.pred_sql,
+                self.ref_sql,
+                self.difficulties,
+                db_path,
+                1,
+                60,
+                self.include_ves,
             )
         )
 

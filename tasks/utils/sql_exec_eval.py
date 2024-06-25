@@ -37,7 +37,7 @@ def iterated_execute_sql(
     ground_truth_sql_and_db: Tuple[str, str],
     db_root_path: str,
     iterate_num: int,
-    include_ves: bool=False,
+    include_ves: bool = False,
 ) -> float:
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
@@ -86,7 +86,7 @@ def execute_model(
     idx: int,
     iterate_num: int,
     meta_time_out: float,
-    include_ves: bool=False,
+    include_ves: bool = False,
 ) -> Dict[str, Union[int, float]]:
     try:
         # you can personalize the total timeout number
@@ -105,7 +105,11 @@ def execute_model(
     except Exception as e:
         result = [(f"error",)]  # possibly len(query) > 512 or not executable
         time_ratio = 0
-    return {"sql_idx": idx, "time_ratio": time_ratio, "sql_execution_res": sql_execution_res}
+    return {
+        "sql_idx": idx,
+        "time_ratio": time_ratio,
+        "sql_execution_res": sql_execution_res,
+    }
 
 
 def run_sqls_parallel(
@@ -115,7 +119,7 @@ def run_sqls_parallel(
     num_cpus=1,
     iterate_num=100,
     meta_time_out=30.0,
-    include_ves: bool=False
+    include_ves: bool = False,
 ) -> List[Dict[str, Union[int, float]]]:
     pool = mp.Pool(processes=num_cpus)
     results = []
@@ -157,13 +161,16 @@ def compute_ves(exec_results: List[Dict[str, Union[int, float]]]) -> float:
     ves = total_ratio / num_queries
     return ves
 
+
 def compute_acc(exec_results: List[Dict[str, Union[int, float]]]) -> float:
     num_queries = len(exec_results)
     return sum(res["sql_execution_res"] for res in exec_results) / num_queries
 
 
 def compute_performance_by_diff(
-    exec_results: List[Dict[str, Union[int, float]]], difficulties: List[str], include_ves: bool=False
+    exec_results: List[Dict[str, Union[int, float]]],
+    difficulties: List[str],
+    include_ves: bool = False,
 ):
     assert len(exec_results) == len(
         difficulties
@@ -186,6 +193,7 @@ def compute_performance_by_diff(
 
     return performance_by_difficulty
 
+
 def evaluate_sql_execution(
     predicted_sqls: List[Tuple[str, str]],
     ground_truth_sqls: List[Tuple[str, str]],
@@ -193,7 +201,7 @@ def evaluate_sql_execution(
     db_root_path: str,
     num_cpus: int,
     meta_time_out: float,
-    include_ves: bool=False,
+    include_ves: bool = False,
 ) -> Dict[str, Dict[str, Union[int, float]]]:
 
     exec_result = run_sqls_parallel(
@@ -205,5 +213,4 @@ def evaluate_sql_execution(
         include_ves=include_ves,
     )
     exec_result = sort_results(exec_result)
-    print("start calculate")
     return compute_performance_by_diff(exec_result, difficulties, include_ves)
