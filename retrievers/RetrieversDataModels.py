@@ -1,10 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 class RetrievalResultDataModel(BaseModel):
     dataset_name: str
-    query_id: int
+    query_id: Union[int, str]
     retrieval_results: List[Tuple] = Field(
         default=[], description="retrieved table, a tuple of (database id, table id)"
     )
