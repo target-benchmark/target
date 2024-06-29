@@ -29,7 +29,7 @@ Question:
 
 Please respond with a paragraph structured as follows:
 
-\n{format_instructions}
+{format_instructions}
 
 Take a deep breath and think step by step to find the correct SQLite SQL
 query. If you follow all the instructions and generate the correct query,
