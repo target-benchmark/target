@@ -2,6 +2,7 @@ import unittest
 from generators.DefaultGenerator import DefaultGenerator
 from generators.Text2SQLGenerator import Text2SQLGenerater
 
+
 class TestEvaluator(unittest.TestCase):
     def setUp(self):
         self.dg = DefaultGenerator()
@@ -48,7 +49,7 @@ PRIMARY KEY ("People_ID")
         query = "what is the name of the most recently recorded perpetrator?"
         generator = Text2SQLGenerater()
         print(generator.generate(table_str, query))
-        
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,7 +17,10 @@ class Text2SQLGenerater(DefaultGenerator):
         super().__init__(system_message=system_message, user_message=user_message)
 
         response_schemas = [
-            ResponseSchema(name="chain_of_thought_reasoning", description="Your thought process on how you arrived at the final SQL query."), 
+            ResponseSchema(
+                name="chain_of_thought_reasoning",
+                description="Your thought process on how you arrived at the final SQL query.",
+            ),
             ResponseSchema(name="sql_query", description="the sql query you write."),
             ResponseSchema(
                 name="database_id",
@@ -32,9 +35,7 @@ class Text2SQLGenerater(DefaultGenerator):
         self.chat_template = ChatPromptTemplate(
             messages=[
                 SystemMessage(content=(system_message)),
-                HumanMessagePromptTemplate.from_template(
-                    user_message
-                ),
+                HumanMessagePromptTemplate.from_template(user_message),
             ],
             input_variables=["table_str", "query_str"],
             partial_variables={
@@ -44,4 +45,4 @@ class Text2SQLGenerater(DefaultGenerator):
         self.chain = self.chat_template | self.language_model | self.output_parser
 
     def generate(self, table_str: str, query: str) -> str:
-        return self.chain.invoke({"table_str": table_str, "query_str": query})        
+        return self.chain.invoke({"table_str": table_str, "query_str": query})

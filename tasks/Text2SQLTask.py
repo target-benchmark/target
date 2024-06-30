@@ -1,11 +1,10 @@
+from dataset_loaders import Text2SQLDatasetLoader
+from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
 from dataset_loaders.TargetDatasetConfig import *
-from dataset_loaders.Text2SQLDatasetLoader import (
-    default_spider_database_path,
-    default_bird_database_path,
-)
+
 from dictionary_keys import (
     ANSWER_COL_NAME,
     QUERY_COL_NAME,
@@ -26,8 +25,7 @@ from tasks.TasksDataModels import (
     Text2SQLTaskPerformanceDataModel,
 )
 from tasks.utils import evaluate_sql_execution
-import os
-
+from pathlib import Path
 import sqlite3
 from typing import List, Dict, Literal, Union
 
@@ -78,6 +76,7 @@ class Text2SQLTask(AbsTask):
         self.ref_sql = []
         self.difficulties = []
         self.current_dataset: str = None
+        self.database_dirs: Dict[str, str] = None
 
     @classmethod
     def get_default_task_name(cls) -> str:
@@ -86,6 +85,11 @@ class Text2SQLTask(AbsTask):
     @classmethod
     def get_available_metrics(cls) -> str:
         return str(Text2SQLTask.AVAILABLE_METRICS)
+
+    def setup_database_dirs(self, dataloaders: Dict[str, Text2SQLDatasetLoader]):
+        self.database_dirs = {
+            name: loader.path_to_database_dir for name, loader in dataloaders.items()
+        }
 
     def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
         """
@@ -98,22 +102,21 @@ class Text2SQLTask(AbsTask):
             DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
         }
 
-    def _get_schema(self, dataset_name: Literal["spider", "bird"], database_id: str):
-        assert (
-            dataset_name == "spider" or dataset_name == "bird"
-        ), f"dataset {dataset_name} is not supported. only spider and bird are supporteded currently"
-        if dataset_name == "spider":
-            path_to_db_files = default_spider_database_path
-        else:
-            path_to_db_files = default_bird_database_path
-        db_path = os.path.join(path_to_db_files, database_id, f"{database_id}.sqlite")
+    def _get_schema(self, dataset_name: str, database_id: str):
+        if dataset_name not in self.database_dirs:
+            raise ValueError(
+                f"dataset {dataset_name} does not have a database directory setup."
+            )
+        db_path = Path(
+            self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite"
+        )
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         cur.execute("SELECT name, sql FROM sqlite_schema WHERE type='table'")
 
         # Fetch and print the schema of each table
         tables = cur.fetchall()
-        schema_str = ""
+        schema_str = f"Database Name: {database_id}\n"
         for table in tables:
             schema_str += f"Table Name: {table[0]}\n Schema:\n{table[1]}\n"
         return schema_str
@@ -139,7 +142,6 @@ class Text2SQLTask(AbsTask):
                     ),
                     query=query_str,
                 ),
-                # TODO: add the db id + f"\t{id[0]}",
             )
             for query_id, query_str, result in zip(
                 query_batch[QUERY_ID_COL_NAME],
@@ -183,15 +185,11 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
-        db_path = ""
-        if self.current_dataset == "bird":
-            db_path = default_bird_database_path
-        elif self.current_dataset == "spider":
-            db_path = default_spider_database_path
-        else:
+        if self.current_dataset not in self.database_dirs:
             raise ValueError(
-                f"currently only supports bird and spider datasets. {self.current_dataset} is not supported"
+                f"{self.current_dataset} does not have path to database files."
             )
+        db_path = self.database_dirs[self.current_dataset]
 
         result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(
