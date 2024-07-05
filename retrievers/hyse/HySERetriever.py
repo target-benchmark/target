@@ -2,18 +2,27 @@ import json
 import os
 
 import hnswlib
+import instructor
 import numpy as np
 import pandas as pd
 import pickle
-from dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
+import tqdm
+
 from dotenv import load_dotenv
 from openai import OpenAI
-from typing import Dict, Iterable, Iterator, List, Tuple
+from pydantic import BaseModel
+from typing import Dict, Iterable, Iterator, List, Tuple, Optional
 
-from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+from dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
+from retrievers import AbsCustomEmbeddingRetriever, utils
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")
+
+
+
+class ResponseFormat(BaseModel):
+    headers: List[List[str]]
 
 
 class HySERetriever(AbsCustomEmbeddingRetriever):
@@ -66,6 +75,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         with open(
             os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "rb"
         ) as f:
+            # stored separately as hnsw only takes int indices
             db_table_ids = pickle.load(f)
 
         s = 2
@@ -76,7 +86,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         hypothetical_schema_embeddings = []
         for hypothetical_schema in hypothetical_schemas_query:
             hypothetical_schema_embeddings += [
-                self._embed_schema(table=hypothetical_schema)
+                self.embed_query(table=hypothetical_schema)
             ]
 
         # Query dataset, k - number of the closest elements (returns 2 numpy arrays)
@@ -93,9 +103,10 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         return retrieved_full_ids
 
+
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
-        Cunction to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
+        Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
 
         Parameters:
             dataset_name (str): the name of the corpus dataset.
@@ -103,19 +114,16 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        embedded_corpus = {}
-        for corpus_dict in corpus:
-            for db_id, table_id, table in zip(
-                corpus_dict[DATABASE_ID_COL_NAME],
-                corpus_dict[TABLE_ID_COL_NAME],
-                corpus_dict[TABLE_COL_NAME],
-            ):
-                tup_id = (db_id, table_id)
-                embedded_corpus[tup_id] = self._embed_schema(table=table, id=tup_id)
+        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")):
+            return
 
-        corpus_index = self._construct_embedding_index(
-            list(embedded_corpus.keys()), list(embedded_corpus.values())
-        )
+        embedded_corpus = {}
+        for corpus_dict in tqdm.tqdm(corpus):
+            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+                tup_id = (db_id, table_id)
+                embedded_corpus[tup_id] = self.embed_query(table=table, id=tup_id)
+
+        corpus_index = utils.construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
         with open(
@@ -128,70 +136,54 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
 
-    def _embed_schema(self, table: List[List], id: Tuple = None) -> List[List]:
+
+    def embed_query(self, table: List[List], id: Tuple[int, str] = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
         try:
+            table_str = utils.json_table_str(table)
             response = self.client.embeddings.create(
                 model="text-embedding-3-small",
                 # current: embed schema only
                 # todo: add table values
-                input=" ".join(table[0]),
+                input=table_str,
             )
             return response.data[0].embedding
         except Exception as e:
             print("error on: ", id, e)
             return []
 
-    def _construct_embedding_index(
-        self, ids: List[Tuple], table_embeddings: List[List]
-    ):
-
-        # Constructing index
-        corpus_index = hnswlib.Index(
-            space="cosine", dim=len(table_embeddings[0])
-        )  # possible options are l2, cosine or ip
-
-        # Initializing index - the maximum number of elements should be known beforehand
-        corpus_index.init_index(
-            max_elements=len(table_embeddings), ef_construction=200, M=16
-        )
-
-        # Element insertion (can be called several times):
-        corpus_index.add_items(
-            np.asarray(table_embeddings),
-            list(range(0, len(table_embeddings))),
-        )
-
-        # Controlling the recall by setting ef:
-        corpus_index.set_ef(50)  # ef should always be > k
-
-        return corpus_index
 
     def generate_hypothetical_schemas(self, query: str, s: int) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
 
+        client = instructor.from_openai(self.client)
+        response_model = ResponseFormat
+
         # TODO: ensure correctness of output type and dimension
-        response = self.client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o-2024-05-13",
             messages=[
                 {
                     "role": "system",
                     # todo: add table values
                     # todo: expand to multi-table
-                    "content": f"""
-                  Generate exactly {s} table headers, which are different in semantics and size,
-                  of tables which could potentially be used to answer the given query.
-                  Return only a list in which each item is a list of table attributes (strings),
-                  without any surrounding numbers or text.
-                  """,
+                    "content": f"""You are an assistant skilled in database schemas.""",
                 },
-                {"role": "user", "content": f"{query}"},
+                {
+                    "role": "user",
+                    "content": f"""
+                        Generate exactly {s} table headers, which are different in semantics and size,
+                        of tables which could answer the following query: {query}.
+
+                        Return a nested list of size {s} in which each list contains table attributes (strings),
+                        without any surrounding numbers or text.
+                    """
+                },
             ],
+            response_model=response_model,
             temperature=0,
         )
 
-        hypothetical_schemas = eval(
-            response.to_dict()["choices"][0]["message"]["content"]
-        )
+        hypothetical_schemas = response.headers
 
         return hypothetical_schemas
