@@ -13,9 +13,7 @@ from dictionary_keys import (
     DIFFICULTY_COL_NAME,
 )
 
-from generators.AbsGenerator import AbsGenerator
-from generators.DefaultGenerator import DefaultGenerator
-from generators.GeneratorPrompts import TEXT2SQL_SYSTEM_PROMPT, TEXT2SQL_USER_PROMPT
+from generators import AbsGenerator, Text2SQLGenerater
 from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
@@ -47,10 +45,7 @@ class Text2SQLTask(AbsTask):
             datasets_config == None
         ), "currently text2sql task doesn't accept custom dataset config. update coming soon..."
         if task_generator == None:
-            task_generator = DefaultGenerator(
-                system_message=TEXT2SQL_SYSTEM_PROMPT,
-                user_message=TEXT2SQL_USER_PROMPT,
-            )
+            task_generator = Text2SQLGenerater()
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=None,
@@ -128,27 +123,34 @@ class Text2SQLTask(AbsTask):
         dataset_name: str,
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
-        Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
+        Given the query and the retrieval results, generate downstream task results. Uses generator to generate a sql query.
         """
         if not self.current_dataset:
             self.current_dataset = dataset_name
-        return [
-            DownstreamGeneratedResultDataModel(
-                dataset_name=dataset_name,
-                query_id=query_id,
-                generated_results=self.task_generator.generate(
-                    table_str="\n".join(
-                        self._get_schema(id[0]) for id in result.retrieval_results
-                    ),
-                    query=query_str,
+
+        downstream_task_results = []
+        for query_id, query_str, result in zip(
+            query_batch[QUERY_ID_COL_NAME],
+            query_batch[QUERY_COL_NAME],
+            retrieval_results,
+        ):
+            generated_sql = self.task_generator.generate(
+                table_str="\n".join(
+                    self._get_schema(self.current_dataset, id[0])
+                    for id in result.retrieval_results
                 ),
+                query=query_str,
             )
-            for query_id, query_str, result in zip(
-                query_batch[QUERY_ID_COL_NAME],
-                query_batch[QUERY_COL_NAME],
-                retrieval_results,
+            downstream_task_results.append(
+                DownstreamGeneratedResultDataModel(
+                    dataset_name=dataset_name,
+                    query_id=query_id,
+                    generated_results="\t".join(
+                        [generated_sql["sql_query"], generated_sql["database_id"]]
+                    ),
+                )
             )
-        ]
+        return downstream_task_results
 
     def _update_downstream_task_metrics(
         self,
@@ -157,15 +159,10 @@ class Text2SQLTask(AbsTask):
     ) -> None:
         """
         Update metric tracked for fact verification's performance calculation.
-        Specifically, update the `self.pred_answers` and `self.ref_answers` lists
+        Specifically, update the `self.pred_sql` and `self.ref_sql` lists
         based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
-        self.pred_answers.extend(
-            [
-                downstream_answer.generated_results
-                for downstream_answer in downstream_results
-            ]
-        )
+
         for downstream_answer in downstream_results:
             split_list = downstream_answer.generated_results.split("\t", 1)
             if len(split_list) < 2:

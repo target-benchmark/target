@@ -117,7 +117,7 @@ def run_sqls_parallel(
     gt_sqls: List[Tuple[str, str]],
     db_root_path: str,
     num_cpus=1,
-    iterate_num=100,
+    iterate_num=10,
     meta_time_out=30.0,
     include_ves: bool = False,
 ) -> List[Dict[str, Union[int, float]]]:

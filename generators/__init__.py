@@ -1,2 +1,3 @@
 from generators.AbsGenerator import AbsGenerator
 from generators.DefaultGenerator import DefaultGenerator
+from generators.Text2SQLGenerator import Text2SQLGenerater

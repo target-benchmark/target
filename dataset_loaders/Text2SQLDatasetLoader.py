@@ -186,4 +186,4 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
-        return list(self.corpus[0].keys)
+        return list(self.corpus.keys())

@@ -1,10 +1,41 @@
+from typing import Dict
 import unittest
 from dataset_loaders import Text2SQLDatasetLoader
 from dataset_loaders.AbsDatasetLoader import QueryType
 from dataset_loaders.TargetDatasetConfig import DEFAULT_SPIDER_TEST_DATASET_CONFIG
+from datasets import Dataset
 
 
 class T2SDataloadersTest(unittest.TestCase):
+    def test_default_spider(self):
+        spider_loader = Text2SQLDatasetLoader(
+            **DEFAULT_SPIDER_TEST_DATASET_CONFIG.model_dump()
+        )
+        self.assertEqual(spider_loader.query_type, QueryType.TEXT_2_SQL)
+        self.assertEqual(spider_loader.dataset_name, "spider")
+
+        spider_loader.load()
+        corpus = spider_loader.get_corpus()
+        corpus_headers = spider_loader.get_corpus_header()
+        queries = spider_loader.get_queries()
+        queries_headers = spider_loader.get_queries_header()
+        self.assertIsInstance(corpus, Dict)
+        self.assertSetEqual(
+            set(corpus_headers), set(["table", "table_id", "database_id", "context"])
+        )
+        self.assertIsInstance(corpus["context"][0], Dict)
+        self.assertIn("foreign_keys", corpus["context"][0])
+        self.assertIn("primary_key", corpus["context"][0])
+        print(len(corpus["context"]))
+
+        self.assertIsInstance(queries, Dataset)
+        self.assertSetEqual(
+            set(queries_headers),
+            set(
+                ["query", "answer", "table_id", "database_id", "query_id", "difficulty"]
+            ),
+        )
+
     def test_text2sql(self):
         spider_loader = Text2SQLDatasetLoader(
             **DEFAULT_SPIDER_TEST_DATASET_CONFIG.model_dump()

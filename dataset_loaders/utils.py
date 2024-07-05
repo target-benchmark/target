@@ -152,6 +152,8 @@ def convert_nested_list_to(
 
 
 def markdown_table_with_headers(nested_array: List[List]):
+    if not nested_array:
+        return nested_array
     # the first row of the array is the header
     headers = nested_array[0]
     # The rest of the array are the data rows
