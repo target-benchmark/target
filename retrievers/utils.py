@@ -47,7 +47,7 @@ def json_table_str(table_array: List[List]):
     return json.dumps(table_dict)
 
 
-def markdown_table_with_headers(nested_array: List[List]):
+def markdown_table_with_headers(nested_array: List[List]) -> str:
     if not nested_array:
         return nested_array
     # the first row of the array is the header

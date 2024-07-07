@@ -151,26 +151,6 @@ def convert_nested_list_to(
         return array_of_arrays_to_df(nested_list)
 
 
-def markdown_table_with_headers(nested_array: List[List]):
-    if not nested_array:
-        return nested_array
-    # the first row of the array is the header
-    headers = nested_array[0]
-    # The rest of the array are the data rows
-    data_rows = nested_array[1:]
-
-    # Start building the Markdown table
-    markdown = "| " + " | ".join(str(header) for header in headers) + " |\n"
-
-    # Add separator
-    markdown += "| " + " | ".join(["---"] * len(headers)) + " |\n"
-
-    # Add data rows
-    for row in data_rows:
-        markdown += "| " + " | ".join(str(item) for item in row) + " |\n"
-    return markdown
-
-
 def get_dummy_table_of_format(
     expected_format: Literal[
         "array", "nested array", "pandas", "dataframe"
