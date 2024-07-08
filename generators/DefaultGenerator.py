@@ -1,7 +1,7 @@
 from generators.AbsGenerator import AbsGenerator
 from generators.GeneratorPrompts import (
-    DEFAULT_SYSTEM_MESSAGE,
-    QA_USER_MESSAGE,
+    DEFAULT_SYSTEM_PROMPT,
+    QA_USER_PROMPT,
 )
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -15,8 +15,8 @@ import os
 class DefaultGenerator(AbsGenerator):
     def __init__(
         self,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
-        user_message: str = QA_USER_MESSAGE,
+        system_message: str = DEFAULT_SYSTEM_PROMPT,
+        user_message: str = QA_USER_PROMPT,
     ):
         super().__init__()
         self.language_model = ChatOpenAI(

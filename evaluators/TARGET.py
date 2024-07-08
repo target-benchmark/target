@@ -1,9 +1,10 @@
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders import HFDatasetLoader
+from dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
 )
 from dataset_loaders.utils import get_dummy_table_of_format
 from evaluators.utils import find_tasks
@@ -22,7 +23,7 @@ from retrievers import (
     AbsStandardEmbeddingRetriever,
 )
 from tasks.AbsTask import AbsTask
-from tasks import TableRetrievalTask
+from tasks import TableRetrievalTask, Text2SQLTask
 from tasks.TasksDataModels import TaskResultsDataModel
 
 import os
@@ -182,7 +183,11 @@ class TARGET:
                 # if the dataset with the same name and the same split already exists, no need to do anything
                 continue
             config.split = split
-            if isinstance(config, HFDatasetConfigDataModel):
+            if isinstance(Text2SQLDatasetConfigDataModel):
+                eval_dataloaders[dataset_name] = Text2SQLDatasetLoader(
+                    **config.model_dump()
+                )
+            elif isinstance(config, HFDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = HFDatasetLoader(**config.model_dump())
             elif isinstance(config, GenericDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = GenericDatasetConfigDataModel(
@@ -366,6 +371,12 @@ class TARGET:
             dataloaders_for_task = self.load_datasets_for_task(
                 dataset_names=dataset_names
             )
+            if isinstance(task, Text2SQLTask):
+                for name, loader in dataloaders_for_task.items():
+                    assert isinstance(
+                        loader, Text2SQLDatasetLoader
+                    ), f"data loader for dataset {name} is not a text 2 sql dataset."
+                task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name in dataset_names:

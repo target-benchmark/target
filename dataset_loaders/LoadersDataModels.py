@@ -52,3 +52,7 @@ class HFDatasetConfigDataModel(DatasetConfigDataModel):
     hf_queries_dataset_path: str = Field(
         description="A huggingface dataset path to the query dataset. It will look something like target-benchmark/fetaqa-queries (namespace/queries-dataset-name)"
     )
+
+
+class Text2SQLDatasetConfigDataModel(HFDatasetConfigDataModel):
+    query_type: str = "Text to SQL"

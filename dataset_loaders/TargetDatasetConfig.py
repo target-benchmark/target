@@ -27,14 +27,11 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_queries_dataset_path="target-benchmark/infiagentda-queries",
 )
 
-DEFAULT_SPIDER_DATASET_CONFIG = HFDatasetConfigDataModel(
+DEFAULT_SPIDER_TEST_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="spider",
-    hf_corpus_dataset_path="target-benchmark/spider-corpus",
-    hf_queries_dataset_path="target-benchmark/spider-queries",
+    hf_corpus_dataset_path="target-benchmark/spider-corpus-test",
+    hf_queries_dataset_path="target-benchmark/spider-queries-test",
     query_type="Text to SQL",
-    aux={
-        "spider_zip_gdrive_url": "https://drive.google.com/uc?id=1iRDVHLr4mX2wQKSgA9J8Pire73Jahh0m"
-    },
 )
 
 # TESTING ONLY

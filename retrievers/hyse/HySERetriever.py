@@ -20,7 +20,6 @@ file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")
 
 
-
 class ResponseFormat(BaseModel):
     schemas: List[List[List[Union[str, int, float, bool]]]]
 
@@ -56,7 +55,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[Tuple[int, str]]:
+    ) -> List[Tuple]:
         """
         Directly retrieves the predicted relevant tables for the query.
 
@@ -122,7 +121,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         return retrieved_full_ids
 
-
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -143,7 +141,11 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         embedded_corpus = {}
         for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+            for db_id, table_id, table in zip(
+                corpus_dict[DATABASE_ID_COL_NAME],
+                corpus_dict[TABLE_ID_COL_NAME],
+                corpus_dict[TABLE_COL_NAME],
+            ):
                 tup_id = (db_id, table_id)
                 table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
                 embedded_corpus[tup_id] = self.embed_query(table_str=table_str, id=tup_id)

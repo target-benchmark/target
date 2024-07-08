@@ -19,6 +19,8 @@ QUERY_COL_NAME: str = "query"
 QUERY_ID_COL_NAME: str = "query_id"
 ANSWER_COL_NAME: str = "answer"
 
+# Some custom columns
+DIFFICULTY_COL_NAME: str = "difficulty"
 
 """
 Default names used when inserting into a vector db

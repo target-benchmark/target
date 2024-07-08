@@ -81,7 +81,6 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         )
         return response.data[0].embedding
 
-
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -100,7 +99,11 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         embedded_corpus = {}
         for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+            for db_id, table_id, table in zip(
+                corpus_dict[DATABASE_ID_COL_NAME],
+                corpus_dict[TABLE_ID_COL_NAME],
+                corpus_dict[TABLE_COL_NAME],
+            ):
                 tup_id = (db_id, table_id)
                 table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
                 embedded_corpus[tup_id] = self.embed_query(table_str)
@@ -117,5 +120,3 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "wb"
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
-
-    

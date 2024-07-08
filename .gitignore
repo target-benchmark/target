@@ -169,3 +169,6 @@ title_sectitle_schema/
 target_run_log_*
 
 logs/
+
+# text 2 sql datasets
+.text_2_sql_datasets/

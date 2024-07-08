@@ -14,7 +14,6 @@ from tasks.QuestionAnsweringTask import QuestionAnsweringTask
 
 class RetrieverEval:
 
-
     def __init__(
         self,
         retriever_name: str,

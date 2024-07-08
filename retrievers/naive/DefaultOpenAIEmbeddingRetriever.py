@@ -1,7 +1,7 @@
 from retrievers import AbsStandardEmbeddingRetriever
 from typing import Dict, List
 from langchain_openai import OpenAIEmbeddings
-from dataset_loaders.utils import markdown_table_with_headers
+from retrievers.utils import markdown_table_with_headers
 
 
 class OpenAIEmbedder(AbsStandardEmbeddingRetriever):
