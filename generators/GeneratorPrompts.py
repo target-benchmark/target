@@ -4,11 +4,25 @@ DEFAULT_SYSTEM_MESSAGE = "You are a helpful AI assistant."
 
 ## FOR QUESTION ANSWERING TASK ##
 QA_SYSTEM_MESSAGE = "You are a data analyst who reads tables to answer questions."
-QA_USER_MESSAGE = "Please use the following table(s) to answer the query. Tables: {table_str}\nQuery: {query_str}"
+QA_USER_MESSAGE = """
+Use the provided table(s) to answer the question. Yield a concise answer to the question.
+If the tables cannot be used to answer the question, say that not enough information is provided.\n
+
+Tables: {table_str} \n
+
+Question: {query_str}
+"""
 
 ## FOR FACT VERIFICATION TASK ##
-FACT_VER_SYSTEM_MESSAGE = "Given the following evidence which may take the form of sentences or a data table, determine whether the evidence supports or refutes the following statement, or does not contain enough information. Assign the statement one of three labels: True, False, Not Enough Information. Do not include anything else in your answer."
-FACT_VER_USER_MESSAGE = "Please use the following table(s) to assign the statement the correct label. Tables: {table_str}\Statement: {query_str}"
+FACT_VER_SYSTEM_MESSAGE = """You are an expert in evaluating statements on factuality given the provided tables"""
+FACT_VER_USER_MESSAGE = """Given the following evidence which may take the form of sentences or a data table,
+determine whether the evidence supports or refutes the following statement, or does not contain enough information.
+Assign the statement one of three labels: True, False, Not Enough Information. Do not include anything else in your answer.\n
+
+Tables: {table_str}\n
+
+Statement: {query_str}
+"""
 
 ## FOR TEXT TO SQL TASK ##
 TEXT2SQL_SYSTEM_PROMPT = "You are an expert and very smart data analyst."
