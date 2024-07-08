@@ -1,14 +1,17 @@
 from enum import Enum
 
+
 class QueryType(Enum):
     TEXT_2_SQL = "Text to SQL"
     FACT_VERIFICATION = "Fact Verification"
     TABLE_QA = "Table Question Answering"
     OTHER = "Other"
 
+
 class PersistenceDataFormat(Enum):
     JSON = "json"
     CSV = "csv"
+
 
 class InMemoryDataFormat(Enum):
     ARRAY = "array"

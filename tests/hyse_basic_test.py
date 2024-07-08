@@ -10,8 +10,9 @@ from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from tasks import TableRetrievalTask
 import os
 
+
 class TestHyseBasics(unittest.TestCase):
-    def setUp(self):        
+    def setUp(self):
         self.fetaqa_dummy_config = {
             "dataset_name": "fetaqa",
             "hf_corpus_dataset_path": "jixy2012/mock-hf-corpus-dataset",
@@ -28,6 +29,5 @@ class TestHyseBasics(unittest.TestCase):
         print(res)
 
 
-
 if __name__ == "__main__":
-    unittest.main()        
+    unittest.main()

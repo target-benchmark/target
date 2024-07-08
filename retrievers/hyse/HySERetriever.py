@@ -20,7 +20,6 @@ file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")
 
 
-
 class ResponseFormat(BaseModel):
     headers: List[List[str]]
 
@@ -49,7 +48,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[Tuple[int, str]]:
+    ) -> List[Tuple]:
         """
         Directly retrieves the predicted relevant tables for the query.
 
@@ -103,7 +102,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         return retrieved_full_ids
 
-
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -114,12 +112,18 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")):
+        if os.path.exists(
+            os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")
+        ):
             return
 
         embedded_corpus = {}
         for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+            for db_id, table_id, table in zip(
+                corpus_dict[DATABASE_ID_COL_NAME],
+                corpus_dict[TABLE_ID_COL_NAME],
+                corpus_dict[TABLE_COL_NAME],
+            ):
                 tup_id = (db_id, table_id)
                 embedded_corpus[tup_id] = self.embed_query(table=table, id=tup_id)
 
@@ -136,7 +140,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
 
-
     def embed_query(self, table: List[List], id: Tuple[int, str] = None) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
         try:
@@ -151,7 +154,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         except Exception as e:
             print("error on: ", id, e)
             return []
-
 
     def generate_hypothetical_schemas(self, query: str, s: int) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
@@ -177,7 +179,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
                         Return a nested list of size {s} in which each list contains table attributes (strings),
                         without any surrounding numbers or text.
-                    """
+                    """,
                 },
             ],
             response_model=response_model,

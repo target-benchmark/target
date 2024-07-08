@@ -4,7 +4,6 @@ from dataset_loaders.LoadersDataModels import (
     HFDatasetConfigDataModel,
     GenericDatasetConfigDataModel,
 )
-from dataset_loaders.utils import markdown_table_with_headers
 
 from dictionary_keys import *
 
@@ -20,6 +19,7 @@ from retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from retrievers.utils import markdown_table_with_headers
 
 
 from tasks.TasksDataModels import (
