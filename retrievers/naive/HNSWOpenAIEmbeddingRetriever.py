@@ -21,7 +21,7 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         self,
         out_dir: str = default_out_dir,
         embedding_model_id: str = "text-embedding-3-small",
-        expected_corpus_format: str = "nested array"
+        expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format=expected_corpus_format)
 
@@ -35,7 +35,6 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             os.makedirs(self.out_dir, exist_ok=True)
 
         self.embedding_model_id = embedding_model_id
-
 
     def retrieve(
         self,
@@ -61,7 +60,7 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         # Query dataset
         retrieved_ids, distances = corpus_index.knn_query(
             np.array(query_embedding),
-            k=top_k, #top_k/s for testing
+            k=top_k,  # top_k/s for testing
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each query
@@ -77,7 +76,6 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         )
         return response.data[0].embedding
 
-
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -88,12 +86,18 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")):
+        if os.path.exists(
+            os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")
+        ):
             return
 
         embedded_corpus = {}
         for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(corpus_dict[DATABASE_ID_COL_NAME], corpus_dict[TABLE_ID_COL_NAME], corpus_dict[TABLE_COL_NAME]):
+            for db_id, table_id, table in zip(
+                corpus_dict[DATABASE_ID_COL_NAME],
+                corpus_dict[TABLE_ID_COL_NAME],
+                corpus_dict[TABLE_COL_NAME],
+            ):
                 tup_id = (db_id, table_id)
                 table_str = utils.json_table_str(table)
                 embedded_corpus[tup_id] = self.embed_query(table_str)
@@ -110,5 +114,3 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "wb"
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
-
-    

@@ -5,9 +5,7 @@ import numpy as np
 from typing import List, Tuple
 
 
-def construct_embedding_index(
-    table_embeddings: List[List]
-):
+def construct_embedding_index(table_embeddings: List[List]):
 
     # Constructing index
     corpus_index = hnswlib.Index(
@@ -42,7 +40,7 @@ def json_table_str(table_array: List[List]):
         # Builds dict with header as keys and row as values
         # {col1: value1, col2: value2}
         table_dict[i] = dict(zip(headers, row))
-    
+
     # return string representation of json table
     return json.dumps(table_dict)
 

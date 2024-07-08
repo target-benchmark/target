@@ -55,9 +55,6 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         assert (
             dataset_name == "spider" or dataset_name == "bird"
         ), f"we don't allow customized text2sql datasets yet. try spider or bird instead"
-        assert (
-            split == "test"
-        ), f"currently only the test split is supported for text2sql"
 
         super().__init__(
             dataset_name=dataset_name,

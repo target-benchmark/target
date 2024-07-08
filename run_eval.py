@@ -14,7 +14,6 @@ from tasks.QuestionAnsweringTask import QuestionAnsweringTask
 
 class RetrieverEval:
 
-
     def __init__(
         self,
         retriever_name: str,
@@ -35,7 +34,6 @@ class RetrieverEval:
 
         self.target = TARGET(["Table Question Answering Task"])
 
-
     def run_eval(self):
         """Runs evaluation and writes results (retrieval, downsream task, total eval time) to a json file."""
         self.target.logger.info(f"starting {self.retriever_name}")
@@ -50,7 +48,11 @@ class RetrieverEval:
                 res_dict["eval_time"] = eval_time
 
                 with open(
-                    os.path.join(self.out_dir, f"eval_{self.retriever_name}_{task_name}_{dataset_name}.json"), "w"
+                    os.path.join(
+                        self.out_dir,
+                        f"eval_{self.retriever_name}_{task_name}_{dataset_name}.json",
+                    ),
+                    "w",
                 ) as f:
                     json.dump(res_dict, f)
 
@@ -64,7 +66,7 @@ if __name__ == "__main__":
         )
     )
     RetrieverEval(retriever_name="HySE", retriever=hyse_retriever).run_eval()
-    
+
     naive_openai_retriever = OpenAIEmbeddingRetriever(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/openai"

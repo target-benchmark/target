@@ -1,5 +1,4 @@
 from dataset_loaders import Text2SQLDatasetLoader
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
@@ -25,7 +24,7 @@ from tasks.TasksDataModels import (
 from tasks.utils import evaluate_sql_execution
 from pathlib import Path
 import sqlite3
-from typing import List, Dict, Literal, Union
+from typing import List, Dict, Union
 
 
 class Text2SQLTask(AbsTask):
@@ -93,8 +92,8 @@ class Text2SQLTask(AbsTask):
             TabFact
             TODO: more to come
         """
-        return {  # TODO: FIX with actual text2sql dataset configs
-            DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
+        return {  # TODO: add more text2sql dataset configs
+            DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
         }
 
     def _get_schema(self, dataset_name: str, database_id: str):
@@ -145,11 +144,13 @@ class Text2SQLTask(AbsTask):
                 DownstreamGeneratedResultDataModel(
                     dataset_name=dataset_name,
                     query_id=query_id,
-                    generated_results="\t".join(
-                        [generated_sql["sql_query"], generated_sql["database_id"]]
+                    generated_results=(
+                        generated_sql["sql_query"],
+                        generated_sql["database_id"],
                     ),
-                )
+                ),
             )
+
         return downstream_task_results
 
     def _update_downstream_task_metrics(
@@ -164,16 +165,14 @@ class Text2SQLTask(AbsTask):
         """
 
         for downstream_answer in downstream_results:
-            split_list = downstream_answer.generated_results.split("\t", 1)
-            if len(split_list) < 2:
-                raise ValueError(
-                    f"could not parse the sql and the corresponding database. given result: {downstream_answer.generated_results}"
-                )
-            self.pred_sql.append((split_list[0], split_list[1]))
+            self.pred_sql.append(downstream_answer.generated_results)
         self.ref_sql.extend(
             list(zip(query_batch[ANSWER_COL_NAME], query_batch[DATABASE_ID_COL_NAME]))
         )
-        self.difficulties.extend(query_batch[DIFFICULTY_COL_NAME])
+        if DIFFICULTY_COL_NAME in query_batch:
+            self.difficulties.extend(query_batch[DIFFICULTY_COL_NAME])
+        else:
+            self.difficulties.extend(["Default"] * len(downstream_results))
 
     def _calculate_downstream_task_performance(
         self, **kwargs
