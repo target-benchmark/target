@@ -6,24 +6,33 @@
 # LICENSE file in the root directory of this source tree.
 """Interactive mode for the tfidf DrQA retriever module."""
 import ast
+import json
+import os
+
+from dotenv import load_dotenv
+from typing import Dict, Iterable, List
 
 from .drqa import retriever
 from .utils import convert_table_representation, TFIDFBuilder
 from ..AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
-import json
-import os
-from typing import Dict, Iterable, List
 
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):
     def __init__(
         self,
+        encoding: str = "tfidf",
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
-        self.rankers: Dict[str, retriever.TfidfDocRanker] = {}
+
+        load_dotenv()
+
+        self.rankers: Dict[str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]] = {}
         file_dir = os.path.dirname(os.path.realpath(__file__))
         self.out_dir = os.path.join(file_dir, "title_sectitle_schema/")
+        self.encoding = encoding
+
+        assert encoding in ["tfidf", "bm25"], "encoding unknown, should be tfidf or bm25"
 
     def retrieve(
         self,
@@ -53,6 +62,8 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         # Write the dictionary to a file in JSON format
         with open(os.path.join(self.out_dir, file_name), "w") as f:
             json.dump(converted_corpus, f)
+        
+        # TODO: make configurable tfidf versus bm25
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
-        self.rankers[dataset_name] = retriever.get_class("tfidf")(tfidf_path=out_path)
+        self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
