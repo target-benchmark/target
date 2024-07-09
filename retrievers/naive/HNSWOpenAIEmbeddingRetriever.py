@@ -15,13 +15,14 @@ file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "openai")
 
 
-class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
+class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
         out_dir: str = default_out_dir,
         embedding_model_id: str = "text-embedding-3-small",
         expected_corpus_format: str = "nested array",
+        num_rows: int = 0,
     ):
         super().__init__(expected_corpus_format=expected_corpus_format)
 
@@ -36,6 +37,9 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         self.embedding_model_id = embedding_model_id
 
+        self.num_rows = num_rows
+
+
     def retrieve(
         self,
         query: str,
@@ -43,24 +47,25 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ):
+
+        # TODO: add split to file!
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl"), "rb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "rb"
         ) as f:
             corpus_index = pickle.load(f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "rb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "rb"
         ) as f:
             # stored separately as hnsw only takes int indices
             db_table_ids = pickle.load(f)
 
         query_embedding = self.embed_query(query)
 
-        # s = 2
         # Query dataset
         retrieved_ids, distances = corpus_index.knn_query(
             np.array(query_embedding),
-            k=top_k,  # top_k/s for testing
+            k=top_k,
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each query
@@ -68,8 +73,8 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         return retrieved_full_ids
 
-    def embed_query(self, query: str):
 
+    def embed_query(self, query: str):
         response = self.client.embeddings.create(
             model=self.embedding_model_id,
             input=query,
@@ -86,9 +91,10 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        if os.path.exists(
-            os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl")
-        ):
+
+        self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
+
+        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
             return
 
         embedded_corpus = {}
@@ -99,18 +105,18 @@ class OpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 corpus_dict[TABLE_COL_NAME],
             ):
                 tup_id = (db_id, table_id)
-                table_str = utils.json_table_str(table)
+                table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
         corpus_index = utils.construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{dataset_name}.pkl"), "wb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "wb"
         ) as f:
             pickle.dump(corpus_index, f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{dataset_name}.pkl"), "wb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "wb"
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)

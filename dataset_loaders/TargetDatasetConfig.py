@@ -8,21 +8,21 @@ DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
 )
 
 DEFAULT_TABFACT_DATASET_CONFIG = HFDatasetConfigDataModel(
-    dataset_name="tab-fact",
+    dataset_name="tabfact",
     hf_corpus_dataset_path="target-benchmark/tabfact-corpus",
     hf_queries_dataset_path="target-benchmark/tabfact-queries",
     query_type="Fact Verification",
 )
 
-DEFAULT_WIKITQ_DATASET_CONFIG = HFDatasetConfigDataModel(
-    dataset_name="wikitq",
-    hf_corpus_dataset_path="target-benchmark/wikitq-corpus",
-    hf_queries_dataset_path="target-benchmark/wikitq-queries",
+DEFAULT_OTTQA_DATASET_CONFIG = HFDatasetConfigDataModel(
+    dataset_name="ottqa",
+    hf_corpus_dataset_path="target-benchmark/ottqa-corpus",
+    hf_queries_dataset_path="target-benchmark/ottqa-queries",
     query_type="Table Question Answering",
 )
 
 DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
-    dataset_name="infiagent-da",
+    dataset_name="infiagentda",
     hf_corpus_dataset_path="target-benchmark/infiagentda-corpus",
     hf_queries_dataset_path="target-benchmark/infiagentda-queries",
 )
