@@ -30,11 +30,16 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         load_dotenv()
 
         self.out_dir = out_dir
-        self.rankers: Dict[str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]] = {}
+        self.rankers: Dict[
+            str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]
+        ] = {}
         self.withtitle = withtitle
         self.encoding = encoding
 
-        assert encoding in ["tfidf", "bm25"], "encoding unknown, should be tfidf or bm25"
+        assert encoding in [
+            "tfidf",
+            "bm25",
+        ], "encoding unknown, should be tfidf or bm25"
 
     def retrieve(
         self,

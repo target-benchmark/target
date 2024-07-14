@@ -43,7 +43,6 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         self.num_rows = num_rows
 
-
     def retrieve(
         self,
         query: str,
@@ -54,12 +53,14 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         # TODO: add split to file!
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "rb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
+            "rb",
         ) as f:
             corpus_index = pickle.load(f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "rb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
+            "rb",
         ) as f:
             # stored separately as hnsw only takes int indices
             db_table_ids = pickle.load(f)
@@ -76,7 +77,6 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         retrieved_full_ids = [db_table_ids[id] for id in retrieved_ids[0]]
 
         return retrieved_full_ids
-
 
     def embed_query(self, query: str):
         response = self.client.embeddings.create(
@@ -98,7 +98,9 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
+        if os.path.exists(
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")
+        ):
             return
 
         embedded_corpus = {}
@@ -116,11 +118,13 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         # Store table embedding index and table ids in distinct files
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(corpus_index, f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)

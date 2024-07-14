@@ -39,7 +39,9 @@ class AbsTask(ABC):
     def __init__(
         self,
         task_name: str = None,
-        datasets_config: Dict[str, Dict[str, str]] = None,
+        datasets_config: Dict[
+            str, Union[Dict[str, str], DatasetConfigDataModel]
+        ] = None,  # TODO: allow dataset config inputs
         overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         **kwargs,
@@ -49,7 +51,7 @@ class AbsTask(ABC):
         Parameters:
             task_name (str): name of the task. should be an unique identifier.
 
-            datasets_config (Dict[str, Dict[str, str]], optional): if the user wants to add any custom datasets to the task, they can do so by passing in a dictionary to specify the dataset configuration. for the outer dictionary, the key is the name of the dataset, and the value is another dictionary. for the inner dictionary, either paths to hf corpus & queries datasets or a local path to a generic dataset should be included.
+            datasets_config (Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], optional): if the user wants to add any custom datasets to the task, they can do so by passing in a dictionary to specify the dataset configuration. for the outer dictionary, the key is the name of the dataset, and the value is another dictionary. for the inner dictionary, either paths to hf corpus & queries datasets or a local path to a generic dataset should be included.
             example for a huggingface dataset:
                 {
                     'hf_corpus_path': 'target-benchmark/fetaqa-corpus',
@@ -119,18 +121,33 @@ class AbsTask(ABC):
             self._get_default_dataset_config()
         )
         if datasets_config is not None:
+            if overwrite_default_datasets:
+                constructed_config = {}
             for key, value in datasets_config.items():
-                assert (
-                    HF_DATASET_CONFIG_CORPUS_FIELD in value
-                    and HF_DATASET_CONFIG_QUERIES_FIELD in value
-                ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value})"
-                if key not in constructed_config or overwrite_default_datasets:
+                if isinstance(value, Dict):
+                    assert (
+                        HF_DATASET_CONFIG_CORPUS_FIELD in value
+                        and HF_DATASET_CONFIG_QUERIES_FIELD in value
+                    ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
+                    assert (
+                        key not in constructed_config
+                    ), f"duplicate dataset name {key}!"
                     if key not in value:
                         value[DATASET_NAME] = key
                     if HF_DATASET_CONFIG_CORPUS_FIELD in value:
                         constructed_config[key] = HFDatasetConfigDataModel(**value)
                     else:
                         constructed_config[key] = GenericDatasetConfigDataModel(**value)
+                elif isinstance(value, DatasetConfigDataModel):
+                    assert (
+                        key not in constructed_config
+                    ), f"duplicate dataset name {key}!"
+                    constructed_config[key] = value
+                else:
+                    wrong_type = type(value)
+                    raise ValueError(
+                        f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
+                    )
 
         return constructed_config
 

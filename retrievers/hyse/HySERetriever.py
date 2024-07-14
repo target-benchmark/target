@@ -215,7 +215,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             print("error on: ", id, e)
             return []
 
-
     def generate_hypothetical_schemas(self, query: str) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
 
@@ -234,7 +233,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 },
                 {
                     "role": "user",
-                    "content": self.get_hyse_prompt(query=query, with_rows=self.num_rows > 0)
+                    "content": self.get_hyse_prompt(
+                        query=query, with_rows=self.num_rows > 0
+                    ),
                 },
             ],
             response_model=response_model,
@@ -311,7 +312,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 For example, for 2 tables with 1 row to answer queries about the business performance of an energy company, you could generate:
                 [[['Quarter', 'Total Revenue (USD)', 'Net Profit (USD)', 'EBITDA (USD)', 'Total Energy Sold (MWh)', 'Customer Growth Rate (%)'], ['Q1 2024', '300M', '45M', '80M', '2.5M', 3]],
                 [['Quarter', 'Product', 'Sales Volume', 'Revenue', 'Market Share'],['Q1', 2024, 'Electricity', 1200000, 150000000, 25]]]
-            """
+            """,
         }
 
         return hyse_prompts[with_rows]
