@@ -1,5 +1,6 @@
 datasets==2.19.0
 evaluate==0.4.2
+func-timeout==4.3.5
 hnswlib==0.8.0
 git+https://github.com/google-research/bleurt.git
 langchain==0.1.16

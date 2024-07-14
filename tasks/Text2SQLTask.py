@@ -40,10 +40,8 @@ class Text2SQLTask(AbsTask):
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
-        assert (
-            datasets_config == None
-        ), "currently text2sql task doesn't accept custom dataset config. update coming soon..."
-        if task_generator == None:
+
+        if task_generator is None:
             task_generator = Text2SQLGenerater()
         super().__init__(
             task_name=self.get_default_task_name(),
@@ -85,7 +83,8 @@ class Text2SQLTask(AbsTask):
             name: loader.path_to_database_dir for name, loader in dataloaders.items()
         }
 
-    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
+    @classmethod
+    def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for fact verification.
         Includes the following datasets:

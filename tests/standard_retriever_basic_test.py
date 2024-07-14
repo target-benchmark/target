@@ -90,7 +90,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         trt = TableRetrievalTask({"fetaqa": fetaqa_dummy_config}, True)
-        targ = TARGET(downstream_task_objects=trt)
+        targ = TARGET(downstream_task=trt)
         results = targ.run(self.retriever, split="train")
 
 
