@@ -19,7 +19,7 @@ from retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from retrievers.utils import markdown_table_with_headers
+from retrievers.utils import markdown_table_str
 
 
 from tasks.TasksDataModels import (
@@ -160,8 +160,9 @@ class AbsTask(ABC):
         """
         return self.dataset_config
 
+    @classmethod
     @abstractmethod
-    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
+    def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for the task. MUST be implemented by any inherited task class. For example, text-2-sql task would probably have SPIDER and BIRD as default datasets, thus the configs for these datasets should be included in this function when implementing the text-2-sql task class.
         """
@@ -255,7 +256,7 @@ class AbsTask(ABC):
         """
         for result in retrieval_results:
             result.retrieved_tables = [
-                markdown_table_with_headers(table_id_to_tables[id])
+                markdown_table_str(table_id_to_tables[id])
                 for id in result.retrieval_results
             ]
 

@@ -58,7 +58,8 @@ class FactVerificationTask(AbsTask):
     def get_available_metrics(cls) -> str:
         return str(FactVerificationTask.AVAILABLE_METRICS)
 
-    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
+    @classmethod
+    def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for fact verification.
         Includes the following datasets:

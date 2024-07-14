@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
+from dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
 from evaluators.TARGET import TARGET
 from dataset_loaders.TargetDatasetConfig import DEFAULT_FETAQA_DATASET_CONFIG
 from retrievers.AbsCustomEmbeddingRetriever import (
@@ -18,7 +19,25 @@ class TestEvaluator(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_task_objects=self.trt)
+        self.evaluator = TARGET(downstream_tasks=self.trt)
+
+    def test_input_input_dataset_config(self):
+        target = TARGET(
+            downstream_tasks=[
+                ("Text to SQL Task", "spider-test"),
+                ("Table Question Answering Task", ["fetaqa", "ottqa"]),
+            ]
+        )
+        self.assertSetEqual(
+            set(target.get_loaded_tasks()),
+            set(["Table Question Answering Task", "Text to SQL Task"]),
+        )
+        dataset_info = target.dataset_info
+        self.assertSetEqual(
+            set(dataset_info.keys()), set(["spider-test", "fetaqa", "ottqa"])
+        )
+        self.assertEqual(dataset_info["spider-test"].split, "test")
+        self.assertIsInstance(dataset_info["ottqa"], HFDatasetConfigDataModel)
 
     def test_default_evaluator_creation(self):
         default_evaluator = TARGET()

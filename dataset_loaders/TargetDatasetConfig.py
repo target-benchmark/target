@@ -28,7 +28,7 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
 )
 
 DEFAULT_SPIDER_TEST_DATASET_CONFIG = HFDatasetConfigDataModel(
-    dataset_name="spider",
+    dataset_name="spider-test",
     hf_corpus_dataset_path="target-benchmark/spider-corpus-test",
     hf_queries_dataset_path="target-benchmark/spider-queries-test",
     query_type="Text to SQL",
