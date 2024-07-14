@@ -27,12 +27,17 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
 
         load_dotenv()
 
-        self.rankers: Dict[str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]] = {}
+        self.rankers: Dict[
+            str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]
+        ] = {}
         file_dir = os.path.dirname(os.path.realpath(__file__))
         self.out_dir = os.path.join(file_dir, "title_sectitle_schema/")
         self.encoding = encoding
 
-        assert encoding in ["tfidf", "bm25"], "encoding unknown, should be tfidf or bm25"
+        assert encoding in [
+            "tfidf",
+            "bm25",
+        ], "encoding unknown, should be tfidf or bm25"
 
     def retrieve(
         self,
@@ -62,8 +67,10 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         # Write the dictionary to a file in JSON format
         with open(os.path.join(self.out_dir, file_name), "w") as f:
             json.dump(converted_corpus, f)
-        
+
         # TODO: make configurable tfidf versus bm25
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus)
-        self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
+        self.rankers[dataset_name] = retriever.get_class(self.encoding)(
+            tfidf_path=out_path
+        )

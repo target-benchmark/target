@@ -32,7 +32,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         expected_corpus_format: str = "nested array",
         num_rows: int = 2,
         num_schemas: int = 2,
-        with_query: bool = True
+        with_query: bool = True,
     ):
         super().__init__(expected_corpus_format)
 
@@ -79,12 +79,14 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             List[str]: the list of table ids of the retrieved tables.
         """
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "rb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
+            "rb",
         ) as f:
             corpus_index = pickle.load(f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "rb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
+            "rb",
         ) as f:
             # stored separately as hnsw only takes int indices
             db_table_ids = pickle.load(f)
@@ -94,10 +96,10 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         hypothetical_schema_embeddings = []
         for hypothetical_schema in hypothetical_schemas_query:
-            table_str = utils.markdown_table_str(hypothetical_schema, num_rows=self.num_rows)
-            hypothetical_schema_embeddings += [
-                self.embed_query(table_str=table_str)
-            ]
+            table_str = utils.markdown_table_str(
+                hypothetical_schema, num_rows=self.num_rows
+            )
+            hypothetical_schema_embeddings += [self.embed_query(table_str=table_str)]
 
         if self.with_query:
             hypothetical_schema_embeddings += [self.embed_query(table_str=query)]
@@ -109,7 +111,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         retrieved_ids, distances = corpus_index.knn_query(
             query_vector,
             # retrieves num_schemas*10 tables, 10 tables per hypothetical schema
-            k=top_k, # int(top_k / self.num_schemas), #  if averaged, no need to distribute k over hypo-schemas
+            k=top_k,  # int(top_k / self.num_schemas), #  if averaged, no need to distribute k over hypo-schemas
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each in s hypothetical schemas
@@ -130,13 +132,15 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
             corpus (Iterable[Dict[str, List]]): an iterable of dicts, each being a batch of entries in the corpus dataset,
             containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
-        
+
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
         self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
+        if os.path.exists(
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")
+        ):
             return
 
         embedded_corpus = {}
@@ -148,23 +152,28 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             ):
                 tup_id = (db_id, table_id)
                 table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
-                embedded_corpus[tup_id] = self.embed_query(table_str=table_str, id=tup_id)
+                embedded_corpus[tup_id] = self.embed_query(
+                    table_str=table_str, id=tup_id
+                )
 
         corpus_index = utils.construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(corpus_index, f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
 
-
-    def embed_query(self, table_str: List[List], id: Tuple[int, str] = None) -> List[List]:
+    def embed_query(
+        self, table_str: List[List], id: Tuple[int, str] = None
+    ) -> List[List]:
         """Embed table using default openai embedding model, only using table header for now."""
         try:
             response = self.client.embeddings.create(
@@ -177,7 +186,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         except Exception as e:
             print("error on: ", id, e)
             return []
-
 
     def generate_hypothetical_schemas(self, query: str) -> List[List]:
         """Generate a hypothetical schema relevant to answer the query."""
@@ -197,7 +205,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 },
                 {
                     "role": "user",
-                    "content": self.get_hyse_prompt(query=query, with_rows=self.num_rows > 0)
+                    "content": self.get_hyse_prompt(
+                        query=query, with_rows=self.num_rows > 0
+                    ),
                 },
             ],
             response_model=response_model,
@@ -207,7 +217,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         hypothetical_schemas = response.schemas
 
         return hypothetical_schemas
-
 
     def get_hyse_prompt(self, query: str, with_rows: bool = False):
         # with rows or without
@@ -231,7 +240,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 For example, for 2 tables with 2 rows to answer queries about the business performance of an energy company, you generate:
                 [[['Quarter', 'Total Revenue (USD)', 'Net Profit (USD)', 'EBITDA (USD)', 'Total Energy Sold (MWh)', 'Customer Growth Rate (%)'], ['Q1 2024', '300M', '45M', '80M', '2.5M', 3]],
                 [['Quarter', 'Product', 'Sales Volume', 'Revenue', 'Market Share'],['Q1', 2024, 'Electricity', 1200000, 150000000, 25]]]
-            """
+            """,
         }
 
         return hyse_prompts[with_rows]
