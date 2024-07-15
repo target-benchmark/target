@@ -33,7 +33,7 @@ from datetime import datetime
 import logging
 import os
 
-from typing import Literal, Union, List, Dict
+from typing import Literal, Tuple, Union, List, Dict
 
 from qdrant_client import QdrantClient, models
 
@@ -41,8 +41,12 @@ from qdrant_client import QdrantClient, models
 class TARGET:
     def __init__(
         self,
-        downstream_task_names: Union[str, List[str]] = [],
-        downstream_task_objects: Union[AbsTask, List[AbsTask]] = [],
+        downstream_tasks: Union[
+            str,
+            Tuple[str, Union[str, List[str]]],
+            AbsTask,
+            List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]],
+        ] = None,
         persist_log: bool = True,
         log_file_path: str = None,
     ):
@@ -50,8 +54,13 @@ class TARGET:
         Pass in a list of task names for the evaluator to run. If no tasks are passed in, default table retrieval task will be created for running.
 
         Parameters:
-            downstream_task_names (Union[str, List[str]], optional): name of the tasks.
-            downstream_task_objects (Union[AbsTask, List[AbsTask]], optional): a list of custom tasks. for example, if a user wants to run some task with a custom dataset, they can first create the task object with the specified dataset configs, then simply pass the task object in here.
+            downstream_tasks (Union[str, Tuple[str, Union[str, List[str]]], AbsTask, List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]]], optional): tasks to perform. you can pass in either a single:
+                str: name of the single task to run.
+                Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name mapped to a dictionary containing the dataset name mapped to the split to run evaluation on. we only support one split for each dataset. example inputs:
+                ("Table Question Answering Task", ["fetaqa", "ottqa"])
+                ("Text to SQL Task", "spider)
+                AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
+            OR you can pass in a list of containing multiple of these items. Be sure that any dataset is only mentioned once in your input.
             persist_log (bool, optional): whether to persist the log to a file or not.
             log_file_path (string, optional): the path to persis the log to. if none is provided, default to target_run_log_<current time>.txt
         """
@@ -63,9 +72,7 @@ class TARGET:
         self.logger.info("Logger for TARGET is set up!")
 
         self.logger.info("Starting to load the specified tasks...")
-        self.tasks: Dict[str, AbsTask] = self.load_tasks(
-            downstream_task_names, downstream_task_objects
-        )
+        self.tasks: Dict[str, AbsTask] = self.load_tasks(downstream_tasks)
         self.logger.info(
             f"Finished loading tasks! Tasks loaded: {list(self.tasks.keys())}"
         )
@@ -81,52 +88,111 @@ class TARGET:
 
     def load_tasks(
         self,
-        downstream_task_names: Union[str, List[str]],
-        downstream_task_objects: Union[AbsTask, List[AbsTask]],
+        downstream_tasks: Union[
+            str,
+            Tuple[str, Union[str, List[str]]],
+            AbsTask,
+            List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]],
+        ] = None,
     ) -> Dict[str, AbsTask]:
         """
         Returns the task objects specified in the list of downstream tasks. If no tasks are specified, load the table retrieval task.
 
         Parameters:
-            downstream_task_names (Union[str, List[str]]): list of default tasks names for loading default tasks.
-            downstream_task_objects: list of created task objects.
+            downstream_tasks (Union[str, Tuple[str, Union[str, List[str]]], AbsTask, List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]]], optional): tasks to perform. can be either a single:
+                str: name of the single task to run.
+                Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name mapped to a dictionary containing the dataset name mapped to the split to run evaluation on. we only support one split for each dataset. example inputs:
+                ("Table Question Answering Task", ["fetaqa", "ottqa"])
+                ("Text to SQL Task", "spider-test")
+                AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
+            OR a list of containing multiple of these items. Be sure that any dataset is only mentioned once in your input.
 
         Returns:
             a dictionary mapping task names to task objects.
         """
-        if not isinstance(downstream_task_names, list):
-            downstream_task_names = [downstream_task_names]
-        if not isinstance(downstream_task_objects, list):
-            downstream_task_objects = [downstream_task_objects]
-        if len(downstream_task_names) + len(downstream_task_objects) == 0:
+        if not downstream_tasks:
             return {TableRetrievalTask.get_default_task_name(): TableRetrievalTask()}
+        if not isinstance(downstream_tasks, List):
+            downstream_tasks = [downstream_tasks]
         loaded_tasks = {}
         tasks_dict = find_tasks()
-        for task_name in downstream_task_names:
-            if task_name in tasks_dict:
-                task_class = tasks_dict[task_name]
-                task_default_name = task_class.get_default_task_name()
-                if task_default_name in loaded_tasks:
+        for task in downstream_tasks:  # iterate through each of the passed in tasks
+            if isinstance(task, str):  # if passed in task name
+                if (
+                    task in tasks_dict
+                ):  # check if task name exists in the available target tasks
+                    task_class = tasks_dict[task]
+                    task_default_name = task_class.get_default_task_name()
+                    if (
+                        task_default_name in loaded_tasks
+                    ):  # warning for overwriting due to duplicate task names
+                        self.logger.error(
+                            f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
+                        )
+                    loaded_tasks[task_default_name] = (
+                        task_class()
+                    )  # create a default instance of that task class
+                else:
                     self.logger.warning(
-                        f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
+                        f"task named {task} doesn't exist. please double check your input values. skipping this task..."
                     )
-                loaded_tasks[task_default_name] = task_class()
+            elif isinstance(
+                task, Tuple
+            ):  # otherwise if it's an instance of tuple, user specified task and datasets to run
+                task_name, task_dataset_names = task
+                # validating the dataset specified has the correct type
+                if not isinstance(task_dataset_names, (str, List)):
+                    wrong_type = type(task_dataset_names)
+                    error_msg = f"task dataset info passed in for task {task_name} is not a string or a list of strings, but instead {wrong_type}. Please double check inputs!"
+                    self.logger.error(error_msg)
+                    raise ValueError(error_msg)
+                if isinstance(task_dataset_names, str):
+                    task_dataset_names = [task_dataset_names]
+                # check that the task is one of the target default tasks
+                if task_name in tasks_dict:
+                    task_class = tasks_dict[task_name]
+                    default_datasets = task_class._get_default_dataset_config()
+                    needed_datasets = {}
+                    # validating dataset names provided are a part of the default datasets for that class
+                    for task_dataset_name in task_dataset_names:
+                        if task_dataset_name not in default_datasets:
+                            task_class_name = task_class.__name__
+                            error_msg = f"provided dataset {task_dataset_name} is not one of the datasets available for task {task_name}. pls use `{task_class_name}._get_default_dataset_config()` to check what default datasets are available"
+                            self.logger.error(error_msg)
+                            raise ValueError(error_msg)
+                        else:
+                            needed_datasets[task_dataset_name] = default_datasets[
+                                task_dataset_name
+                            ]
+
+                    task_default_name = task_class.get_default_task_name()
+                    if task_default_name in loaded_tasks:
+                        self.logger.error(
+                            f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
+                        )
+                    # create the task with the specified dataset configs
+                    loaded_tasks[task_default_name] = task_class(
+                        datasets_config=needed_datasets, overwrite_default_datasets=True
+                    )
+                else:
+                    self.logger.warning(
+                        f"task named {task_name} doesn't exist. please double check your input values. skipping this task..."
+                    )
+            elif isinstance(task, AbsTask):  # if it's an instance of the tasks classes
+                task_name = task.get_task_name()
+                if (
+                    task_name in loaded_tasks
+                ):  # warning for overwriting due to duplicate task names
+                    self.logger.warning(
+                        f"task by name {task_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
+                    )
+                # assign task to loaded tasks dictionary with the corresponding name
+                loaded_tasks[task_name] = task
             else:
-                self.logger.warning(
-                    f"task named {task_name} doesn't exist. please double check your input values. skipping this task..."
-                )
-        for task_obj in downstream_task_objects:
-            if not isinstance(task_obj, AbsTask):
-                self.logger.warning(
-                    f"task {task_obj} is not a valid task object. Skipping..."
-                )
-                continue
-            task_name = task_obj.get_task_name()
-            if task_name in loaded_tasks:
-                self.logger.warning(
-                    f"task by name {task_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
-                )
-            loaded_tasks[task_name] = task_obj
+                wrong_type = type(task)
+                error_msg = f"passed in an object {task} of type {wrong_type}. pls see documentation for the accepted types for the downstream tasks."
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
         return loaded_tasks
 
     def get_loaded_tasks(self) -> List[str]:
@@ -176,14 +242,14 @@ class TARGET:
         """
         eval_dataloaders = {}
         for dataset_name, config in dataset_config.items():
+            # if the dataset with the same name and the same split already exists, no need to do anything
             if (
                 dataset_name in self.dataloaders
                 and config.split == self.dataloaders[dataset_name].split
             ):
-                # if the dataset with the same name and the same split already exists, no need to do anything
                 continue
             config.split = split
-            if isinstance(Text2SQLDatasetConfigDataModel):
+            if isinstance(config, Text2SQLDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = Text2SQLDatasetLoader(
                     **config.model_dump()
                 )
@@ -300,7 +366,6 @@ class TARGET:
             retriever.get_expected_corpus_format()
         ):
             entry = {key: value[0] for key, value in entry.items()}
-            print(f"this is the dataset entry: {entry}")
             table_embedding = retriever.embed_corpus(dataset_name, entry)
             vectors.append(list(table_embedding))
             metadata.append(
@@ -375,7 +440,7 @@ class TARGET:
                 for name, loader in dataloaders_for_task.items():
                     assert isinstance(
                         loader, Text2SQLDatasetLoader
-                    ), f"data loader for dataset {name} is not a text 2 sql dataset."
+                    ), f"data loader for dataset {name} is not a text to sql dataset."
                 task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables

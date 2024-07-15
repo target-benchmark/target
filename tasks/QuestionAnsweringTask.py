@@ -68,7 +68,8 @@ class QuestionAnsweringTask(AbsTask):
     def get_available_metrics(cls) -> str:
         return str(cls.AVAILABLE_METRICS)
 
-    def _get_default_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
+    @classmethod
+    def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
         Returns the default dataset config for the class. MUST be implemented by any inherited task class.
         """
@@ -76,6 +77,7 @@ class QuestionAnsweringTask(AbsTask):
         return {
             # this is for testing!!
             DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+            DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(

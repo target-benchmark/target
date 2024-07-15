@@ -20,7 +20,7 @@ class TestHyseBasics(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_task_objects=self.trt)
+        self.evaluator = TARGET(downstream_task=self.trt)
 
     def test_run_hyse_on_dummy(self):
         hyse = HySERetriever()

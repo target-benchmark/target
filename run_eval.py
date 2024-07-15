@@ -37,7 +37,6 @@ class RetrieverEval:
 
         self.target = TARGET(tasks_list)
 
-
     def run_eval(self, top_k=10):
         """Runs evaluation and writes results (retrieval, downsream task, total eval time) to a json file."""
         self.target.logger.info(f"starting {self.retriever_name}")
@@ -60,7 +59,11 @@ class RetrieverEval:
 
                 with open(
                     # outdir includes retriever name already
-                    os.path.join(self.out_dir, f"eval_{task_name}_{dataset_name}_numrows_{self.retriever.num_rows}{num_schemas_appendix}_{self.result_appendix}.json"), "w"
+                    os.path.join(
+                        self.out_dir,
+                        f"eval_{task_name}_{dataset_name}_numrows_{self.retriever.num_rows}{num_schemas_appendix}_{self.result_appendix}.json",
+                    ),
+                    "w",
                 ) as f:
                     json.dump(res_dict, f)
 
@@ -81,8 +84,13 @@ if __name__ == "__main__":
                 num_schemas=num_schemas,
                 with_query=with_query,
             )
-            RetrieverEval(retriever_name="HySE", retriever=hyse_retriever, tasks_list=tasks_list, result_appendix="agg").run_eval()
-        
+            RetrieverEval(
+                retriever_name="HySE",
+                retriever=hyse_retriever,
+                tasks_list=tasks_list,
+                result_appendix="agg",
+            ).run_eval()
+
     # for num_rows in [0, 1, 2, 5]:
     naive_openai_retriever = HNSWOpenAIEmbeddingRetriever(
         os.path.join(
@@ -90,11 +98,25 @@ if __name__ == "__main__":
         ),
         num_rows=2,
     )
-    RetrieverEval(retriever_name="HNSWOpenAI", retriever=naive_openai_retriever, tasks_list=tasks_list).run_eval()
+    RetrieverEval(
+        retriever_name="HNSWOpenAI",
+        retriever=naive_openai_retriever,
+        tasks_list=tasks_list,
+    ).run_eval()
 
     # OTTQA BM25 retriever
     ottqa_retriever = OTTQARetriever(encoding="bm25")
-    RetrieverEval(retriever_name="OTTQA", retriever=ottqa_retriever, tasks_list=tasks_list, result_appendix="bm25").run_eval()
+    RetrieverEval(
+        retriever_name="OTTQA",
+        retriever=ottqa_retriever,
+        tasks_list=tasks_list,
+        result_appendix="bm25",
+    ).run_eval()
 
     ottqa_retriever = OTTQARetriever(encoding="tfidf")
-    RetrieverEval(retriever_name="OTTQA", retriever=ottqa_retriever, tasks_list=tasks_list, result_appendix="tfidf").run_eval()
+    RetrieverEval(
+        retriever_name="OTTQA",
+        retriever=ottqa_retriever,
+        tasks_list=tasks_list,
+        result_appendix="tfidf",
+    ).run_eval()
