@@ -12,3 +12,15 @@ class RetrievalResultDataModel(BaseModel):
         default=[],
         description="a list of the string representation of the tables retrieved",
     )
+
+class EmbeddingStatisticsDataModel(BaseModel):
+    dataset_name: str
+    embedding_creation_time: float
+    avg_embedding_creation_time: float
+    embedding_storage_usage: float
+    avg_embedding_storage_usage: float
+
+class RetrievalStatisticsDataModel(BaseModel):
+    dataset_name: str
+    retrieval_time: float
+    avg_retrieval_time: float

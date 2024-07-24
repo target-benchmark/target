@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
 from typing import Dict, Optional
+from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel, RetrievalStatisticsDataModel
 
 
 class RetrievalPerformanceDataModel(BaseModel):
@@ -41,3 +42,5 @@ class Text2SQLTaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
 class TaskResultsDataModel(BaseModel):
     retrieval_performance: RetrievalPerformanceDataModel
     downstream_task_performance: DownstreamTaskPerformanceDataModel
+    embedding_statistics: Optional[EmbeddingStatisticsDataModel]
+    retrieval_statistics: RetrievalStatisticsDataModel
