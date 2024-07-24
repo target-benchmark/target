@@ -208,7 +208,7 @@ class AbsDatasetLoader(ABC):
             number of tables.
 
         Raises:
-            a runtime error if corpus has not been loaded yet.        
+            a runtime error if corpus has not been loaded yet.
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
@@ -237,11 +237,11 @@ class AbsDatasetLoader(ABC):
 
         Raises:
             a runtime error if queries has not been loaded yet.
-        """        
+        """
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
         return self.queries.info.dataset_size
-    
+
     def get_corpus_header(self) -> List[str]:
         """
         returns the header of this dataset's corpus
