@@ -1,10 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict
 from typing import Dict, Optional
-from retrievers.RetrieversDataModels import (
-    EmbeddingStatisticsDataModel,
-    RetrievalStatisticsDataModel,
-)
+from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel
 
 
 class RetrievalPerformanceDataModel(BaseModel):
@@ -12,6 +9,19 @@ class RetrievalPerformanceDataModel(BaseModel):
     accuracy: float = Field(description="the accuracy of the retrieval")
     precision: float = Field(default=None, description="the precision of the retrieval")
     recall: float = Field(default=None, description="the recall of the retrieval")
+
+    retrieval_time: Optional[float] = Field(
+        default=-1.0,
+        description="total time took to complete all retrievals in seconds.",
+    )
+    avg_retrieval_time: Optional[float] = Field(
+        default=-1.0, description="avg time too for each retrieval in seconds."
+    )
+
+    @field_validator("retrieval_time", "avg_retrieval_time", mode="before")
+    @classmethod
+    def round_float(cls, value: float):
+        return round(value, 2)
 
 
 class DownstreamTaskPerformanceDataModel(BaseModel):
@@ -46,4 +56,3 @@ class TaskResultsDataModel(BaseModel):
     retrieval_performance: RetrievalPerformanceDataModel
     downstream_task_performance: DownstreamTaskPerformanceDataModel
     embedding_statistics: Optional[EmbeddingStatisticsDataModel]
-    retrieval_statistics: RetrievalStatisticsDataModel
