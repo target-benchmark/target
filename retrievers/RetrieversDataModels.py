@@ -19,17 +19,13 @@ class EmbeddingStatisticsDataModel(BaseModel):
     avg_embedding_creation_time: float
     embedding_storage_usage: float
     avg_embedding_storage_usage: float
-    
-    @field_validator("embedding_creation_time", "avg_embedding_creation_time", "embedding_storage_usage", "avg_embedding_storage_usage")
-    @classmethod
-    def round_float(cls, value: float):
-        return round(value, 2)
 
-
-class RetrievalStatisticsDataModel(BaseModel):
-    retrieval_time: float
-    avg_retrieval_time: float
-    @field_validator("retrieval_time", "avg_retrieval_time")
+    @field_validator(
+        "embedding_creation_time",
+        "avg_embedding_creation_time",
+        "embedding_storage_usage",
+        "avg_embedding_storage_usage",
+    )
     @classmethod
     def round_float(cls, value: float):
         return round(value, 2)

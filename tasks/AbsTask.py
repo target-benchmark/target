@@ -26,7 +26,6 @@ from tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
     TaskResultsDataModel,
-    RetrievalStatisticsDataModel,
 )
 
 
@@ -232,13 +231,12 @@ class AbsTask(ABC):
                     f"number of queries processed: {self.total_queries_processed}"
                 )
 
-            # retrieval time statistics
-            retrieval_statistics = RetrievalStatisticsDataModel(
-                total_duration,
-                total_duration / dataset_loader.get_queries_size(),
-            )
             # retrieval performance, precision, recall, f1, etc.
             retrieval_performance = self._calculate_table_retrieval_performance(top_k)
+            retrieval_performance.retrieval_time = total_duration
+            retrieval_performance.avg_retrieval_time = (
+                total_duration / dataset_loader.get_queries_size()
+            )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
                 **kwargs
@@ -247,7 +245,6 @@ class AbsTask(ABC):
             task_results[dataset_name] = TaskResultsDataModel(
                 retrieval_performance=retrieval_performance,
                 downstream_task_performance=downstream_task_performance,
-                retrieval_statistics=retrieval_statistics,
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
