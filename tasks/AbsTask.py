@@ -26,12 +26,14 @@ from tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
     TaskResultsDataModel,
+    RetrievalStatisticsDataModel,
 )
 
 
 from abc import ABC, abstractmethod
 from logging import Logger
-from typing import Union, List, Dict
+import time
+from typing import Tuple, Union, List, Dict
 
 
 class AbsTask(ABC):
@@ -206,8 +208,9 @@ class AbsTask(ABC):
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
+            total_duration = 0
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieved_tables = self._get_retrieval_results(
+                retrieved_tables, duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     table_id_to_table,
@@ -215,6 +218,7 @@ class AbsTask(ABC):
                     top_k,
                     **kwargs,
                 )
+                total_duration += duration
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
@@ -227,7 +231,15 @@ class AbsTask(ABC):
                 logger.info(
                     f"number of queries processed: {self.total_queries_processed}"
                 )
+
+            # retrieval time statistics
+            retrieval_statistics = RetrievalStatisticsDataModel(
+                total_duration,
+                total_duration / dataset_loader.get_queries_size(),
+            )
+            # retrieval performance, precision, recall, f1, etc.
             retrieval_performance = self._calculate_table_retrieval_performance(top_k)
+            # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
                 **kwargs
             )
@@ -235,6 +247,7 @@ class AbsTask(ABC):
             task_results[dataset_name] = TaskResultsDataModel(
                 retrieval_performance=retrieval_performance,
                 downstream_task_performance=downstream_task_performance,
+                retrieval_statistics=retrieval_statistics,
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
@@ -268,7 +281,7 @@ class AbsTask(ABC):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[RetrievalResultDataModel]:
+    ) -> Tuple[List[RetrievalResultDataModel], float]:
         """
         Retrieves the top k results for each query in the batch using the specified retriever from a dataset.
 
@@ -281,6 +294,7 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
+        start_time = time.time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
@@ -300,11 +314,13 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
+        end_time = time.time()
+        duration = end_time - start_time
         # complete the results data model objects with table strings
         self._fill_retrieval_results_with_table_strs(
             retrieval_results, table_id_to_table
         )
-        return retrieval_results
+        return retrieval_results, duration
 
     def _update_retrieval_metrics(
         self,

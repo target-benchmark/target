@@ -383,7 +383,7 @@ class TARGET:
         end_time = time.time()
         duration = end_time - start_time
         embedding_size = sum([sys.getsizeof(vec) for vec in vectors]) * 1.0 / 1_000_000
-        
+
         client.upload_collection(
             collection_name=dataset_name,
             vectors=vectors,
@@ -471,22 +471,24 @@ class TARGET:
                     size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
                     duration, embedding_size = -1.0, -1.0
                     if standardized:
-                        duration, embedding_size = self.embed_with_standardized_embeddings(
-                            retriever, dataset_name, client
+                        duration, embedding_size = (
+                            self.embed_with_standardized_embeddings(
+                                retriever, dataset_name, client
+                            )
                         )
                     else:
                         duration, embedding_size = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
                         loaded_datasets.add(dataset_name)
+
+                    # create embedding statistics data object to record latency & storage used
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        dataset_name,
                         duration,
                         duration / size_of_corpus,
                         embedding_size,
-                        embedding_size / size_of_corpus
+                        embedding_size / size_of_corpus,
                     )
-                    
 
             self.logger.info("Finished embedding all new corpus!")
 
@@ -500,9 +502,11 @@ class TARGET:
                 client=client,
                 **kwargs,
             )
+
+            # add the embedding time & storage used statistics to the results
             for dataset_name, results in task_result.items():
                 results.embedding_statistics = embedding_stats[dataset_name]
-                
+
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")
         return all_results

@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
 from typing import Dict, Optional
-from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel, RetrievalStatisticsDataModel
+from retrievers.RetrieversDataModels import (
+    EmbeddingStatisticsDataModel,
+    RetrievalStatisticsDataModel,
+)
 
 
 class RetrievalPerformanceDataModel(BaseModel):
