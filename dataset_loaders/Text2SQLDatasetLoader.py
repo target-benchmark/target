@@ -173,7 +173,21 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus
+    
+    def get_corpus_size(self) -> int:
+        """
+        Get the number of tables in the corpus.
 
+        Returns:
+            number of tables.
+
+        Raises:
+            a runtime error if corpus has not been loaded yet.        
+        """
+        if not self.corpus:
+            raise RuntimeError("Corpus datasets have not been loaded!")
+        return len(self.corpus)
+    
     def get_corpus_header(self) -> List[str]:
         """
         returns the header of this dataset's corpus

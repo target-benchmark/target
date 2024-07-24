@@ -1,3 +1,5 @@
+import sys
+import shutil
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from dataset_loaders.LoadersDataModels import (
@@ -22,6 +24,7 @@ from retrievers import (
     AbsCustomEmbeddingRetriever,
     AbsStandardEmbeddingRetriever,
 )
+from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel
 from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask, Text2SQLTask
 from tasks.TasksDataModels import TaskResultsDataModel
@@ -30,6 +33,8 @@ import os
 from evaluators.utils import find_tasks
 
 from datetime import datetime
+import time
+
 import logging
 import os
 
@@ -330,7 +335,7 @@ class TARGET:
         retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
-    ) -> None:
+    ) -> Tuple[float, float]:
         """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
@@ -362,6 +367,7 @@ class TARGET:
         cur_dataloader = self.dataloaders[dataset_name]
         vectors = []
         metadata = []
+        start_time = time.time()
         for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
         ):
@@ -374,24 +380,37 @@ class TARGET:
                     METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
                 }
             )
+        end_time = time.time()
+        duration = end_time - start_time
+        embedding_size = sum([sys.getsizeof(vec) for vec in vectors]) * 1.0 / 1_000_000
+        
         client.upload_collection(
             collection_name=dataset_name,
             vectors=vectors,
             payload=metadata,
         )
+        return duration, embedding_size
 
     def embed_with_custom_embeddings(
         self,
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
         batch_size: int,
-    ) -> None:
+    ) -> Tuple[float, float]:
+        start_disk_usage = shutil.disk_usage("/").used
+        start_time = time.time()
+
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
+        end_time = time.time()
+        duration = end_time - start_time
+        end_disk_usage = shutil.disk_usage("/").used
+        embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
+        return duration, embedding_size
 
     def run(
         self,
@@ -417,6 +436,8 @@ class TARGET:
 
         all_results = {}
         loaded_datasets = set()
+        embedding_stats = {}
+        embedding_storage_usage = {}
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")
@@ -444,16 +465,28 @@ class TARGET:
                 task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables
+
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
+                    size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
+                    duration, embedding_size = -1.0, -1.0
                     if standardized:
-                        self.embed_with_standardized_embeddings(
+                        duration, embedding_size = self.embed_with_standardized_embeddings(
                             retriever, dataset_name, client
                         )
                     else:
-                        self.embed_with_custom_embeddings(
+                        duration, embedding_size = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
+                        loaded_datasets.add(dataset_name)
+                    embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
+                        dataset_name,
+                        duration,
+                        duration / size_of_corpus,
+                        embedding_size,
+                        embedding_size / size_of_corpus
+                    )
+                    
 
             self.logger.info("Finished embedding all new corpus!")
 
@@ -467,6 +500,9 @@ class TARGET:
                 client=client,
                 **kwargs,
             )
+            for dataset_name, results in task_result.items():
+                results.embedding_statistics = embedding_stats[dataset_name]
+                
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")
         return all_results
