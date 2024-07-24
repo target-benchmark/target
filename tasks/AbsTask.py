@@ -294,7 +294,7 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
-        start_time = time.time()
+        start_time = time.process_time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
@@ -314,7 +314,7 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
-        end_time = time.time()
+        end_time = time.process_time()
         duration = end_time - start_time
         # complete the results data model objects with table strings
         self._fill_retrieval_results_with_table_strs(

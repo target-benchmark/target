@@ -367,7 +367,7 @@ class TARGET:
         cur_dataloader = self.dataloaders[dataset_name]
         vectors = []
         metadata = []
-        start_time = time.time()
+        start_time = time.process_time()
         for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
         ):
@@ -380,7 +380,7 @@ class TARGET:
                     METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
                 }
             )
-        end_time = time.time()
+        end_time = time.process_time()
         duration = end_time - start_time
         embedding_size = sum([sys.getsizeof(vec) for vec in vectors]) * 1.0 / 1_000_000
 
@@ -398,7 +398,7 @@ class TARGET:
         batch_size: int,
     ) -> Tuple[float, float]:
         start_disk_usage = shutil.disk_usage("/").used
-        start_time = time.time()
+        start_time = time.process_time()
 
         retriever.embed_corpus(
             dataset_name,
@@ -406,7 +406,7 @@ class TARGET:
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
-        end_time = time.time()
+        end_time = time.process_time()
         duration = end_time - start_time
         end_disk_usage = shutil.disk_usage("/").used
         embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
