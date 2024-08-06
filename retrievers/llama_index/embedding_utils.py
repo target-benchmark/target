@@ -1,9 +1,20 @@
 from llama_index.core.program import LLMTextCompletionProgram
+from llama_index.core.objects import SQLTableNodeMapping, SQLTableSchema
 from llama_index.legacy.bridge.pydantic import BaseModel, Field
 from llama_index.llms.openai import OpenAI
-
 from pathlib import Path
 import pandas as pd
+
+import re
+from sqlalchemy import (
+    create_engine,
+    Engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+)
 
 
 class TableInfo(BaseModel):
@@ -36,7 +47,6 @@ program = LLMTextCompletionProgram.from_defaults(
     prompt_template_str=prompt_str,
 )
 
-
 def _get_table_info_with_index(table_info_dir: str, table_name: str) -> str:
     results_gen = Path(table_info_dir).glob(f"{table_name}_*")
     results_list = list(results_gen)
@@ -50,7 +60,7 @@ def _get_table_info_with_index(table_info_dir: str, table_name: str) -> str:
 
 
 def construct_table_info(
-    table_info_dir: str, df: pd.DataFrame, table_name: str
+    table_info_dir: str, df: pd.DataFrame, database_id: str, table_name: str
 ) -> TableInfo:
     table_info = _get_table_info_with_index(table_info_dir, table_name)
     if table_info:
@@ -61,5 +71,40 @@ def construct_table_info(
         table_str=df_str,
         exclude_table_name_list=str(list(existing_table_names)),
     )
-    table_info.table_name = table_name  # forcefully overwrite table name
+    table_info.table_name = f"{database_id}:{table_name}"  # forcefully overwrite table name
+    out_file = f"{table_info_dir}/{database_id}_{table_name}.json"
+    json.dump(table_info.dict(), open(out_file, "w"))
     return table_info
+
+# Function to create a sanitized column name
+def sanitize_column_name(col_name):
+    # Remove special characters and replace spaces with underscores
+    return re.sub(r"\W+", "_", col_name)
+
+
+# Function to create a table from a DataFrame using SQLAlchemy
+def create_table_from_dataframe(
+    df: pd.DataFrame, table_name: str, engine: Engine, metadata_obj: MetaData
+):
+    # Sanitize column names
+    sanitized_columns = {col: sanitize_column_name(col) for col in df.columns}
+    df = df.rename(columns=sanitized_columns)
+
+    # Dynamically create columns based on DataFrame columns and data types
+    columns = [
+        Column(col, String if dtype == "object" else Integer)
+        for col, dtype in zip(df.columns, df.dtypes)
+    ]
+
+    # Create a table with the defined columns
+    table = Table(table_name, metadata_obj, *columns)
+
+    # Create the table in the database
+    metadata_obj.create_all(engine)
+
+    # Insert data from DataFrame into the table
+    with engine.connect() as conn:
+        for _, row in df.iterrows():
+            insert_stmt = table.insert().values(**row.to_dict())
+            conn.execute(insert_stmt)
+        conn.commit()
