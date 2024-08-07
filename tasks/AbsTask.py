@@ -232,10 +232,10 @@ class AbsTask(ABC):
                 )
 
             # retrieval performance, precision, recall, f1, etc.
-            retrieval_performance = self._calculate_table_retrieval_performance(top_k)
-            retrieval_performance.retrieval_time = total_duration
-            retrieval_performance.avg_retrieval_time = (
-                total_duration / dataset_loader.get_queries_size()
+            retrieval_performance = self._calculate_table_retrieval_performance(
+                top_k,
+                total_duration,
+                total_duration / dataset_loader.get_queries_size(),
             )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
@@ -347,7 +347,10 @@ class AbsTask(ABC):
             self.total_queries_processed += 1
 
     def _calculate_table_retrieval_performance(
-        self, top_k: int
+        self,
+        top_k: int,
+        total_retrieval_duration: float,
+        avg_retrieval_time: float,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -360,7 +363,10 @@ class AbsTask(ABC):
         """
         if self.total_queries_processed != 0:
             performace = RetrievalPerformanceDataModel(
-                k=top_k, accuracy=self.true_positive / self.total_queries_processed
+                k=top_k,
+                accuracy=self.true_positive / self.total_queries_processed,
+                retrieval_time=round(total_retrieval_duration, 5),
+                avg_retrieval_time=round(avg_retrieval_time, 5),
             )
         else:
             raise ValueError("haven't processed any queries!")

@@ -212,7 +212,7 @@ class AbsDatasetLoader(ABC):
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
-        return self.corpus.info.dataset_size
+        return self.corpus.num_rows
 
     def get_queries(self) -> Dataset:
         """
@@ -240,7 +240,7 @@ class AbsDatasetLoader(ABC):
         """
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
-        return self.queries.info.dataset_size
+        return self.queries.num_rows
 
     def get_corpus_header(self) -> List[str]:
         """
