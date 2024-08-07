@@ -5,8 +5,8 @@ from dataset_loaders.utils import (
     set_query_type,
     enforce_split_literal,
     write_table_to_path,
-    convert_corpus_entry_to_df,
-    convert_corpus_entry_to_dict,
+    array_of_arrays_to_df,
+    array_of_arrays_to_dict,
 )
 from dictionary_keys import *
 
@@ -131,22 +131,48 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus has not been loaded!")
 
         in_memory_format = set_in_memory_data_format(output_format)
+        converted_corpus = self.corpus.to_dict()
         if in_memory_format == InMemoryDataFormat.DF:
-            converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_df(TABLE_COL_NAME, entry)
-            )
+            df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
+            converted_corpus[TABLE_COL_NAME] = df_tables
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            converted_corpus = self.corpus.map(
-                lambda entry: convert_corpus_entry_to_dict(TABLE_COL_NAME, entry)
+            dict_tables = list(
+                map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME])
             )
-        else:
-            converted_corpus = self.corpus
-        for batch in converted_corpus.iter(batch_size):
-            yield batch
+            converted_corpus[TABLE_COL_NAME] = dict_tables
+        for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
+            res = {}
+            # Use list comprehensions to extract each column
+            res[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
+            res[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            res[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            res[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
+                i : i + batch_size
+            ]
+            yield res
+        # if in_memory_format == InMemoryDataFormat.DF:
+        #     print("converting to dataframe")
+        #     converted_corpus = self.corpus.map(
+        #         lambda entry: convert_corpus_entry_to_df(TABLE_COL_NAME, entry)
+        #     )
+        #     for entry in converted_corpus:
+        #         print(type(entry[TABLE_COL_NAME]))
+        # elif in_memory_format == InMemoryDataFormat.DICTIONARY:
+        #     converted_corpus = self.corpus.map(
+        #         lambda entry: convert_corpus_entry_to_dict(TABLE_COL_NAME, entry)
+        #     )
+        # else:
+        #     converted_corpus = self.corpus
+        # for batch in converted_corpus.iter(batch_size):
+        #     yield batch
 
     def get_table_id_to_table(
         self,
-    ) -> Dict[Tuple[int, str], List[List]]:
+    ) -> Dict[Tuple[str, str], List[List]]:
         mapping_dict = {}
         for entry in self.convert_corpus_table_to():
             for database_id, table_id, table in zip(
@@ -154,7 +180,7 @@ class AbsDatasetLoader(ABC):
                 entry[TABLE_ID_COL_NAME],
                 entry[TABLE_COL_NAME],
             ):
-                key = (database_id, table_id)
+                key = (str(database_id), str(table_id))
                 mapping_dict[key] = table
         return mapping_dict
 

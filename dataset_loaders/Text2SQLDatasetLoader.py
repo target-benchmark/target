@@ -146,17 +146,19 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
                 map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME])
             )
             converted_corpus[TABLE_COL_NAME] = dict_tables
-        else:
-            converted_corpus = self.corpus
-        for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
+        for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
             res = {}
             # Use list comprehensions to extract each column
-            res[TABLE_COL_NAME] = self.corpus[TABLE_COL_NAME][i : i + batch_size]
-            res[DATABASE_ID_COL_NAME] = self.corpus[DATABASE_ID_COL_NAME][
+            res[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
+            res[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
                 i : i + batch_size
             ]
-            res[TABLE_ID_COL_NAME] = self.corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            res[CONTEXT_COL_NAME] = self.corpus[CONTEXT_COL_NAME][i : i + batch_size]
+            res[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            res[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
+                i : i + batch_size
+            ]
             yield res
 
     def get_corpus(self) -> List[Dict]:

@@ -1,12 +1,16 @@
 import unittest
 
 from evaluators.TARGET import TARGET
-
-from retrievers.hyse.HySERetriever import HySERetriever
+from retrievers.AbsCustomEmbeddingRetriever import (
+    AbsCustomEmbeddingRetriever as CustomEmbRetr,
+)
+from retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
+from retrievers.RetrieversDataModels import RetrievalResultDataModel
 from tasks import TableRetrievalTask
+import os
 
 
-class TestHyseBasics(unittest.TestCase):
+class TestLlamaIndexBasics(unittest.TestCase):
     def setUp(self):
         self.fetaqa_dummy_config = {
             "dataset_name": "fetaqa",
@@ -17,10 +21,10 @@ class TestHyseBasics(unittest.TestCase):
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
         self.evaluator = TARGET(downstream_tasks=self.trt)
 
-    def test_run_hyse_on_dummy(self):
-        hyse = HySERetriever()
+    def test_run_llama_on_dummy(self):
+        llama = LlamaIndexRetriever()
 
-        res = self.evaluator.run(hyse, split="train")
+        res = self.evaluator.run(llama)
         print(res)
 
 

@@ -1,3 +1,4 @@
+import json
 from llama_index.core.program import LLMTextCompletionProgram
 from llama_index.core.objects import SQLTableNodeMapping, SQLTableSchema
 from llama_index.legacy.bridge.pydantic import BaseModel, Field
@@ -34,8 +35,6 @@ Give me a summary of the table with the following JSON format.
 - The table name must be unique to the table and describe it while being concise.
 - Do NOT output a generic table name (e.g. table, my_table).
 
-Do NOT make the table name one of the following: {exclude_table_name_list}
-
 Table:
 {table_str}
 
@@ -47,7 +46,10 @@ program = LLMTextCompletionProgram.from_defaults(
     prompt_template_str=prompt_str,
 )
 
-def _get_table_info_with_index(table_info_dir: str, table_name: str) -> str:
+
+def _get_table_info_with_index(
+    table_info_dir: str, table_name: str
+) -> TableInfo | None:
     results_gen = Path(table_info_dir).glob(f"{table_name}_*")
     results_list = list(results_gen)
     if len(results_list) == 0:
@@ -69,12 +71,13 @@ def construct_table_info(
     df_str = df.head(10).to_csv()
     table_info: TableInfo = program(
         table_str=df_str,
-        exclude_table_name_list=str(list(existing_table_names)),
     )
-    table_info.table_name = f"{database_id}:{table_name}"  # forcefully overwrite table name
-    out_file = f"{table_info_dir}/{database_id}_{table_name}.json"
-    json.dump(table_info.dict(), open(out_file, "w"))
+    table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"  # forcefully prepend the official table name
+    out_file_path = f"{table_info_dir}/{database_id}_{table_name}.json"
+    with open(out_file_path, "w") as file:
+        json.dump(table_info.dict(), file)
     return table_info
+
 
 # Function to create a sanitized column name
 def sanitize_column_name(col_name):
