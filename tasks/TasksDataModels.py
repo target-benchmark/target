@@ -1,7 +1,23 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict
 from typing import Dict, Optional
-from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel
+
+
+class EmbeddingStatisticsDataModel(BaseModel):
+    embedding_creation_time: float = Field(
+        ..., description="Total amount of time taken for the embedding to be created"
+    )
+    avg_embedding_creation_time: float = Field(
+        ..., description="Average time taken to create embeddings"
+    )
+    embedding_storage_usage: float = Field(
+        ...,
+        description="Storage used by the embeddings in bytes, INACCURATE for custom retrievers.",
+    )
+    avg_embedding_storage_usage: float = Field(
+        ...,
+        description="Average storage usage by the embeddings in bytes, INACCURATE for custom retrievers.",
+    )
 
 
 class RetrievalPerformanceDataModel(BaseModel):
@@ -10,18 +26,13 @@ class RetrievalPerformanceDataModel(BaseModel):
     precision: float = Field(default=None, description="the precision of the retrieval")
     recall: float = Field(default=None, description="the recall of the retrieval")
 
-    retrieval_time: Optional[float] = Field(
-        default=-1.0,
+    retrieval_time: float = Field(
+        ...,
         description="total time took to complete all retrievals in seconds.",
     )
-    avg_retrieval_time: Optional[float] = Field(
-        default=-1.0, description="avg time too for each retrieval in seconds."
+    avg_retrieval_time: float = Field(
+        ..., description="avg time too for each retrieval in seconds."
     )
-
-    @field_validator("retrieval_time", "avg_retrieval_time", mode="before")
-    @classmethod
-    def round_float(cls, value: float):
-        return round(value, 2)
 
 
 class DownstreamTaskPerformanceDataModel(BaseModel):
@@ -55,4 +66,6 @@ class Text2SQLTaskPerformanceDataModel(DownstreamTaskPerformanceDataModel):
 class TaskResultsDataModel(BaseModel):
     retrieval_performance: RetrievalPerformanceDataModel
     downstream_task_performance: DownstreamTaskPerformanceDataModel
-    embedding_statistics: Optional[EmbeddingStatisticsDataModel]
+    embedding_statistics: Optional[EmbeddingStatisticsDataModel] = Field(
+        default=None, description="Stats on latency and storage usage."
+    )

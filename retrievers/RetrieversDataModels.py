@@ -12,20 +12,3 @@ class RetrievalResultDataModel(BaseModel):
         default=[],
         description="a list of the string representation of the tables retrieved",
     )
-
-
-class EmbeddingStatisticsDataModel(BaseModel):
-    embedding_creation_time: float
-    avg_embedding_creation_time: float
-    embedding_storage_usage: float
-    avg_embedding_storage_usage: float
-
-    @field_validator(
-        "embedding_creation_time",
-        "avg_embedding_creation_time",
-        "embedding_storage_usage",
-        "avg_embedding_storage_usage",
-    )
-    @classmethod
-    def round_float(cls, value: float):
-        return round(value, 2)

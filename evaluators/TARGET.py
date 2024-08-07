@@ -24,10 +24,9 @@ from retrievers import (
     AbsCustomEmbeddingRetriever,
     AbsStandardEmbeddingRetriever,
 )
-from retrievers.RetrieversDataModels import EmbeddingStatisticsDataModel
 from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask, Text2SQLTask
-from tasks.TasksDataModels import TaskResultsDataModel
+from tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
 
 import os
 from evaluators.utils import find_tasks
@@ -480,14 +479,16 @@ class TARGET:
                         duration, embedding_size = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
-                        loaded_datasets.add(dataset_name)
+                    loaded_datasets.add(dataset_name)
 
                     # create embedding statistics data object to record latency & storage used
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        duration,
-                        duration / size_of_corpus,
-                        embedding_size,
-                        embedding_size / size_of_corpus,
+                        embedding_creation_time=round(duration, 5),
+                        avg_embedding_creation_time=round(duration / size_of_corpus, 5),
+                        embedding_storage_usage=round(embedding_size, 5),
+                        avg_embedding_storage_usage=round(
+                            embedding_size / size_of_corpus, 5
+                        ),
                     )
 
             self.logger.info("Finished embedding all new corpus!")
