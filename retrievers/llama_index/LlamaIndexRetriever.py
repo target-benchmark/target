@@ -27,6 +27,7 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
             expected_corpus_format (str, optional): a string indicating what corpus format (ie nested array, dictionary, pandas df, etc.) the `embed_corpus` function expects from its input.
         """
         super().__init__(expected_corpus_format="dataframe")
+        self.query_pipelines = {}
 
     def retrieve(
         self,
@@ -35,27 +36,40 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ) -> List[Tuple]:
-        res = self.query_pipelines[dataset_name].run(query=query)
-        return str(res)
-
+        retrieved_tables = self.query_pipelines[dataset_name].run(query=query)
+        answers = []
+        for res in retrieved_tables:
+            answers.append(tuple(res.table_name.split(":")[:2]))
+        print(answers)
+        return answers
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
-        table_infos = [] # TODO: use table infos from utils
+        table_infos = []
         metadata_obj = MetaData()
 
-        db_path = data_path / dataset_name / "database.db"
-        engine = create_engine(f'sqlite:///{db_path}')
+        dataset_persistence_path = data_path / dataset_name
+        dataset_persistence_path.mkdir(parents=True, exist_ok=True)
+
+        db_path = dataset_persistence_path / "database.db"
+
+        engine = create_engine(f"sqlite:///{db_path}")
         sql_database = SQLDatabase(engine)
 
-        for entry in corpus:
+        for entry_batch in corpus:
             # create table info object for the table in corpus
-            table_info = construct_table_info(str(data_path), entry[TABLE_COL_NAME], entry[DATABASE_ID_COL_NAME], entry[TABLE_ID_COL_NAME])
+            for i in range(len(entry_batch[TABLE_COL_NAME])):
+                table = entry_batch[TABLE_COL_NAME][i]
+                db_id = entry_batch[DATABASE_ID_COL_NAME][i]
+                table_id = entry_batch[TABLE_ID_COL_NAME][i]
+            table_info = construct_table_info(str(data_path), table, db_id, table_id)
 
             # append the table info to list of all table infos
             table_infos.append(table_info)
 
             # insert the table to the sql db.
-            create_table_from_dataframe(entry[TABLE_COL_NAME], table_info.table_name, engine, metadata_obj)
+            create_table_from_dataframe(
+                table, table_info.table_name, engine, metadata_obj
+            )
 
         # construct retriever
         table_node_mapping = SQLTableNodeMapping(sql_database)
@@ -73,7 +87,7 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
 
         qp = QP(verbose=True)
         qp.add_modules(
-            module_dict= {
+            module_dict={
                 "input": InputComponent(),
                 "table_retriever": obj_index.as_retriever(similarity_top_k=3),
             }

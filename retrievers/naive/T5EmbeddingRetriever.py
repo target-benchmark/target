@@ -3,6 +3,7 @@ from typing import Dict, List
 from langchain_openai import OpenAIEmbeddings
 from retrievers.utils import json_table_str
 
+
 class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):
 
     def __init__(

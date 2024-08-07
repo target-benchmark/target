@@ -31,7 +31,7 @@ from tasks.TasksDataModels import (
 
 from abc import ABC, abstractmethod
 from logging import Logger
-from typing import Union, List, Dict
+from typing import Tuple, Union, List, Dict
 
 
 class AbsTask(ABC):
@@ -242,21 +242,21 @@ class AbsTask(ABC):
     def _fill_retrieval_results_with_table_strs(
         self,
         retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_tables: Dict[str, List[List]],
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> None:
         """
         Fills the retrieval result data model objects with Markdown table strings based on the table IDs stored in each retrieval result.
 
         Parameters:
             retrieval_results (List[RetrievalResultDataModel]): List of retrieval result data models to be filled with table strings.
-            table_id_to_tables (Dict[str, List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
+            table_id_to_table (Dict[Tuple[str, str], List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
 
         Returns:
             None
         """
         for result in retrieval_results:
             result.retrieved_tables = [
-                markdown_table_str(table_id_to_tables[id])
+                markdown_table_str(table_id_to_table[id])
                 for id in result.retrieval_results
             ]
 
@@ -327,8 +327,8 @@ class AbsTask(ABC):
             new_retrieved_tables,
         ):
             if (
-                db_id,
-                table_id,
+                str(db_id),
+                str(table_id),
             ) in retrieval_result.retrieval_results:
                 self.true_positive += 1
             self.total_queries_processed += 1
