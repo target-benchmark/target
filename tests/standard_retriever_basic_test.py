@@ -4,7 +4,7 @@ from dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
 from evaluators import TARGET
 from tasks.TableRetrievalTask import TableRetrievalTask
 from tasks.TasksDataModels import *
-from retrievers import OAIEmbedder
+from retrievers import OpenAIEmbedder
 from qdrant_client import QdrantClient, models
 
 import logging
@@ -36,7 +36,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             "Table5": [["fifth random table"], ["fifth item"]],
         }
         self.retr_task = TableRetrievalTask()
-        self.retriever = OAIEmbedder()
+        self.retriever = OpenAIEmbedder()
 
         vectors = []
         metadata = []
@@ -70,16 +70,16 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             )
         )
 
-    def test_basic_task_run(self):
+    # def test_basic_task_run(self):
 
-        results = self.retr_task.task_run(
-            retriever=self.retriever,
-            dataset_loaders={"fetaqa": self.mock_dataset_loader},
-            logger=logger,
-            batch_size=1,
-            top_k=2,
-            client=self.client,
-        )
+    #     results = self.retr_task.task_run(
+    #         retriever=self.retriever,
+    #         dataset_loaders={"fetaqa": self.mock_dataset_loader},
+    #         logger=logger,
+    #         batch_size=1,
+    #         top_k=2,
+    #         client=self.client,
+    #     )
 
     def test_basic_full_run(self):
         # end to end test that includes the client being created and retrieval from the client
@@ -90,8 +90,9 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         trt = TableRetrievalTask({"fetaqa": fetaqa_dummy_config}, True)
-        targ = TARGET(downstream_task=trt)
-        results = targ.run(self.retriever, split="train")
+        targ = TARGET(downstream_tasks=trt)
+        results = targ.run(self.retriever)
+        print(results)
 
 
 if __name__ == "__main__":

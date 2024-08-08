@@ -7,6 +7,8 @@ from dataset_loaders.LoadersDataModels import (
     Text2SQLDatasetConfigDataModel,
 )
 from dataset_loaders.utils import get_dummy_table_of_format
+from datetime import datetime
+
 from evaluators.utils import find_tasks
 
 from dictionary_keys import (
@@ -17,23 +19,24 @@ from dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
+import logging
+import numpy as np
+
+import os
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
     AbsStandardEmbeddingRetriever,
 )
+import shutil
+import sys
+
 from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask, Text2SQLTask
-from tasks.TasksDataModels import TaskResultsDataModel
-
-import os
-from evaluators.utils import find_tasks
-
-from datetime import datetime
-import logging
-import os
-
+from tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
+import time
 from typing import Literal, Tuple, Union, List, Dict
+
 
 from qdrant_client import QdrantClient, models
 
@@ -330,7 +333,7 @@ class TARGET:
         retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
-    ) -> None:
+    ) -> Tuple[float, float]:
         """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
@@ -362,36 +365,51 @@ class TARGET:
         cur_dataloader = self.dataloaders[dataset_name]
         vectors = []
         metadata = []
+        start_time = time.process_time()
         for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
-        ):
+        ):  # TODO: support batching
             entry = {key: value[0] for key, value in entry.items()}
             table_embedding = retriever.embed_corpus(dataset_name, entry)
-            vectors.append(list(table_embedding))
+            vectors.append(table_embedding)
             metadata.append(
                 {
                     METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
                     METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
                 }
             )
+        end_time = time.process_time()
+        duration = end_time - start_time
+        vectors = np.array(vectors)
+        embedding_size = vectors.nbytes
+
         client.upload_collection(
             collection_name=dataset_name,
             vectors=vectors,
             payload=metadata,
         )
+        return duration, embedding_size
 
     def embed_with_custom_embeddings(
         self,
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
         batch_size: int,
-    ) -> None:
+    ) -> Tuple[float, float]:
+        start_disk_usage = shutil.disk_usage("/").used
+        start_time = time.process_time()
+
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
+        end_time = time.process_time()
+        duration = end_time - start_time
+        end_disk_usage = shutil.disk_usage("/").used
+        embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
+        return duration, embedding_size
 
     def run(
         self,
@@ -417,6 +435,7 @@ class TARGET:
 
         all_results = {}
         loaded_datasets = set()
+        embedding_stats = {}
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")
@@ -444,16 +463,30 @@ class TARGET:
                 task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables
+
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
+                    size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
+                    duration, embedding_size = -1.0, -1.0
                     if standardized:
-                        self.embed_with_standardized_embeddings(
-                            retriever, dataset_name, client
+                        duration, embedding_size = (
+                            self.embed_with_standardized_embeddings(
+                                retriever, dataset_name, client
+                            )
                         )
                     else:
-                        self.embed_with_custom_embeddings(
+                        duration, embedding_size = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
+                    loaded_datasets.add(dataset_name)
+
+                    # create embedding statistics data object to record latency & size of embedding
+                    embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
+                        embedding_creation_duration=round(duration, 5),
+                        avg_embedding_creation_duration=round(duration / size_of_corpus, 5),
+                        embedding_size=round(embedding_size, 5),
+                        avg_embedding_size=round(embedding_size / size_of_corpus, 5),
+                    )
 
             self.logger.info("Finished embedding all new corpus!")
 
@@ -467,6 +500,11 @@ class TARGET:
                 client=client,
                 **kwargs,
             )
+
+            # add the embedding duration & sizes statistics to the results
+            for dataset_name, results in task_result.items():
+                results.embedding_statistics = embedding_stats[dataset_name]
+
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")
         return all_results
