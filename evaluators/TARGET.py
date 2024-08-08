@@ -1,5 +1,3 @@
-import sys
-import shutil
 from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from dataset_loaders.LoadersDataModels import (
@@ -9,6 +7,8 @@ from dataset_loaders.LoadersDataModels import (
     Text2SQLDatasetConfigDataModel,
 )
 from dataset_loaders.utils import get_dummy_table_of_format
+from datetime import datetime
+
 from evaluators.utils import find_tasks
 
 from dictionary_keys import (
@@ -19,25 +19,24 @@ from dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
+import logging
+import numpy as np
+
+import os
 from retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
     AbsStandardEmbeddingRetriever,
 )
+import shutil
+import sys
+
 from tasks.AbsTask import AbsTask
 from tasks import TableRetrievalTask, Text2SQLTask
 from tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
-
-import os
-from evaluators.utils import find_tasks
-
-from datetime import datetime
 import time
-
-import logging
-import os
-
 from typing import Literal, Tuple, Union, List, Dict
+
 
 from qdrant_client import QdrantClient, models
 
@@ -356,8 +355,7 @@ class TARGET:
                 },
             )
         )
-        client.delete_collection(collection_name=dataset_name)
-        client.create_collection(
+        client.recreate_collection(
             collection_name=dataset_name,
             vectors_config=models.VectorParams(
                 size=vec_size, distance=models.Distance.COSINE
@@ -369,10 +367,10 @@ class TARGET:
         start_time = time.process_time()
         for entry in cur_dataloader.convert_corpus_table_to(
             retriever.get_expected_corpus_format()
-        ):
+        ):  # TODO: support batching
             entry = {key: value[0] for key, value in entry.items()}
             table_embedding = retriever.embed_corpus(dataset_name, entry)
-            vectors.append(list(table_embedding))
+            vectors.append(table_embedding)
             metadata.append(
                 {
                     METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
@@ -381,7 +379,8 @@ class TARGET:
             )
         end_time = time.process_time()
         duration = end_time - start_time
-        embedding_size = sum([sys.getsizeof(vec) for vec in vectors]) * 1.0 / 1_000_000
+        vectors = np.array(vectors)
+        embedding_size = vectors.nbytes
 
         client.upload_collection(
             collection_name=dataset_name,
@@ -485,9 +484,7 @@ class TARGET:
                         embedding_creation_time=round(duration, 5),
                         avg_embedding_creation_time=round(duration / size_of_corpus, 5),
                         embedding_size=round(embedding_size, 5),
-                        avg_embedding_size=round(
-                            embedding_size / size_of_corpus, 5
-                        ),
+                        avg_embedding_size=round(embedding_size / size_of_corpus, 5),
                     )
 
             self.logger.info("Finished embedding all new corpus!")
