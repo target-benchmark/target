@@ -20,7 +20,7 @@ class TestHyseBasics(unittest.TestCase):
     def test_run_hyse_on_dummy(self):
         hyse = HySERetriever()
 
-        res = self.evaluator.run(hyse, split="train")
+        res = self.evaluator.run(hyse)
         print(res)
 
 

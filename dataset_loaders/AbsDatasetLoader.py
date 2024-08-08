@@ -155,7 +155,6 @@ class AbsDatasetLoader(ABC):
             ]
             yield batch
 
-
     def get_table_id_to_table(
         self,
     ) -> Dict[Tuple[str, str], List[List]]:
@@ -200,6 +199,20 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus
 
+    def get_corpus_size(self) -> int:
+        """
+        Get the number of tables in the corpus.
+
+        Returns:
+            number of tables.
+
+        Raises:
+            a runtime error if corpus has not been loaded yet.
+        """
+        if not self.corpus:
+            raise RuntimeError("Corpus datasets have not been loaded!")
+        return self.corpus.num_rows
+
     def get_queries(self) -> Dataset:
         """
         get the queries of the loaded dataset. if the dataset has not been loaded, raise an error.
@@ -213,6 +226,20 @@ class AbsDatasetLoader(ABC):
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
         return self.queries
+
+    def get_queries_size(self) -> int:
+        """
+        Get the number of entries in the queries.
+
+        Returns:
+            number of queries.
+
+        Raises:
+            a runtime error if queries has not been loaded yet.
+        """
+        if not self.queries:
+            raise RuntimeError("Queries datasets have not been loaded!")
+        return self.queries.num_rows
 
     def get_corpus_header(self) -> List[str]:
         """
