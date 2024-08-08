@@ -4,10 +4,10 @@ from typing import Dict, Optional
 
 
 class EmbeddingStatisticsDataModel(BaseModel):
-    embedding_creation_time: float = Field(
+    embedding_creation_duration: float = Field(
         ..., description="Total amount of time taken for the embedding to be created"
     )
-    avg_embedding_creation_time: float = Field(
+    avg_embedding_creation_duration: float = Field(
         ..., description="Average time taken to create embeddings"
     )
     embedding_size: float = Field(
