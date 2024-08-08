@@ -482,8 +482,8 @@ class TARGET:
 
                     # create embedding statistics data object to record latency & size of embedding
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        embedding_creation_time=round(duration, 5),
-                        avg_embedding_creation_time=round(duration / size_of_corpus, 5),
+                        embedding_creation_duration=round(duration, 5),
+                        avg_embedding_creation_duration=round(duration / size_of_corpus, 5),
                         embedding_size=round(embedding_size, 5),
                         avg_embedding_size=round(embedding_size / size_of_corpus, 5),
                     )
