@@ -436,7 +436,6 @@ class TARGET:
         all_results = {}
         loaded_datasets = set()
         embedding_stats = {}
-        embedding_storage_usage = {}
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")
@@ -481,12 +480,12 @@ class TARGET:
                         )
                     loaded_datasets.add(dataset_name)
 
-                    # create embedding statistics data object to record latency & storage used
+                    # create embedding statistics data object to record latency & size of embedding
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
                         embedding_creation_time=round(duration, 5),
                         avg_embedding_creation_time=round(duration / size_of_corpus, 5),
-                        embedding_storage_usage=round(embedding_size, 5),
-                        avg_embedding_storage_usage=round(
+                        embedding_size=round(embedding_size, 5),
+                        avg_embedding_size=round(
                             embedding_size / size_of_corpus, 5
                         ),
                     )
@@ -504,7 +503,7 @@ class TARGET:
                 **kwargs,
             )
 
-            # add the embedding time & storage used statistics to the results
+            # add the embedding duration & sizes statistics to the results
             for dataset_name, results in task_result.items():
                 results.embedding_statistics = embedding_stats[dataset_name]
 

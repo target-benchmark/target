@@ -10,13 +10,13 @@ class EmbeddingStatisticsDataModel(BaseModel):
     avg_embedding_creation_time: float = Field(
         ..., description="Average time taken to create embeddings"
     )
-    embedding_storage_usage: float = Field(
+    embedding_size: float = Field(
         ...,
-        description="Storage used by the embeddings in bytes, INACCURATE for custom retrievers.",
+        description="Totla size of embeddings (all tables in dataset) in bytes, INACCURATE for custom retrievers.",
     )
-    avg_embedding_storage_usage: float = Field(
+    avg_embedding_size: float = Field(
         ...,
-        description="Average storage usage by the embeddings in bytes, INACCURATE for custom retrievers.",
+        description="Average size of an embedding in bytes, INACCURATE for custom retrievers.",
     )
 
 
@@ -67,5 +67,5 @@ class TaskResultsDataModel(BaseModel):
     retrieval_performance: RetrievalPerformanceDataModel
     downstream_task_performance: DownstreamTaskPerformanceDataModel
     embedding_statistics: Optional[EmbeddingStatisticsDataModel] = Field(
-        default=None, description="Stats on latency and storage usage."
+        default=None, description="Stats on latency and embedding size."
     )
