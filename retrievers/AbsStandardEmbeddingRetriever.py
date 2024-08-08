@@ -1,18 +1,19 @@
-from typing import Iterable, Tuple
-from dictionary_keys import QUERY_COL_NAME, QUERY_ID_COL_NAME
+from abc import abstractmethod
 
-from qdrant_client import QdrantClient
-from qdrant_client.models import SearchRequest, ScoredPoint
+
 from dictionary_keys import (
     CLIENT_KEY_NAME,
     METADATA_TABLE_ID_KEY_NAME,
     METADATA_DB_ID_KEY_NAME,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
 )
+import numpy as np
+from qdrant_client import QdrantClient
 from retrievers.AbsRetrieverBase import AbsRetrieverBase
 from retrievers.RetrieversDataModels import RetrievalResultDataModel
 
-from abc import abstractmethod
-from typing import List, Dict, Iterable
+from typing import List, Dict
 
 
 class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
@@ -76,7 +77,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         query: str,
         dataset_name: str,
         **kwargs,
-    ) -> List[float]:
+    ) -> np.ndarray:
         """
         Given a query, return the query embedding for searching.
 
@@ -93,7 +94,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         pass
 
     @abstractmethod
-    def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> List[float]:
+    def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> np.ndarray:
         """
         The function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval. The corpus given will be in the same format as self.expected_corpus_format for flexibility.
 
