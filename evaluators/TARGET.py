@@ -355,7 +355,8 @@ class TARGET:
                 },
             )
         )
-        client.recreate_collection(
+        client.delete_collection(collection_name=dataset_name)
+        client.create_collection(
             collection_name=dataset_name,
             vectors_config=models.VectorParams(
                 size=vec_size, distance=models.Distance.COSINE
