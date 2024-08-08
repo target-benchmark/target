@@ -1,14 +1,13 @@
 import json
-from llama_index.core.program import LLMTextCompletionProgram
-from llama_index.core.objects import SQLTableNodeMapping, SQLTableSchema
+from typing import Union
 from llama_index.legacy.bridge.pydantic import BaseModel, Field
-from llama_index.llms.openai import OpenAI
+from openai import OpenAI
+
 from pathlib import Path
 import pandas as pd
 
 import re
 from sqlalchemy import (
-    create_engine,
     Engine,
     MetaData,
     Table,
@@ -40,16 +39,12 @@ Table:
 
 Summary: """
 
-program = LLMTextCompletionProgram.from_defaults(
-    output_cls=TableInfo,
-    llm=OpenAI(model="gpt-3.5-turbo"),
-    prompt_template_str=prompt_str,
-)
+client = OpenAI()
 
 
 def _get_table_info_with_index(
     table_info_dir: str, table_name: str
-) -> TableInfo | None:
+) -> Union[TableInfo, None]:
     results_gen = Path(table_info_dir).glob(f"{table_name}_*")
     results_list = list(results_gen)
     if len(results_list) == 0:
@@ -69,9 +64,21 @@ def construct_table_info(
         return table_info
 
     df_str = df.head(10).to_csv()
-    table_info: TableInfo = program(
-        table_str=df_str,
+    table_info_completion = client.beta.chat.completions.parse(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {"role": "user", "content": prompt_str.format(table_str=df_str)},
+        ],
+        response_format=TableInfo,
     )
+    message = table_info_completion.choices[0].message
+    if not message.parsed:
+        raise json.JSONDecodeError
+    table_info = TableInfo(
+        table_name=message.parsed.table_name,
+        table_summary=message.parsed.table_summary,
+    )
+
     table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"  # forcefully prepend the official table name
     out_file_path = f"{table_info_dir}/{database_id}_{table_name}.json"
     with open(out_file_path, "w") as file:
