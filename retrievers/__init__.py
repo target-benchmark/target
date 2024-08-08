@@ -4,5 +4,6 @@ from retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever,
 )
 from retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
+from retrievers.naive.DefaultOpenAIEmbeddingRetriever import OpenAIEmbedder
 
 # from retrievers.tapas.TapasDenseTableRetriever import TapasDenseTableRetriever
