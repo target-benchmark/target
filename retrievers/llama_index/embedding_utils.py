@@ -1,6 +1,6 @@
 import json
 from typing import Union
-from llama_index.legacy.bridge.pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from openai import OpenAI
 
 from pathlib import Path
@@ -67,6 +67,7 @@ def construct_table_info(
     table_info_completion = client.beta.chat.completions.parse(
         model="gpt-4o-2024-08-06",
         messages=[
+            {"role": "system", "content": "You are a helpful AI assistant."},
             {"role": "user", "content": prompt_str.format(table_str=df_str)},
         ],
         response_format=TableInfo,
@@ -82,7 +83,7 @@ def construct_table_info(
     table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"  # forcefully prepend the official table name
     out_file_path = f"{table_info_dir}/{database_id}_{table_name}.json"
     with open(out_file_path, "w") as file:
-        json.dump(table_info.dict(), file)
+        json.dump(table_info.model_dump(), file)
     return table_info
 
 

@@ -110,6 +110,9 @@ class AbsDatasetLoader(ABC):
             nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
 
+    def _convert_corpus_to_dict(self):
+        return self.corpus.to_dict()
+
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
@@ -131,7 +134,7 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus has not been loaded!")
 
         in_memory_format = set_in_memory_data_format(output_format)
-        converted_corpus = self.corpus.to_dict()
+        converted_corpus = self._convert_corpus_to_dict()
         if in_memory_format == InMemoryDataFormat.DF:
             df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = df_tables
@@ -144,15 +147,9 @@ class AbsDatasetLoader(ABC):
             batch = {}
             # Use list comprehensions to extract each column
             batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
-            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
-                i : i + batch_size
-            ]
-            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
-                i : i + batch_size
-            ]
-            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
-                i : i + batch_size
-            ]
+            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
+            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
             yield batch
 
 
