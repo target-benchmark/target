@@ -70,16 +70,16 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             )
         )
 
-    # def test_basic_task_run(self):
+    def test_basic_task_run(self):
 
-    #     results = self.retr_task.task_run(
-    #         retriever=self.retriever,
-    #         dataset_loaders={"fetaqa": self.mock_dataset_loader},
-    #         logger=logger,
-    #         batch_size=1,
-    #         top_k=2,
-    #         client=self.client,
-    #     )
+        results = self.retr_task.task_run(
+            retriever=self.retriever,
+            dataset_loaders={"fetaqa": self.mock_dataset_loader},
+            logger=logger,
+            batch_size=1,
+            top_k=2,
+            client=self.client,
+        )
 
     def test_basic_full_run(self):
         # end to end test that includes the client being created and retrieval from the client

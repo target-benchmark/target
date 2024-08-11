@@ -1,7 +1,6 @@
 from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 import unittest
-import os
 
 
 class TestOTTQARetriever(unittest.TestCase):

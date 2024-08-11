@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch, MagicMock
 from target_benchmark.dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
 from target_benchmark.evaluators.TARGET import TARGET
-from target_benchmark.dataset_loaders.TargetDatasetConfig import DEFAULT_FETAQA_DATASET_CONFIG
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )

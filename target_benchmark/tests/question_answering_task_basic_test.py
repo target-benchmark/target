@@ -1,19 +1,10 @@
 import unittest
-from unittest.mock import patch, MagicMock
-import os
+from unittest.mock import MagicMock
 from target_benchmark.tasks import QuestionAnsweringTask
 from target_benchmark.tasks.TasksDataModels import *
-from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
-from target_benchmark.dataset_loaders.TargetDatasetConfig import HFDatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_WIKITQ_DATASET_CONFIG,
-    DEFAULT_FETAQA_DATASET_CONFIG,
-    DEFAULT_DUMMY_DATASET_CONFIG,
-)
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 import logging

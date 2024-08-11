@@ -26,11 +26,11 @@ def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:
     return subclasses
 
 
-import tasks
+import target_benchmark.tasks
 
 
 def find_tasks() -> Dict[str, Type[AbsTask]]:
-    return find_subclasses(tasks, AbsTask)
+    return find_subclasses(target_benchmark.tasks, AbsTask)
 
 
 def get_task_names() -> list[str]:
