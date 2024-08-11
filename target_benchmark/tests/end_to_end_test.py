@@ -1,7 +1,7 @@
-from retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from dataset_loaders.HFDatasetLoader import HFDatasetLoader
-from evaluators.TARGET import TARGET
-from tasks.QuestionAnsweringTask import QuestionAnsweringTask
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
+from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.tasks.QuestionAnsweringTask import QuestionAnsweringTask
 import unittest
 import os
 

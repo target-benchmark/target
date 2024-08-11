@@ -1,17 +1,17 @@
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
-from dataset_loaders.LoadersDataModels import (
+from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
-from dataset_loaders.utils import get_dummy_table_of_format
+from target_benchmark.dataset_loaders.utils import get_dummy_table_of_format
 from datetime import datetime
 
-from evaluators.utils import find_tasks
+from target_benchmark.evaluators.utils import find_tasks
 
-from dictionary_keys import (
+from target_benchmark.dictionary_keys import (
     CONTEXT_COL_NAME,
     METADATA_DB_ID_KEY_NAME,
     METADATA_TABLE_ID_KEY_NAME,
@@ -23,7 +23,7 @@ import logging
 import numpy as np
 
 import os
-from retrievers import (
+from target_benchmark.retrievers import (
     AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
     AbsStandardEmbeddingRetriever,
@@ -31,9 +31,9 @@ from retrievers import (
 import shutil
 import sys
 
-from tasks.AbsTask import AbsTask
-from tasks import TableRetrievalTask, Text2SQLTask
-from tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
+from target_benchmark.tasks.AbsTask import AbsTask
+from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
+from target_benchmark.tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
 import time
 from typing import Literal, Tuple, Union, List, Dict
 

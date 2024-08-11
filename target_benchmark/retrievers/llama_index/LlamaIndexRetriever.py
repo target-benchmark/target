@@ -1,7 +1,7 @@
 from typing import Dict, Iterable, List, Tuple
-from retrievers import AbsCustomEmbeddingRetriever
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 from .embedding_utils import create_table_from_dataframe, construct_table_info
-from dictionary_keys import *
+from target_benchmark.dictionary_keys import *
 from llama_index.core.objects import (
     SQLTableNodeMapping,
     ObjectIndex,

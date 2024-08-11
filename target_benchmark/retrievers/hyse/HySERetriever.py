@@ -13,8 +13,8 @@ from openai import OpenAI
 from pydantic import BaseModel, model_validator
 from typing import Dict, Iterable, Iterator, List, Tuple, Union, Optional
 
-from dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
-from retrievers import AbsCustomEmbeddingRetriever, utils
+from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "hyse")

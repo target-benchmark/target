@@ -1,5 +1,5 @@
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dictionary_keys import *
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dictionary_keys import *
 from typing import Literal
 
 from datasets import load_dataset

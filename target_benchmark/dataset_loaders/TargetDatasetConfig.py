@@ -1,4 +1,4 @@
-from dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
+from target_benchmark.dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
 
 DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="fetaqa",

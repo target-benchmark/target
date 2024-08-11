@@ -1,7 +1,7 @@
 from langchain_openai import OpenAIEmbeddings
 import numpy as np
-from retrievers import AbsStandardEmbeddingRetriever
-from retrievers.utils import markdown_table_str
+from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
+from target_benchmark.retrievers.utils import markdown_table_str
 from typing import Dict, List
 
 

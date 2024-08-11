@@ -1,4 +1,4 @@
-from dataset_loaders.utils import (
+from target_benchmark.dataset_loaders.utils import (
     InMemoryDataFormat,
     QueryType,
     set_in_memory_data_format,
@@ -8,7 +8,7 @@ from dataset_loaders.utils import (
     array_of_arrays_to_df,
     array_of_arrays_to_dict,
 )
-from dictionary_keys import *
+from target_benchmark.dictionary_keys import *
 
 from abc import ABC, abstractmethod
 from datasets import Dataset

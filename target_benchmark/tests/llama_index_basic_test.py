@@ -1,12 +1,12 @@
 import unittest
 
-from evaluators.TARGET import TARGET
-from retrievers.AbsCustomEmbeddingRetriever import (
+from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from tasks import TableRetrievalTask
+from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.tasks import TableRetrievalTask
 import os
 
 

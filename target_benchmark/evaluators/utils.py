@@ -1,4 +1,4 @@
-from tasks.AbsTask import AbsTask
+from target_benchmark.tasks.AbsTask import AbsTask
 from typing import Dict
 
 import importlib

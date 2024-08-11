@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import MagicMock
-from dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
+from target_benchmark.dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
 from evaluators import TARGET
-from tasks.TableRetrievalTask import TableRetrievalTask
-from tasks.TasksDataModels import *
-from retrievers import OpenAIEmbedder
+from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
+from target_benchmark.tasks.TasksDataModels import *
+from target_benchmark.retrievers import OpenAIEmbedder
 from qdrant_client import QdrantClient, models
 
 import logging

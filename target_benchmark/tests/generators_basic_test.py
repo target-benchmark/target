@@ -1,6 +1,6 @@
 import unittest
-from generators.DefaultGenerator import DefaultGenerator
-from generators.Text2SQLGenerator import Text2SQLGenerater
+from target_benchmark.generators.DefaultGenerator import DefaultGenerator
+from target_benchmark.generators.Text2SQLGenerator import Text2SQLGenerater
 
 
 class TestEvaluator(unittest.TestCase):

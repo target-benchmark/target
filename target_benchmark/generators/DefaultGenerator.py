@@ -1,5 +1,5 @@
-from generators.AbsGenerator import AbsGenerator
-from generators.GeneratorPrompts import (
+from target_benchmark.generators.AbsGenerator import AbsGenerator
+from target_benchmark.generators.GeneratorPrompts import (
     DEFAULT_SYSTEM_PROMPT,
     QA_USER_PROMPT,
 )

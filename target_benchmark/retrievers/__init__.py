@@ -1,9 +1,9 @@
-from retrievers.AbsRetrieverBase import AbsRetrieverBase
-from retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
-from retrievers.AbsStandardEmbeddingRetriever import (
+from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever,
 )
-from retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
-from retrievers.naive.DefaultOpenAIEmbeddingRetriever import OpenAIEmbedder
+from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
+from target_benchmark.retrievers.naive.DefaultOpenAIEmbeddingRetriever import OpenAIEmbedder
 
-# from retrievers.tapas.TapasDenseTableRetriever import TapasDenseTableRetriever
+# from target_benchmark.retrievers.tapas.TapasDenseTableRetriever import TapasDenseTableRetriever

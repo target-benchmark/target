@@ -1,10 +1,10 @@
 from dataset_loaders import Text2SQLDatasetLoader
-from dataset_loaders.LoadersDataModels import (
+from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
-from dataset_loaders.TargetDatasetConfig import *
+from target_benchmark.dataset_loaders.TargetDatasetConfig import *
 
-from dictionary_keys import (
+from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
@@ -12,16 +12,16 @@ from dictionary_keys import (
     DIFFICULTY_COL_NAME,
 )
 
-from generators import AbsGenerator, Text2SQLGenerater
-from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
+from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
-from tasks.AbsTask import AbsTask
-from tasks.TasksDataModels import (
+from target_benchmark.tasks.AbsTask import AbsTask
+from target_benchmark.tasks.TasksDataModels import (
     Text2SQLTaskPerformanceDataModel,
 )
-from tasks.utils import evaluate_sql_execution
+from target_benchmark.tasks.utils import evaluate_sql_execution
 from pathlib import Path
 import sqlite3
 from typing import List, Dict, Union
