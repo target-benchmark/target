@@ -1,6 +1,6 @@
 from typing import Dict
 import unittest
-from dataset_loaders import Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.AbsDatasetLoader import QueryType
 from target_benchmark.dataset_loaders.TargetDatasetConfig import DEFAULT_SPIDER_TEST_DATASET_CONFIG
 from datasets import Dataset

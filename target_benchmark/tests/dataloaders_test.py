@@ -1,5 +1,5 @@
 import unittest
-from dataset_loaders import HFDatasetLoader
+from target_benchmark.dataset_loaders import HFDatasetLoader
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_TABFACT_DATASET_CONFIG,
 )

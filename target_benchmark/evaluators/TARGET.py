@@ -1,5 +1,5 @@
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,

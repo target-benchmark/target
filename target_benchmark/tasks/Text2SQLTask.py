@@ -1,4 +1,4 @@
-from dataset_loaders import Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )

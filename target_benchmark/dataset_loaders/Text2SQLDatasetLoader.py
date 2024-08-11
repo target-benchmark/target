@@ -10,7 +10,7 @@ from target_benchmark.dataset_loaders.utils import (
 from target_benchmark.dictionary_keys import *
 
 
-from dataset_loaders import HFDatasetLoader
+from target_benchmark.dataset_loaders import HFDatasetLoader
 
 from huggingface_hub import snapshot_download
 
