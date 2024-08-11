@@ -26,12 +26,18 @@ class TestEvaluator(unittest.TestCase):
             downstream_tasks=[
                 ("Text to SQL Task", "spider-test"),
                 ("Table Question Answering Task", ["fetaqa", "ottqa"]),
-                self.trt
+                self.trt,
             ]
         )
         self.assertSetEqual(
             set(target.get_loaded_tasks()),
-            set(["Table Question Answering Task", "Text to SQL Task", "Table Retrieval Task"]),
+            set(
+                [
+                    "Table Question Answering Task",
+                    "Text to SQL Task",
+                    "Table Retrieval Task",
+                ]
+            ),
         )
         dataset_info = target.dataset_info
         self.assertSetEqual(
@@ -41,12 +47,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertIsInstance(dataset_info["ottqa"], HFDatasetConfigDataModel)
 
     def test_duplicate_input_dataset_config(self):
-        target = TARGET(
-            downstream_tasks=[
-                "Table Retrieval Task",
-                self.trt
-            ]
-        )
+        target = TARGET(downstream_tasks=["Table Retrieval Task", self.trt])
         # check if warning was tracked in log
 
     def test_default_evaluator_creation(self):

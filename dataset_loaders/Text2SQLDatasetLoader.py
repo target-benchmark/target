@@ -116,48 +116,8 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def convert_corpus_table_to(
-        self,
-        output_format: str = "nested array",
-        batch_size: int = 1,
-    ) -> Iterable[Dict]:
-        """
-        convert the corpus table to a specific format in memory.
-
-        Parameters:
-
-            output_format (str): the output class name, can be nest_array, pandas, etc.
-            batch_size (int): number of tables to be outputted at once
-
-        Returns:
-            a generator. each yield produces a dictionary with keys "table_id", "table", "database_id", "context".
-        """
-
-        if not self.corpus:
-            raise RuntimeError("Corpus has not been loaded!")
-
-        in_memory_format = set_in_memory_data_format(output_format)
-        converted_corpus = self.corpus.copy()
-        if in_memory_format == InMemoryDataFormat.DF:
-            df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
-            converted_corpus[TABLE_COL_NAME] = df_tables
-        elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            dict_tables = list(
-                map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME])
-            )
-            converted_corpus[TABLE_COL_NAME] = dict_tables
-        else:
-            converted_corpus = self.corpus
-        for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
-            res = {}
-            # Use list comprehensions to extract each column
-            res[TABLE_COL_NAME] = self.corpus[TABLE_COL_NAME][i : i + batch_size]
-            res[DATABASE_ID_COL_NAME] = self.corpus[DATABASE_ID_COL_NAME][
-                i : i + batch_size
-            ]
-            res[TABLE_ID_COL_NAME] = self.corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            res[CONTEXT_COL_NAME] = self.corpus[CONTEXT_COL_NAME][i : i + batch_size]
-            yield res
+    def _convert_corpus_to_dict(self):
+        return self.corpus.copy()
 
     def get_corpus(self) -> List[Dict]:
         """
@@ -173,6 +133,20 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
         return self.corpus
+
+    def get_corpus_size(self) -> int:
+        """
+        Get the number of tables in the corpus.
+
+        Returns:
+            number of tables.
+
+        Raises:
+            a runtime error if corpus has not been loaded yet.
+        """
+        if not self.corpus:
+            raise RuntimeError("Corpus datasets have not been loaded!")
+        return len(self.corpus)
 
     def get_corpus_header(self) -> List[str]:
         """

@@ -31,7 +31,8 @@ from tasks.TasksDataModels import (
 
 from abc import ABC, abstractmethod
 from logging import Logger
-from typing import Union, List, Dict
+import time
+from typing import Tuple, Union, List, Dict
 
 
 class AbsTask(ABC):
@@ -206,8 +207,9 @@ class AbsTask(ABC):
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
+            total_duration = 0
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieved_tables = self._get_retrieval_results(
+                retrieved_tables, duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     table_id_to_table,
@@ -215,6 +217,7 @@ class AbsTask(ABC):
                     top_k,
                     **kwargs,
                 )
+                total_duration += duration
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
@@ -227,7 +230,14 @@ class AbsTask(ABC):
                 logger.info(
                     f"number of queries processed: {self.total_queries_processed}"
                 )
-            retrieval_performance = self._calculate_table_retrieval_performance(top_k)
+
+            # retrieval performance, precision, recall, f1, etc.
+            retrieval_performance = self._calculate_table_retrieval_performance(
+                top_k,
+                total_duration,
+                total_duration / dataset_loader.get_queries_size(),
+            )
+            # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
                 **kwargs
             )
@@ -242,21 +252,21 @@ class AbsTask(ABC):
     def _fill_retrieval_results_with_table_strs(
         self,
         retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_tables: Dict[str, List[List]],
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> None:
         """
         Fills the retrieval result data model objects with Markdown table strings based on the table IDs stored in each retrieval result.
 
         Parameters:
             retrieval_results (List[RetrievalResultDataModel]): List of retrieval result data models to be filled with table strings.
-            table_id_to_tables (Dict[str, List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
+            table_id_to_table (Dict[Tuple[str, str], List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
 
         Returns:
             None
         """
         for result in retrieval_results:
             result.retrieved_tables = [
-                markdown_table_str(table_id_to_tables[id])
+                markdown_table_str(table_id_to_table[id])
                 for id in result.retrieval_results
             ]
 
@@ -268,7 +278,7 @@ class AbsTask(ABC):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> List[RetrievalResultDataModel]:
+    ) -> Tuple[List[RetrievalResultDataModel], float]:
         """
         Retrieves the top k results for each query in the batch using the specified retriever from a dataset.
 
@@ -281,6 +291,7 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
+        start_time = time.process_time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
@@ -300,11 +311,13 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
+        end_time = time.process_time()
+        duration = end_time - start_time
         # complete the results data model objects with table strings
         self._fill_retrieval_results_with_table_strs(
             retrieval_results, table_id_to_table
         )
-        return retrieval_results
+        return retrieval_results, duration
 
     def _update_retrieval_metrics(
         self,
@@ -327,14 +340,17 @@ class AbsTask(ABC):
             new_retrieved_tables,
         ):
             if (
-                db_id,
-                table_id,
+                str(db_id),
+                str(table_id),
             ) in retrieval_result.retrieval_results:
                 self.true_positive += 1
             self.total_queries_processed += 1
 
     def _calculate_table_retrieval_performance(
-        self, top_k: int
+        self,
+        top_k: int,
+        total_retrieval_duration: float,
+        avg_retrieval_time: float,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -347,7 +363,10 @@ class AbsTask(ABC):
         """
         if self.total_queries_processed != 0:
             performace = RetrievalPerformanceDataModel(
-                k=top_k, accuracy=self.true_positive / self.total_queries_processed
+                k=top_k,
+                accuracy=self.true_positive / self.total_queries_processed,
+                retrieval_time=round(total_retrieval_duration, 5),
+                avg_retrieval_time=round(avg_retrieval_time, 5),
             )
         else:
             raise ValueError("haven't processed any queries!")

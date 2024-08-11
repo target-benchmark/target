@@ -1,6 +1,7 @@
 from retrievers import AbsStandardEmbeddingRetriever
 from typing import Dict, List
 from langchain_openai import OpenAIEmbeddings
+from retrievers.utils import json_table_str
 
 
 class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):
@@ -14,7 +15,7 @@ class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):
         self.embedding_model = OpenAIEmbeddings(model=embedding_model)
 
     def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> List[float]:
-        table_str = utils.json_table_str(corpus_entry["table"])
+        table_str = json_table_str(corpus_entry["table"])
         return self.embedding_model.embed_query(table_str)
 
     def retrieve(
