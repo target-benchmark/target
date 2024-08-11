@@ -1,6 +1,4 @@
 import os
-import openai
-
 from openai import AzureOpenAI
 
 client = AzureOpenAI(

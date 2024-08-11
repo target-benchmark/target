@@ -2,7 +2,7 @@ import hnswlib
 import json
 import numpy as np
 
-from typing import List, Tuple
+from typing import List
 
 
 def construct_embedding_index(table_embeddings: List[List]):
