@@ -9,7 +9,15 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
 )
-from target_benchmark.dictionary_keys import *
+from target_benchmark.dictionary_keys import (
+    CLIENT_KEY_NAME,
+    DATABASE_ID_COL_NAME,
+    DATASET_NAME,
+    GENERIC_DATASET_CONFIG_FIELD,
+    HF_DATASET_CONFIG_CORPUS_FIELD,
+    HF_DATASET_CONFIG_QUERIES_FIELD,
+    TABLE_ID_COL_NAME,
+)
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorsDataModels import (
