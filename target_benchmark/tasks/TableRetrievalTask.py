@@ -1,7 +1,9 @@
 from typing import Dict, List
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import *
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_FETAQA_DATASET_CONFIG,
+)
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,

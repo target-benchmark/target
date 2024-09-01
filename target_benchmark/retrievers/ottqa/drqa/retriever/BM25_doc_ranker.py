@@ -12,16 +12,16 @@ import sys
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
+import drqa_tokenizers
 import numpy as np
 import scipy.sparse as sp
+
+from . import utils
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.dirname(current_path))
 
-import drqa_tokenizers
-
-from . import utils
 
 logger = logging.getLogger(__name__)
 

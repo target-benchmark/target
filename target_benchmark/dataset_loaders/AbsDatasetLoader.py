@@ -14,7 +14,12 @@ from target_benchmark.dataset_loaders.utils import (
     set_query_type,
     write_table_to_path,
 )
-from target_benchmark.dictionary_keys import *
+from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 
 
 class AbsDatasetLoader(ABC):

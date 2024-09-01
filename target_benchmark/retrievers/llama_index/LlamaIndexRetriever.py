@@ -7,7 +7,11 @@ from llama_index.core.query_pipeline import InputComponent
 from llama_index.core.query_pipeline import QueryPipeline as QP
 from sqlalchemy import MetaData, create_engine
 
-from target_benchmark.dictionary_keys import *
+from target_benchmark.dictionary_keys import (
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 
 from .embedding_utils import construct_table_info, create_table_from_dataframe

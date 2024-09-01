@@ -6,7 +6,7 @@ from huggingface_hub import snapshot_download
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
 from target_benchmark.dataset_loaders.utils import write_table_to_path
-from target_benchmark.dictionary_keys import *
+from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):

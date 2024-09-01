@@ -8,7 +8,7 @@
 import ast
 import json
 import os
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Union
 
 from dotenv import load_dotenv
 

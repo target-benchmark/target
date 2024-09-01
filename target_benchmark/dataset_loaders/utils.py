@@ -5,7 +5,11 @@ from typing import Dict, List, Literal
 
 import pandas as pd
 
-from target_benchmark.dataset_loaders.DatasetLoaderEnums import *
+from target_benchmark.dataset_loaders.DatasetLoaderEnums import (
+    InMemoryDataFormat,
+    PersistenceDataFormat,
+    QueryType,
+)
 
 
 def set_query_type(string_rep: str) -> QueryType:
@@ -166,25 +170,3 @@ def get_dummy_table_of_format(
         return array_of_arrays_to_df(dummy_table)
     else:
         return dummy_table
-
-
-def write_table_to_path(
-    format: Literal["csv", "json"],
-    table_name: Path,
-    split_path: Path,
-    nested_array: List[List],
-) -> None:
-    format = format.lower()
-    if format.lower() == "csv":
-        if "csv" not in table_name.suffix:
-            table_name = table_name / ".csv"
-        table_path = split_path / table_name
-        with open(table_path, "w", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(nested_array)
-    if format.lower() == "json":
-        if "json" not in table_name.suffix:
-            table_name = table_name / ".json"
-        table_path = split_path / table_name
-        # TODO: write JSON persistence logic
-        pass

@@ -4,7 +4,6 @@ from typing import Literal
 from datasets import DatasetDict, load_dataset
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from target_benchmark.dictionary_keys import *
 
 
 class GenericDatasetLoader(AbsDatasetLoader):

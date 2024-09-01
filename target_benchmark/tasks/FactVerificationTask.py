@@ -3,7 +3,9 @@ from typing import Dict, List
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import *
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_TABFACT_DATASET_CONFIG,
+)
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     QUERY_COL_NAME,

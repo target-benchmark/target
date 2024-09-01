@@ -3,7 +3,10 @@ from typing import Dict, List, Union
 import evaluate
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import *
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_FETAQA_DATASET_CONFIG,
+    DEFAULT_OTTQA_DATASET_CONFIG,
+)
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     QUERY_COL_NAME,
