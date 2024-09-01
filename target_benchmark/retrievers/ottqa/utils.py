@@ -1,26 +1,25 @@
-import math
-from nltk.tokenize import word_tokenize, sent_tokenize
-import urllib.parse
-import sys
-import json
 import gzip
+import importlib.util
+import json
+import math
 import os
-from .drqa import retriever
-from .drqa import drqa_tokenizers
-from dateutil.parser import parse
 import re
+import sqlite3
+import urllib.parse
+import warnings
+from collections import Counter
+from functools import partial
 from multiprocessing import Pool as ProcessPool
 from multiprocessing.util import Finalize
-from functools import partial
-from collections import Counter
-import sqlite3
-import importlib.util
-from tqdm import tqdm
+from typing import Dict, List
+
 import numpy as np
 import scipy.sparse as sp
-from typing import List, Dict
+from dateutil.parser import parse
+from nltk.tokenize import sent_tokenize, word_tokenize
+from tqdm import tqdm
 
-import warnings
+from .drqa import drqa_tokenizers, retriever
 
 warnings.filterwarnings("ignore")
 
@@ -196,7 +195,6 @@ default_hash_size = int(math.pow(2, 24))
 
 
 class TFIDFBuilder:
-
     def __init__(self):
         self.PREPROCESS_FN = None
         self.DOC2IDX = None

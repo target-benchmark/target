@@ -1,9 +1,11 @@
 import csv
-from target_benchmark.dataset_loaders.DatasetLoaderEnums import *
 import json
-from typing import List, Literal, Dict
-import pandas as pd
 from pathlib import Path
+from typing import Dict, List, Literal
+
+import pandas as pd
+
+from target_benchmark.dataset_loaders.DatasetLoaderEnums import *
 
 
 def set_query_type(string_rep: str) -> QueryType:

@@ -5,8 +5,6 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-
 
 def get_class(name):
     if name == "tfidf":
@@ -18,6 +16,6 @@ def get_class(name):
     raise RuntimeError("Invalid retriever class: %s" % name)
 
 
+from .BM25_doc_ranker import BM25DocRanker
 from .doc_db import DocDB
 from .tfidf_doc_ranker import TfidfDocRanker
-from .BM25_doc_ranker import BM25DocRanker

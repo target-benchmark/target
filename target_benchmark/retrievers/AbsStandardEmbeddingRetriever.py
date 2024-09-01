@@ -1,19 +1,18 @@
 from abc import abstractmethod
+from typing import Dict, List
 
+import numpy as np
+from qdrant_client import QdrantClient
 
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
-    METADATA_TABLE_ID_KEY_NAME,
     METADATA_DB_ID_KEY_NAME,
+    METADATA_TABLE_ID_KEY_NAME,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
 )
-import numpy as np
-from qdrant_client import QdrantClient
 from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-
-from typing import List, Dict
 
 
 class AbsStandardEmbeddingRetriever(AbsRetrieverBase):

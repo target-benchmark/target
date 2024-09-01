@@ -1,19 +1,16 @@
 import json
 import os
-import logging
 import time
-import unittest
 
-from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
-from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
-from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from target_benchmark.evaluators.TARGET import TARGET
-from target_benchmark.tasks.QuestionAnsweringTask import QuestionAnsweringTask
+from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
+from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import (
+    HNSWOpenAIEmbeddingRetriever,
+)
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 
 
 class RetrieverEval:
-
     def __init__(
         self,
         retriever_name: str,
@@ -78,7 +75,7 @@ if __name__ == "__main__":
         for num_schemas in [1, 2, 5]:
             hyse_retriever = HySERetriever(
                 os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/hyse"
+                    os.path.dirname(os.path.abspath(__file__)), "retrieval_files/hyse"
                 ),
                 num_rows=2,
                 num_schemas=num_schemas,
@@ -94,7 +91,7 @@ if __name__ == "__main__":
     # for num_rows in [0, 1, 2, 5]:
     naive_openai_retriever = HNSWOpenAIEmbeddingRetriever(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/hnswopenai"
+            os.path.dirname(os.path.abspath(__file__)), "retrieval_files/hnswopenai"
         ),
         num_rows=2,
     )

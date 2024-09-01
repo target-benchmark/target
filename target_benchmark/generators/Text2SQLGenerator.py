@@ -1,14 +1,15 @@
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-from langchain_core.prompts import ChatPromptTemplate
-
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.messages import SystemMessage
-from langchain_core.prompts import HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorPrompts import TEXT2SQL_SYSTEM_PROMPT, TEXT2SQL_USER_PROMPT
+from target_benchmark.generators.GeneratorPrompts import (
+    TEXT2SQL_SYSTEM_PROMPT,
+    TEXT2SQL_USER_PROMPT,
+)
 
 
 class Text2SQLGenerater(DefaultGenerator):
-
     def __init__(
         self,
         system_message: str = TEXT2SQL_SYSTEM_PROMPT,

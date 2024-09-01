@@ -1,21 +1,12 @@
 import json
-import requests
-from target_benchmark.dataset_loaders.utils import (
-    InMemoryDataFormat,
-    array_of_arrays_to_df,
-    array_of_arrays_to_dict,
-    set_in_memory_data_format,
-    write_table_to_path,
-)
-from target_benchmark.dictionary_keys import *
-
-
-from target_benchmark.dataset_loaders import HFDatasetLoader
+from pathlib import Path
+from typing import Dict, List, Literal
 
 from huggingface_hub import snapshot_download
 
-from pathlib import Path
-from typing import Dict, Iterable, List, Literal
+from target_benchmark.dataset_loaders import HFDatasetLoader
+from target_benchmark.dataset_loaders.utils import write_table_to_path
+from target_benchmark.dictionary_keys import *
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
@@ -54,7 +45,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         """
         assert (
             dataset_name == "spider" or dataset_name == "bird"
-        ), f"we don't allow customized text2sql datasets yet. try spider or bird instead"
+        ), "we don't allow customized text2sql datasets yet. try spider or bird instead"
 
         super().__init__(
             dataset_name=dataset_name,
@@ -97,7 +88,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
 
         if not path:
             if not self.data_directory:
-                raise ValueError(f"No path for persistence is specified!")
+                raise ValueError("No path for persistence is specified!")
             path = self.data_directory
 
         path_to_write_to = Path(path)
