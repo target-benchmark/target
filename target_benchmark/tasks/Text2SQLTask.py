@@ -2,9 +2,11 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Union
 
-from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import DEFAULT_SPIDER_TEST_DATASET_CONFIG
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+)
+from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     DATABASE_ID_COL_NAME,
@@ -56,7 +58,7 @@ class Text2SQLTask(AbsTask):
         if "execution_ves" in metrics:
             self.include_ves = True
 
-        # two lists, pred_sql contains the predicted sql queries, 
+        # two lists, pred_sql contains the predicted sql queries,
         # and ref_sql contains the ground truth sql queries.
         self.pred_sql = []
         self.ref_sql = []

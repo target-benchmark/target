@@ -38,7 +38,7 @@ def iterated_execute_sql(
 ) -> float:
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
-    # given a predicted sql, ground truth sql, 
+    # given a predicted sql, ground truth sql,
     # and the respective db paths of each, get efficiency results.
     pred_conn = sqlite3.connect(
         os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite")
