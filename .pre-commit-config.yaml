@@ -1,3 +1,5 @@
+exclude: ^target_benchmark/tests/
+
 repos:
   - repo: https://github.com/mwouts/jupytext
     rev: v1.16.4
@@ -27,4 +29,7 @@ repos:
     rev: v4.4.0  # Use the latest version available
     hooks:
       - id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]        
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files           
