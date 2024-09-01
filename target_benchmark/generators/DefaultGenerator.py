@@ -9,8 +9,6 @@ from langchain_core.messages import SystemMessage
 from langchain_core.prompts import HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
 
-import os
-
 
 class DefaultGenerator(AbsGenerator):
     def __init__(
