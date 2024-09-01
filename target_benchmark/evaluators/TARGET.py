@@ -96,7 +96,8 @@ class TARGET:
         self.logger.info(
             "Finished creating dataset config information. Finished setting up."
         )
-        self.dataloaders = {}
+        self.dataloaders: Dict[str, AbsDatasetLoader] = {}
+        self.needle_in_haystack_dataloaders: Dict[str, AbsDatasetLoader] = {}
 
     def load_tasks(
         self,
@@ -238,14 +239,49 @@ class TARGET:
                     eval_dataset_config[dataset_name] = config
         return eval_dataset_config
 
+    def _create_dataloader_from_config(
+        self, config: DatasetConfigDataModel
+    ) -> Union[AbsDatasetLoader, None]:
+        if isinstance(config, Text2SQLDatasetConfigDataModel):
+            return Text2SQLDatasetLoader(**config.model_dump())
+        elif isinstance(config, HFDatasetConfigDataModel):
+            return HFDatasetLoader(**config.model_dump())
+        elif isinstance(config, GenericDatasetConfigDataModel):
+            return GenericDatasetConfigDataModel(**config.model_dump())
+        else:
+            self.logger.warning(
+                f"The dataset config passed in for {config.dataset_name} "
+                f"is not a valid dataset config data model. Skipping..."
+            )
+            return None
+
+    def create_needle_in_haystack_dataloaders(
+        self,
+        needle_in_haystack_dataset_config: Dict[
+            str, DatasetConfigDataModel
+        ] = default_needle_in_haystack_dataset_config,
+    ) -> None:
+        """
+        Create the dataloaders according to the needle in haystack dataset config.
+        Update self.needle_in_haystack_dataloaders.
+        Doesn't load the data until the tasks are actually being run.
+
+        Parameters:
+            needle_in_haystack_dataset_config (Dict[str, DatasetConfigDataModel], optional): A dictionary mapping dataset names to the config data models. defaults to the gittables dataset.
+
+        """
+        for dataset_name, config in needle_in_haystack_dataset_config.items():
+            if dataset_name in self.needle_in_haystack_dataloaders:
+                continue
+            created_loader = self._create_dataloader_from_config(config)
+            if not created_loader:
+                continue
+            self.needle_in_haystack_dataloaders[dataset_name] = created_loader
+
     def create_dataloaders(
         self,
         dataset_config: Dict[str, DatasetConfigDataModel],
         split: Literal["test", "train", "validation"] = "test",
-        needle_in_haystack: bool = False,
-        needle_in_haystack_dataset_config: Dict[
-            str, DatasetConfigDataModel
-        ] = default_needle_in_haystack_dataset_config,
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
@@ -257,8 +293,6 @@ class TARGET:
             a dictionary of dataloaders mapping dataset names to dataloader objects.
         """
         eval_dataloaders = {}
-        if needle_in_haystack:
-            dataset_config = dataset_config | needle_in_haystack_dataset_config
         for dataset_name, config in dataset_config.items():
             # if the dataset with the same name and the same split already exists, no need to do anything
             if (
@@ -267,21 +301,21 @@ class TARGET:
             ):
                 continue
             config.split = split
-            if isinstance(config, Text2SQLDatasetConfigDataModel):
-                eval_dataloaders[dataset_name] = Text2SQLDatasetLoader(
-                    **config.model_dump()
-                )
-            elif isinstance(config, HFDatasetConfigDataModel):
-                eval_dataloaders[dataset_name] = HFDatasetLoader(**config.model_dump())
-            elif isinstance(config, GenericDatasetConfigDataModel):
-                eval_dataloaders[dataset_name] = GenericDatasetConfigDataModel(
-                    **config.model_dump()
-                )
-            else:
-                self.logger.warning(
-                    f"The dataset config passed in for {dataset_name} is not a valid dataset config data model. Skipping..."
-                )
+            created_loader = self._create_dataloader_from_config(config)
+            if not created_loader:
+                continue
+            eval_dataloaders[dataset_name] = created_loader
+
         return eval_dataloaders
+
+    def update_dataloaders(
+        self,
+        dataset_config: Dict[str, DatasetConfigDataModel],
+        split: Literal["test", "train", "validation"] = "test",
+    ) -> None:
+        self.dataloaders: Dict[str, AbsDatasetLoader] = (
+            self.dataloaders | self.create_dataloaders(dataset_config, split)
+        )
 
     def load_datasets_for_task(
         self,
@@ -348,6 +382,7 @@ class TARGET:
         retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
+        needle_in_haystack: bool = False,
     ) -> Tuple[float, float]:
         """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
@@ -378,31 +413,63 @@ class TARGET:
             ),
         )
         cur_dataloader = self.dataloaders[dataset_name]
-        vectors = []
-        metadata = []
-        start_time = time.process_time()
-        for entry in cur_dataloader.convert_corpus_table_to(
-            retriever.get_expected_corpus_format()
-        ):  # TODO: support batching
-            entry = {key: value[0] for key, value in entry.items()}
-            table_embedding = retriever.embed_corpus(dataset_name, entry)
-            vectors.append(table_embedding)
-            metadata.append(
-                {
-                    METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
-                    METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
-                }
-            )
-        end_time = time.process_time()
-        duration = end_time - start_time
-        vectors = np.array(vectors)
-        embedding_size = vectors.nbytes
+        dataloaders = [cur_dataloader]
+        if needle_in_haystack:
+            dataloaders += list(self.needle_in_haystack_dataloaders.values())
+        duration = 0
+        embedding_size = 0
+        # vectors = []
+        # metadata = []
+        # start_time = time.process_time()
+        # for entry in cur_dataloader.convert_corpus_table_to(
+        #     retriever.get_expected_corpus_format()
+        # ):  # TODO: support batching
+        #     entry = {key: value[0] for key, value in entry.items()}
+        #     table_embedding = retriever.embed_corpus(dataset_name, entry)
+        #     vectors.append(table_embedding)
+        #     metadata.append(
+        #         {
+        #             METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
+        #             METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
+        #         }
+        #     )
+        # end_time = time.process_time()
+        # duration += end_time - start_time
+        # vectors = np.array(vectors)
+        # embedding_size += vectors.nbytes
+        # client.upload_collection(
+        #     collection_name=dataset_name,
+        #     vectors=vectors,
+        #     payload=metadata,
+        # )
 
-        client.upload_collection(
-            collection_name=dataset_name,
-            vectors=vectors,
-            payload=metadata,
-        )
+        for cur_dataloader in dataloaders:
+            vectors = []
+            metadata = []
+            start_time = time.process_time()
+            for entry in cur_dataloader.convert_corpus_table_to(
+                retriever.get_expected_corpus_format()
+            ):  # TODO: support batching
+                entry = {key: value[0] for key, value in entry.items()}
+                table_embedding = retriever.embed_corpus(dataset_name, entry)
+                vectors.append(table_embedding)
+                metadata.append(
+                    {
+                        METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
+                        METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
+                    }
+                )
+            end_time = time.process_time()
+            duration += end_time - start_time
+            vectors = np.array(vectors)
+            embedding_size += vectors.nbytes
+
+            client.upload_collection(
+                collection_name=dataset_name,
+                vectors=vectors,
+                payload=metadata,
+            )
+
         return duration, embedding_size
 
     def embed_with_custom_embeddings(
@@ -410,6 +477,7 @@ class TARGET:
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
         batch_size: int,
+        needle_in_haystack: bool = False,
     ) -> Tuple[float, float]:
         start_disk_usage = shutil.disk_usage("/").used
         start_time = time.process_time()
@@ -420,6 +488,16 @@ class TARGET:
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
+        if needle_in_haystack:
+            for (
+                needle_in_haystack_dataloader
+            ) in self.needle_in_haystack_dataloaders.values():
+                retriever.embed_corpus(
+                    dataset_name,
+                    needle_in_haystack_dataloader.convert_corpus_table_to(
+                        retriever.get_expected_corpus_format(), batch_size
+                    ),
+                )
         end_time = time.process_time()
         duration = end_time - start_time
         end_disk_usage = shutil.disk_usage("/").used
@@ -448,12 +526,11 @@ class TARGET:
 
         # update the dictionary of dataset loaders
         # to include any needed loaders
-        self.dataloaders: Dict[str, AbsDatasetLoader] = (
-            self.dataloaders
-            | self.create_dataloaders(
-                self.dataset_info, split, needle_in_haystack
-            )  # TODO: potentially configure
-        )
+        self.update_dataloaders(self.dataset_info, split)
+
+        # if needle in haystack, load needed datasets
+        if needle_in_haystack:
+            self.create_needle_in_haystack_dataloaders()
 
         all_results = {}
         loaded_datasets = set()
