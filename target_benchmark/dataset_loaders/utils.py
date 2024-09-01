@@ -7,25 +7,20 @@ from pathlib import Path
 
 
 def set_query_type(string_rep: str) -> QueryType:
-    string_rep = string_rep.lower()
-    if string_rep in QueryType.FACT_VERIFICATION.value.lower():
-        return QueryType.FACT_VERIFICATION
-    elif string_rep in QueryType.TABLE_QA.value.lower():
-        return QueryType.TABLE_QA
-    elif string_rep in QueryType.TEXT_2_SQL.value.lower():
-        return QueryType.TEXT_2_SQL
-    else:
-        return QueryType.OTHER
+    string_rep = string_rep.lower().strip()
+    for query_type in QueryType:
+        if string_rep == query_type.value.lower():
+            return query_type
+    return QueryType.OTHER
 
 
 def set_persistence_data_format(string_rep: str) -> PersistenceDataFormat:
     cleaned = string_rep.lower().strip()
-    if PersistenceDataFormat.JSON.value in cleaned:
-        return PersistenceDataFormat.JSON
-    elif PersistenceDataFormat.CSV.value in cleaned:
-        return PersistenceDataFormat.CSV
+    for format_type in PersistenceDataFormat:
+        if format_type.value in cleaned:
+            return format_type
     raise ValueError(
-        f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
+        f"The input format '{string_rep}' did not match any available formats! Try 'array', 'dataframe', 'csv', or 'json'."
     )
 
 

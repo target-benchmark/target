@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
-from target_benchmark.dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
+from target_benchmark.dictionary_keys import (
+    METADATA_TABLE_ID_KEY_NAME,
+    METADATA_DB_ID_KEY_NAME,
+)
 from evaluators import TARGET
 from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
 from target_benchmark.tasks.TasksDataModels import *

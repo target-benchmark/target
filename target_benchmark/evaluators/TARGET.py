@@ -1,5 +1,8 @@
-from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_GITTABLES_DATASET_CONFIG,
+)
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
@@ -29,16 +32,22 @@ from target_benchmark.retrievers import (
     AbsStandardEmbeddingRetriever,
 )
 import shutil
-import sys
 
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
-from target_benchmark.tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
+from target_benchmark.tasks.TasksDataModels import (
+    TaskResultsDataModel,
+    EmbeddingStatisticsDataModel,
+)
 import time
 from typing import Literal, Tuple, Union, List, Dict
 
 
 from qdrant_client import QdrantClient, models
+
+default_needle_in_haystack_dataset_config = {
+    DEFAULT_GITTABLES_DATASET_CONFIG.dataset_name: DEFAULT_GITTABLES_DATASET_CONFIG
+}
 
 
 class TARGET:
@@ -233,6 +242,10 @@ class TARGET:
         self,
         dataset_config: Dict[str, DatasetConfigDataModel],
         split: Literal["test", "train", "validation"] = "test",
+        needle_in_haystack: bool = False,
+        needle_in_haystack_dataset_config: Dict[
+            str, DatasetConfigDataModel
+        ] = default_needle_in_haystack_dataset_config,
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Create the dataloaders according to the dataset config. Doesn't load the data until the tasks are actually being run.
@@ -244,6 +257,8 @@ class TARGET:
             a dictionary of dataloaders mapping dataset names to dataloader objects.
         """
         eval_dataloaders = {}
+        if needle_in_haystack:
+            dataset_config = dataset_config | needle_in_haystack_dataset_config
         for dataset_name, config in dataset_config.items():
             # if the dataset with the same name and the same split already exists, no need to do anything
             if (
@@ -417,6 +432,7 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 1,
         top_k: int = 5,
+        needle_in_haystack: bool = False,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -429,8 +445,14 @@ class TARGET:
             top_k (int, optional): top k tables to retrieve.
         """
         self.logger.info("Started creating data loader objects...")
+
+        # update the dictionary of dataset loaders
+        # to include any needed loaders
         self.dataloaders: Dict[str, AbsDatasetLoader] = (
-            self.dataloaders | self.create_dataloaders(self.dataset_info, split)
+            self.dataloaders
+            | self.create_dataloaders(
+                self.dataset_info, split, needle_in_haystack
+            )  # TODO: potentially configure
         )
 
         all_results = {}

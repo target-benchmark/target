@@ -62,7 +62,11 @@ class AbsDatasetLoader(ABC):
     def load(self) -> None:
         if not self.corpus:
             self._load_corpus()
-        if not self.queries:
+
+        if (
+            not self.queries and self.query_type != QueryType.NEEDLE_IN_HAYSTACK
+        ):  # only queries if it's not a needle in haystack dataset
+
             self._load_queries()
 
     @abstractmethod
@@ -147,9 +151,15 @@ class AbsDatasetLoader(ABC):
             batch = {}
             # Use list comprehensions to extract each column
             batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
-            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
-            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
+            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
+                i : i + batch_size
+            ]
             yield batch
 
     def get_table_id_to_table(

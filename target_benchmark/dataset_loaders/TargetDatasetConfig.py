@@ -34,6 +34,13 @@ DEFAULT_SPIDER_TEST_DATASET_CONFIG = HFDatasetConfigDataModel(
     query_type="Text to SQL",
 )
 
+DEFAULT_GITTABLES_DATASET_CONFIG = HFDatasetConfigDataModel(
+    dataset_name="gittables",
+    hf_corpus_dataset_path="target-benchmark/gittables-corpus",
+    hf_queries_dataset_path="target-benchmark/fetaqa-queries",  # TODO: maybe avoid this?
+    query_type="Other",
+)
+
 # TESTING ONLY
 DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="dummy-dataset",

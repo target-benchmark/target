@@ -4,7 +4,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import HumanMessagePromptTemplate
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorPrompts import TEXT2SQL_SYSTEM_PROMPT, TEXT2SQL_USER_PROMPT
+from target_benchmark.generators.GeneratorPrompts import (
+    TEXT2SQL_SYSTEM_PROMPT,
+    TEXT2SQL_USER_PROMPT,
+)
 
 
 class Text2SQLGenerater(DefaultGenerator):

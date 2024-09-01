@@ -9,7 +9,9 @@ from target_benchmark.dictionary_keys import *
 
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
+)
 
 from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (

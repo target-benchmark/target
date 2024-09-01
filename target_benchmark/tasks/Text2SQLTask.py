@@ -13,7 +13,9 @@ from target_benchmark.dictionary_keys import (
 )
 
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
+)
 
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 

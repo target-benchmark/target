@@ -2,7 +2,9 @@ import unittest
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks.Text2SQLTask import Text2SQLTask
 from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
-from target_benchmark.dataset_loaders.TargetDatasetConfig import DEFAULT_SPIDER_TEST_DATASET_CONFIG
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+)
 
 
 class T2SDataloadersTest(unittest.TestCase):

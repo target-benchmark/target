@@ -2,11 +2,20 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
 from target_benchmark.dataset_loaders.TargetDatasetConfig import *
-from target_benchmark.dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
+from target_benchmark.dictionary_keys import (
+    ANSWER_COL_NAME,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
+)
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-from target_benchmark.generators.GeneratorPrompts import QA_SYSTEM_PROMPT, QA_USER_PROMPT
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
+)
+from target_benchmark.generators.GeneratorPrompts import (
+    QA_SYSTEM_PROMPT,
+    QA_USER_PROMPT,
+)
 
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 

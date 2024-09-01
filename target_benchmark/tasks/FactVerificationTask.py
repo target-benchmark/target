@@ -3,12 +3,21 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
 )
 from target_benchmark.dataset_loaders.TargetDatasetConfig import *
 
-from target_benchmark.dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
+from target_benchmark.dictionary_keys import (
+    ANSWER_COL_NAME,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
+)
 
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorPrompts import FACT_VER_SYSTEM_PROMPT, FACT_VER_USER_PROMPT
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators.GeneratorPrompts import (
+    FACT_VER_SYSTEM_PROMPT,
+    FACT_VER_USER_PROMPT,
+)
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
+)
 
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
