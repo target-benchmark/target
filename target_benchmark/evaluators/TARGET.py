@@ -570,12 +570,12 @@ class TARGET:
                     if standardized:
                         duration, embedding_size = (
                             self.embed_with_standardized_embeddings(
-                                retriever, dataset_name, client
+                                retriever, dataset_name, client, needle_in_haystack
                             )
                         )
                     else:
                         duration, embedding_size = self.embed_with_custom_embeddings(
-                            retriever, dataset_name, batch_size
+                            retriever, dataset_name, batch_size, needle_in_haystack
                         )
                     loaded_datasets.add(dataset_name)
 
