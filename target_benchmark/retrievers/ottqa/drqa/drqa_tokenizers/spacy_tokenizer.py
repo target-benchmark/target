@@ -9,13 +9,14 @@
 Requires spaCy package and the spaCy english model.
 """
 
-import spacy
 import copy
-from .tokenizer import Tokens, Tokenizer
+
+import spacy
+
+from .tokenizer import Tokenizer, Tokens
 
 
 class SpacyTokenizer(Tokenizer):
-
     def __init__(self, **kwargs):
         """
         Args:

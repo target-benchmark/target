@@ -7,20 +7,21 @@
 """Rank documents with TF-IDF scores"""
 
 import logging
+import os
+import sys
+from functools import partial
+from multiprocessing.pool import ThreadPool
+
+import drqa_tokenizers
 import numpy as np
 import scipy.sparse as sp
 
-from multiprocessing.pool import ThreadPool
-from functools import partial
-import os
-import sys
+from . import utils
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.dirname(current_path))
 
-from . import utils
-import drqa_tokenizers
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class TfidfDocRanker(object):
             strict: fail on empty queries or continue (and return empty result)
         """
         # Load from disk
-        tfidf_path = tfidf_path or DEFAULTS["tfidf_path"]
+        tfidf_path = tfidf_path
         logger.info("Loading %s" % tfidf_path)
         matrix, metadata = utils.load_sparse_csr(tfidf_path)
         self.doc_mat = matrix

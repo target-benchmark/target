@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
 from typing import List, Tuple, Union
+
+from pydantic import BaseModel, Field
 
 
 class RetrievalResultDataModel(BaseModel):

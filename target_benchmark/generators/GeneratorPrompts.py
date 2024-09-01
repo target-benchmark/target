@@ -36,7 +36,7 @@ Database Schema:
 {table_str}
 This schema offers an in-depth description of the database's architecture,
 detailing tables, columns, primary keys, foreign keys, and any pertinent
-information regarding relationships or constraints. 
+information regarding relationships or constraints.
 
 Question:
 {query_str}

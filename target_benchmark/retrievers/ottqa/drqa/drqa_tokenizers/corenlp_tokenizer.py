@@ -11,14 +11,14 @@ Serves commands to a java subprocess running the jar. Requires java 8.
 
 import copy
 import json
+
 import pexpect
 
-from .tokenizer import Tokens, Tokenizer
 from . import DEFAULTS
+from .tokenizer import Tokenizer, Tokens
 
 
 class CoreNLPTokenizer(Tokenizer):
-
     def __init__(self, **kwargs):
         """
         Args:

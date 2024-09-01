@@ -1,11 +1,12 @@
-from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 from typing import Dict, List
+
 from langchain_openai import OpenAIEmbeddings
+
+from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 from target_benchmark.retrievers.utils import json_table_str
 
 
 class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):
-
     def __init__(
         self,
         embedding_model: str = "text-embedding-3-small",
@@ -22,4 +23,4 @@ class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):
         self,
         query: str,
     ):
-        query_embedding = self.embedding_model.embed_query(query)
+        self.embedding_model.embed_query(query)

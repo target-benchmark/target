@@ -1,10 +1,10 @@
-from target_benchmark.tasks.AbsTask import AbsTask
-from typing import Dict
-
 import importlib
 import inspect
 import pkgutil
-from typing import Type
+from typing import Dict, Type
+
+import target_benchmark.tasks
+from target_benchmark.tasks.AbsTask import AbsTask
 
 
 def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:
@@ -24,9 +24,6 @@ def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:
             # Handle cases where a module may not be importable
             continue
     return subclasses
-
-
-import target_benchmark.tasks
 
 
 def find_tasks() -> Dict[str, Type[AbsTask]]:

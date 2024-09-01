@@ -1,7 +1,7 @@
-from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
+from abc import ABC, abstractmethod
 from typing import List
 
-from abc import ABC, abstractmethod
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 
 class AbsRetrieverBase(ABC):

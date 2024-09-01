@@ -1,12 +1,13 @@
-from langchain_openai import OpenAIEmbeddings
+from typing import Dict
+
 import numpy as np
+from langchain_openai import OpenAIEmbeddings
+
 from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 from target_benchmark.retrievers.utils import markdown_table_str
-from typing import Dict, List
 
 
 class OpenAIEmbedder(AbsStandardEmbeddingRetriever):
-
     def __init__(self, expected_corpus_format: str = "nested array"):
         super().__init__(expected_corpus_format=expected_corpus_format)
         self.embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
