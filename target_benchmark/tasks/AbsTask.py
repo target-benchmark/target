@@ -44,7 +44,7 @@ class AbsTask(ABC):
             str, Union[Dict[str, str], DatasetConfigDataModel]
         ] = None,  # TODO: allow dataset config inputs
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator = None,
+        task_generator: AbsGenerator | None = None,
         **kwargs,
     ):
         """

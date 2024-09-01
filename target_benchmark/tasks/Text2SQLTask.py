@@ -36,7 +36,7 @@ class Text2SQLTask(AbsTask):
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator = None,
+        task_generator: AbsGenerator | None = None,
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
