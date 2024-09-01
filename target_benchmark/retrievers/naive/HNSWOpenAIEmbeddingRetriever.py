@@ -1,14 +1,17 @@
 import os
 import pickle
+from typing import Dict, Iterable
+
 import numpy as np
 import tqdm
-
 from dotenv import load_dotenv
 from openai import OpenAI
-from typing import Dict, Iterable, Iterator, List, Tuple
 
-from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
-
+from target_benchmark.dictionary_keys import (
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -50,7 +53,6 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ):
-
         # TODO: add split to file!
         with open(
             os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),

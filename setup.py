@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="target_benchmark",
@@ -6,17 +6,17 @@ setup(
     author="Xingyu Ji, Madelon Hulsebos",
     author_email="jixy2012@berkeley.edu, madelon@berkeley.edu",
     description="Table Retrieval for Generative Tasks Benchmark",
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
-    url='https://github.com/target-benchmark/target',
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/target-benchmark/target",
     packages=find_packages(exclude=["tests"]),
     classifiers=[
-        'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: OS Independent',
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
     ],
-    license='Apache 2.0',
-    python_requires='>=3.8',
+    license="Apache 2.0",
+    python_requires=">=3.8",
     install_requires=[
         "datasets==2.19.0",
         "evaluate==0.4.2",
@@ -43,10 +43,16 @@ setup(
         "tqdm==4.65.0",
     ],
     tests_require=[
-        'unittest',
+        "unittest",
     ],
     extras_require={
-        'llamaindex_retriever': ["llama-index==0.10.58"],  # Optional dependencies for llama index
-        "ottqa_retriever": ["nltk==3.8.1", "pexpect==4.9.0","spacy==3.7.4",],
-    }
+        "llamaindex_retriever": [
+            "llama-index==0.10.58"
+        ],  # Optional dependencies for llama index
+        "ottqa_retriever": [
+            "nltk==3.8.1",
+            "pexpect==4.9.0",
+            "spacy==3.7.4",
+        ],
+    },
 )

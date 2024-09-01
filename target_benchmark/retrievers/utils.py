@@ -1,12 +1,11 @@
-import hnswlib
 import json
-import numpy as np
-
 from typing import List
+
+import hnswlib
+import numpy as np
 
 
 def construct_embedding_index(table_embeddings: List[List]):
-
     # Constructing index
     corpus_index = hnswlib.Index(
         space="cosine", dim=len(table_embeddings[0])

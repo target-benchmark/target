@@ -1,42 +1,37 @@
+import time
+from abc import ABC, abstractmethod
+from logging import Logger
+from typing import Dict, List, Tuple, Union
+
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
-    HFDatasetConfigDataModel,
     GenericDatasetConfigDataModel,
+    HFDatasetConfigDataModel,
 )
-
 from target_benchmark.dictionary_keys import *
-
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-
-from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
+)
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
+from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
 from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.retrievers.utils import markdown_table_str
-
-
 from target_benchmark.tasks.TasksDataModels import (
-    RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
+    RetrievalPerformanceDataModel,
     TaskResultsDataModel,
 )
 
 
-from abc import ABC, abstractmethod
-from logging import Logger
-import time
-from typing import Tuple, Union, List, Dict
-
-
 class AbsTask(ABC):
-
     def __init__(
         self,
         task_name: str = None,
@@ -71,9 +66,9 @@ class AbsTask(ABC):
             self.task_name = self.get_default_task_name()
         else:
             self.task_name: str = task_name
-        self.dataset_config: Dict[str, DatasetConfigDataModel] = (
-            self._construct_dataset_config(datasets_config, overwrite_default_datasets)
-        )
+        self.dataset_config: Dict[
+            str, DatasetConfigDataModel
+        ] = self._construct_dataset_config(datasets_config, overwrite_default_datasets)
 
         self.task_generator = (
             task_generator if task_generator is not None else DefaultGenerator()
@@ -118,9 +113,9 @@ class AbsTask(ABC):
         Returns:
             a dictionary mapping the names of the dataset to the corresponding dataset configuration data model objects.
         """
-        constructed_config: Dict[str, DatasetConfigDataModel] = (
-            self._get_default_dataset_config()
-        )
+        constructed_config: Dict[
+            str, DatasetConfigDataModel
+        ] = self._get_default_dataset_config()
         if datasets_config is not None:
             if overwrite_default_datasets:
                 constructed_config = {}
@@ -198,7 +193,7 @@ class AbsTask(ABC):
 
         assert isinstance(retriever, CustomEmbRetr) or isinstance(
             retriever, StandardizedEmbRetr
-        ), f"the passed in retriever doesn't correctly inherit from the standardized or custom retriever classes!"
+        ), "the passed in retriever doesn't correctly inherit from the standardized or custom retriever classes!"
 
         task_results = {}
 

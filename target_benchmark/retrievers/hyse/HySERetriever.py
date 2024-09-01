@@ -1,20 +1,21 @@
-import json
 import os
+import pickle
+from typing import Dict, Iterable, List, Tuple, Union
 
-import hnswlib
 import instructor
 import numpy as np
-import pandas as pd
-import pickle
 import tqdm
-
 from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, model_validator
 from transformers import TapasConfig, TapasModel, TapasTokenizer
 from typing import Dict, Iterable, Iterator, List, Tuple, Union, Optional
 
-from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME, DATABASE_ID_COL_NAME
+from target_benchmark.dictionary_keys import (
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -26,7 +27,6 @@ class ResponseFormat(BaseModel):
 
 
 class HySERetriever(AbsCustomEmbeddingRetriever):
-
     def __init__(
         self,
         out_dir: str = default_out_dir,
@@ -229,7 +229,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                     "role": "system",
                     # todo: add table values
                     # todo: expand to multi-table
-                    "content": f"""You are an assistant skilled in generating real-world database schemas and tables.""",
+                    "content": """You are an assistant skilled in generating real-world database schemas and tables.""",
                 },
                 {
                     "role": "user",

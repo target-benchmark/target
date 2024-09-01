@@ -32,4 +32,4 @@ repos:
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-added-large-files           
+      - id: check-added-large-files

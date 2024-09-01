@@ -1,6 +1,8 @@
-from target_benchmark.dictionary_keys import *
 from typing import Dict, Literal, Optional
+
 from pydantic import BaseModel, Field
+
+from target_benchmark.dictionary_keys import *
 
 
 class DatasetConfigDataModel(BaseModel):

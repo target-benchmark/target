@@ -1,5 +1,15 @@
-from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+import logging
+import os
+import shutil
+import time
+from datetime import datetime
+from typing import Dict, List, Literal, Tuple, Union
+
+import numpy as np
+from qdrant_client import QdrantClient, models
+
 from target_benchmark.dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
@@ -7,38 +17,26 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dataset_loaders.utils import get_dummy_table_of_format
-from datetime import datetime
-
-from target_benchmark.evaluators.utils import find_tasks
-
 from target_benchmark.dictionary_keys import (
     CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
     METADATA_DB_ID_KEY_NAME,
     METADATA_TABLE_ID_KEY_NAME,
-    DATABASE_ID_COL_NAME,
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
-import logging
-import numpy as np
-
-import os
+from target_benchmark.evaluators.utils import find_tasks
 from target_benchmark.retrievers import (
-    AbsRetrieverBase,
     AbsCustomEmbeddingRetriever,
+    AbsRetrieverBase,
     AbsStandardEmbeddingRetriever,
 )
-import shutil
-import sys
-
-from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
-from target_benchmark.tasks.TasksDataModels import TaskResultsDataModel, EmbeddingStatisticsDataModel
-import time
-from typing import Literal, Tuple, Union, List, Dict
-
-
-from qdrant_client import QdrantClient, models
+from target_benchmark.tasks.AbsTask import AbsTask
+from target_benchmark.tasks.TasksDataModels import (
+    EmbeddingStatisticsDataModel,
+    TaskResultsDataModel,
+)
 
 
 class TARGET:
@@ -132,9 +130,9 @@ class TARGET:
                         self.logger.error(
                             f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
                         )
-                    loaded_tasks[task_default_name] = (
-                        task_class()
-                    )  # create a default instance of that task class
+                    loaded_tasks[
+                        task_default_name
+                    ] = task_class()  # create a default instance of that task class
                 else:
                     self.logger.warning(
                         f"task named {task} doesn't exist. please double check your input values. skipping this task..."
@@ -205,7 +203,7 @@ class TARGET:
         Returns:
             a list of task names of the loaded tasks. if no tasks are loaded, return an empty list.
         """
-        if self.tasks != None:
+        if self.tasks is not None:
             return list(self.tasks.keys())
         else:
             return []
@@ -429,9 +427,9 @@ class TARGET:
             top_k (int, optional): top k tables to retrieve.
         """
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders: Dict[str, AbsDatasetLoader] = (
-            self.dataloaders | self.create_dataloaders(self.dataset_info, split)
-        )
+        self.dataloaders: Dict[
+            str, AbsDatasetLoader
+        ] = self.dataloaders | self.create_dataloaders(self.dataset_info, split)
 
         all_results = {}
         loaded_datasets = set()
@@ -469,10 +467,11 @@ class TARGET:
                     size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
                     duration, embedding_size = -1.0, -1.0
                     if standardized:
-                        duration, embedding_size = (
-                            self.embed_with_standardized_embeddings(
-                                retriever, dataset_name, client
-                            )
+                        (
+                            duration,
+                            embedding_size,
+                        ) = self.embed_with_standardized_embeddings(
+                            retriever, dataset_name, client
                         )
                     else:
                         duration, embedding_size = self.embed_with_custom_embeddings(

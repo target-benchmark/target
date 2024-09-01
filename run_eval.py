@@ -1,19 +1,16 @@
 import json
 import os
-import logging
 import time
-import unittest
 
-from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
-from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
-from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from target_benchmark.evaluators.TARGET import TARGET
-from target_benchmark.tasks.QuestionAnsweringTask import QuestionAnsweringTask
+from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
+from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import (
+    HNSWOpenAIEmbeddingRetriever,
+)
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 
 
 class RetrieverEval:
-
     def __init__(
         self,
         retriever_name: str,
