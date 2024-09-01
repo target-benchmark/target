@@ -39,12 +39,12 @@ class AbsTask(ABC):
 
     def __init__(
         self,
-        task_name: str = None,
+        task_name: Union[str, None] = None,
         datasets_config: Dict[
             str, Union[Dict[str, str], DatasetConfigDataModel]
         ] = None,  # TODO: allow dataset config inputs
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator | None = None,
+        task_generator: Union[AbsGenerator, None] = None,
         **kwargs,
     ):
         """

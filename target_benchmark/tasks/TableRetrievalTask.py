@@ -11,7 +11,7 @@ from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultData
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import DownstreamTaskPerformanceDataModel
 
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 class TableRetrievalTask(AbsTask):
@@ -22,7 +22,7 @@ class TableRetrievalTask(AbsTask):
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator | None = None,
+        task_generator: Union[AbsGenerator, None] = None,
         **kwargs,
     ):
         super().__init__(

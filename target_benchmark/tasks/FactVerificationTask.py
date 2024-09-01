@@ -19,7 +19,7 @@ from target_benchmark.tasks.TasksDataModels import (
 
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_recall_fscore_support
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 class FactVerificationTask(AbsTask):
@@ -29,7 +29,7 @@ class FactVerificationTask(AbsTask):
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
         overwrite_default_datasets: bool = False,
-        task_generator: AbsGenerator | None = None,
+        task_generator: Union[AbsGenerator, None] = None,
         **kwargs,
     ):
         if task_generator == None:
