@@ -1,5 +1,5 @@
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import HumanMessagePromptTemplate
