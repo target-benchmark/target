@@ -4,12 +4,12 @@ import logging
 import time
 import unittest
 
-from retrievers.hyse.HySERetriever import HySERetriever
-from retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
-from retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from dataset_loaders.HFDatasetLoader import HFDatasetLoader
-from evaluators.TARGET import TARGET
-from tasks.QuestionAnsweringTask import QuestionAnsweringTask
+from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
+from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
+from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.tasks.QuestionAnsweringTask import QuestionAnsweringTask
 
 
 class RetrieverEval:
