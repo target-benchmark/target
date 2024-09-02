@@ -8,7 +8,7 @@ GENERIC_DATASET_CONFIG_FIELD: str = "dataset_path"
 
 DATASET_NAME: str = "dataset_name"
 
-""" 
+"""
 Default names for headers in queries & corpus datasets. These default names will be used by Target when referring to the corresponding columns.
 """
 TABLE_COL_NAME: str = "table"

@@ -7,14 +7,6 @@
 
 import os
 
-DEFAULTS = {"corenlp_classpath": os.getenv("CLASSPATH")}
-
-
-def set_default(key, value):
-    global DEFAULTS
-    DEFAULTS[key] = value
-
-
 from .corenlp_tokenizer import CoreNLPTokenizer
 from .regexp_tokenizer import RegexpTokenizer
 from .simple_tokenizer import SimpleTokenizer
@@ -24,6 +16,13 @@ try:
     from .spacy_tokenizer import SpacyTokenizer
 except ImportError:
     pass
+
+DEFAULTS = {"corenlp_classpath": os.getenv("CLASSPATH")}
+
+
+def set_default(key, value):
+    global DEFAULTS
+    DEFAULTS[key] = value
 
 
 def get_class(name):

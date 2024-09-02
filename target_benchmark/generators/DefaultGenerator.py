@@ -1,13 +1,12 @@
+from langchain_core.messages import SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain_openai import ChatOpenAI
+
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorPrompts import (
     DEFAULT_SYSTEM_PROMPT,
     QA_USER_PROMPT,
 )
-
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import SystemMessage
-from langchain_core.prompts import HumanMessagePromptTemplate
-from langchain_openai import ChatOpenAI
 
 
 class DefaultGenerator(AbsGenerator):

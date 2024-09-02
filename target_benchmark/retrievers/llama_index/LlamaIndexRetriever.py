@@ -1,26 +1,26 @@
-from typing import Dict, Iterable, List, Tuple
-from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
-from .embedding_utils import create_table_from_dataframe, construct_table_info
-from target_benchmark.dictionary_keys import *
-from llama_index.core.objects import (
-    SQLTableNodeMapping,
-    ObjectIndex,
-    SQLTableSchema,
-)
-from llama_index.core.query_pipeline import (
-    QueryPipeline as QP,
-    InputComponent,
-)
-from llama_index.core import SQLDatabase, VectorStoreIndex
 from pathlib import Path
-from sqlalchemy import create_engine, MetaData
+from typing import Dict, Iterable, List, Tuple
+
+from llama_index.core import SQLDatabase, VectorStoreIndex
+from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
+from llama_index.core.query_pipeline import InputComponent
+from llama_index.core.query_pipeline import QueryPipeline as QP
+from sqlalchemy import MetaData, create_engine
+
+from target_benchmark.dictionary_keys import (
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
+
+from .embedding_utils import construct_table_info, create_table_from_dataframe
 
 cur_dir_path = Path(__file__).parent.resolve()
 data_path = cur_dir_path / "data/"
 
 
 class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
-
     def __init__(self):
         """
         Parameters:
@@ -38,16 +38,20 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ) -> List[Tuple]:
-        if dataset_name not in self.top_ks or top_k != self.top_ks[dataset_name] or dataset_name not in self.query_pipelines:
+        if (
+            dataset_name not in self.top_ks
+            or top_k != self.top_ks[dataset_name]
+            or dataset_name not in self.query_pipelines
+        ):
             # check if we need to reconstruct new query pipeline
             # if the top k has changed, or a qp has never been constructed, construct the query pipeline with the new top k
             self.construct_query_pipeline(dataset_name, top_k)
-        
+
         retrieved_tables = self.query_pipelines[dataset_name].run(query=query)
         answers = []
         for res in retrieved_tables:
             answers.append(tuple(res.table_name.split(":")[:2]))
-        
+
         return answers
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
@@ -91,13 +95,15 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
             VectorStoreIndex,
         )
         self.object_indices[dataset_name] = obj_index
-    
+
     def construct_query_pipeline(self, dataset_name: str, top_k: int):
         query_pipeline = QP(verbose=True)
         query_pipeline.add_modules(
             module_dict={
                 "input": InputComponent(),
-                "table_retriever": self.object_indices[dataset_name].as_retriever(similarity_top_k=top_k),
+                "table_retriever": self.object_indices[dataset_name].as_retriever(
+                    similarity_top_k=top_k
+                ),
             }
         )
         query_pipeline.add_link("input", "table_retriever")

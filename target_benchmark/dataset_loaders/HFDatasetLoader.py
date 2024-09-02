@@ -1,8 +1,8 @@
-from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from target_benchmark.dictionary_keys import *
 from typing import Literal
 
 from datasets import load_dataset
+
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 
 
 class HFDatasetLoader(AbsDatasetLoader):
@@ -27,7 +27,7 @@ class HFDatasetLoader(AbsDatasetLoader):
         Constructor for a generic dataset loader that loads from a huggingface dataset.
         Parameters:
             hf_corpus_dataset_path (str): the path to your huggingface hub corpus dataset. it will look something like target-benchmark/fetaqa-corpus (namespace/dataset-name)
-            hf_queries_dataset_path (str): the path to your huggingface hub queries dataset path. 
+            hf_queries_dataset_path (str): the path to your huggingface hub queries dataset path.
         """
 
         self.hf_corpus_dataset_path = hf_corpus_dataset_path

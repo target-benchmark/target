@@ -1,15 +1,13 @@
-import os
-import pdb
-import sys
-import json
-from typing import Callable, Dict, List, Tuple, Union
-import numpy as np
-import argparse
-import sqlite3
-import multiprocessing as mp
-from func_timeout import func_timeout, FunctionTimedOut
-import time
 import math
+import multiprocessing as mp
+import os
+import sqlite3
+import sys
+import time
+from typing import Dict, List, Tuple, Union
+
+import numpy as np
+from func_timeout import FunctionTimedOut, func_timeout
 
 
 def clean_abnormal(input):
@@ -24,7 +22,6 @@ def clean_abnormal(input):
 
 
 def execute_sql(sql, cursor):
-
     start_time = time.process_time()
     cursor.execute(sql)
     exec_time = time.process_time() - start_time
@@ -41,7 +38,8 @@ def iterated_execute_sql(
 ) -> float:
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
-    # given a predicted sql, ground truth sql, and the respective db paths of each, get efficiency results.
+    # given a predicted sql, ground truth sql,
+    # and the respective db paths of each, get efficiency results.
     pred_conn = sqlite3.connect(
         os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite")
     )
@@ -100,10 +98,8 @@ def execute_model(
     except KeyboardInterrupt:
         sys.exit(0)
     except FunctionTimedOut:
-        result = [(f"timeout",)]
         time_ratio = 0
-    except Exception as e:
-        result = [(f"error",)]  # possibly len(query) > 512 or not executable
+    except Exception:
         time_ratio = 0
     return {
         "sql_idx": idx,
@@ -203,7 +199,6 @@ def evaluate_sql_execution(
     meta_time_out: float,
     include_ves: bool = False,
 ) -> Dict[str, Dict[str, Union[int, float]]]:
-
     exec_result = run_sqls_parallel(
         predicted_sqls,
         ground_truth_sqls,

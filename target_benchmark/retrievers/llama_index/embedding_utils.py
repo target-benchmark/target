@@ -1,20 +1,12 @@
 import json
-from typing import Union
-from pydantic import BaseModel, Field
-from openai import OpenAI
-
-from pathlib import Path
-import pandas as pd
-
 import re
-from sqlalchemy import (
-    Engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Integer,
-)
+from pathlib import Path
+from typing import Union
+
+import pandas as pd
+from openai import OpenAI
+from pydantic import BaseModel, Field
+from sqlalchemy import Column, Engine, Integer, MetaData, String, Table
 
 
 class TableInfo(BaseModel):

@@ -8,13 +8,13 @@
 import ast
 import json
 import os
+from typing import Dict, Iterable, List, Union
 
 from dotenv import load_dotenv
-from typing import Dict, Iterable, List
 
-from .drqa import retriever
-from .utils import convert_table_representation, TFIDFBuilder
 from ..AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+from .drqa import retriever
+from .utils import TFIDFBuilder, convert_table_representation
 
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):

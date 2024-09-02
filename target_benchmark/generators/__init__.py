@@ -1,3 +1,0 @@
-from target_benchmark.generators.AbsGenerator import AbsGenerator
-from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.Text2SQLGenerator import Text2SQLGenerater

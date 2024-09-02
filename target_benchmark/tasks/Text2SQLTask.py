@@ -1,34 +1,30 @@
-from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
-from target_benchmark.dataset_loaders.LoadersDataModels import (
-    DatasetConfigDataModel,
-)
-from target_benchmark.dataset_loaders.TargetDatasetConfig import *
+import sqlite3
+from pathlib import Path
+from typing import Dict, List, Union
 
+from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+)
+from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
     DATABASE_ID_COL_NAME,
     DIFFICULTY_COL_NAME,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
 )
-
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
-from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-
-from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-
-from target_benchmark.tasks.AbsTask import AbsTask
-from target_benchmark.tasks.TasksDataModels import (
-    Text2SQLTaskPerformanceDataModel,
+from target_benchmark.generators.GeneratorsDataModels import (
+    DownstreamGeneratedResultDataModel,
 )
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.tasks.AbsTask import AbsTask
+from target_benchmark.tasks.TasksDataModels import Text2SQLTaskPerformanceDataModel
 from target_benchmark.tasks.utils import evaluate_sql_execution
-from pathlib import Path
-import sqlite3
-from typing import List, Dict, Union
 
 
 class Text2SQLTask(AbsTask):
-
     AVAILABLE_METRICS = set(["execution_accuracy", "execution_ves"])
     DEFAULT_METRICS = set(["execution_accuracy"])
 
@@ -40,7 +36,6 @@ class Text2SQLTask(AbsTask):
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
     ):
-
         if task_generator is None:
             task_generator = Text2SQLGenerater()
         super().__init__(
@@ -63,7 +58,8 @@ class Text2SQLTask(AbsTask):
         if "execution_ves" in metrics:
             self.include_ves = True
 
-        # two lists, pred_sql contains the predicted sql queries, and ref_sql contains the ground truth sql queries.
+        # two lists, pred_sql contains the predicted sql queries,
+        # and ref_sql contains the ground truth sql queries.
         self.pred_sql = []
         self.ref_sql = []
         self.difficulties = []

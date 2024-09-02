@@ -1,19 +1,25 @@
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Dict, Iterable, List, Literal, Tuple
+
+from datasets import Dataset
+
 from target_benchmark.dataset_loaders.utils import (
     InMemoryDataFormat,
     QueryType,
-    set_in_memory_data_format,
-    set_query_type,
-    enforce_split_literal,
-    write_table_to_path,
     array_of_arrays_to_df,
     array_of_arrays_to_dict,
+    enforce_split_literal,
+    set_in_memory_data_format,
+    set_query_type,
+    write_table_to_path,
 )
-from target_benchmark.dictionary_keys import *
-
-from abc import ABC, abstractmethod
-from datasets import Dataset
-from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Tuple
+from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 
 
 class AbsDatasetLoader(ABC):
@@ -91,7 +97,7 @@ class AbsDatasetLoader(ABC):
 
         if not path:
             if not self.data_directory:
-                raise ValueError(f"No path for persistence is specified!")
+                raise ValueError("No path for persistence is specified!")
             path = self.data_directory
 
         path_to_write_to = Path(path)
@@ -147,9 +153,15 @@ class AbsDatasetLoader(ABC):
             batch = {}
             # Use list comprehensions to extract each column
             batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
-            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
-            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
+            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
+                i : i + batch_size
+            ]
+            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
+                i : i + batch_size
+            ]
             yield batch
 
     def get_table_id_to_table(

@@ -5,7 +5,9 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
+from .BM25_doc_ranker import BM25DocRanker
+from .doc_db import DocDB
+from .tfidf_doc_ranker import TfidfDocRanker
 
 
 def get_class(name):
@@ -16,8 +18,3 @@ def get_class(name):
     if name == "sqlite":
         return DocDB
     raise RuntimeError("Invalid retriever class: %s" % name)
-
-
-from .doc_db import DocDB
-from .tfidf_doc_ranker import TfidfDocRanker
-from .BM25_doc_ranker import BM25DocRanker
