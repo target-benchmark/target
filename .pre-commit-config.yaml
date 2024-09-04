@@ -1,5 +1,4 @@
-exclude: ^target_benchmark/tests/
-
+exclude: ^(target_benchmark/tests/|.*__init__.py$)
 repos:
   - repo: https://github.com/mwouts/jupytext
     rev: v1.16.4
