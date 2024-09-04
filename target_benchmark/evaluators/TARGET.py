@@ -25,6 +25,7 @@ from target_benchmark.dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
+
 from target_benchmark.evaluators.utils import find_tasks
 from target_benchmark.retrievers import (
     AbsCustomEmbeddingRetriever,
