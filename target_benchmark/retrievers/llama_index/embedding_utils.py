@@ -98,8 +98,6 @@ def construct_table_info(
         with open(out_file_path, "w") as file:
             json.dump(table_info.model_dump(), file)
 
-        # table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"
-        # forcefully prepend the official table name
         return table_info
     return None
 
@@ -119,20 +117,26 @@ def create_table_from_dataframe(
     df = df.rename(columns=sanitized_columns)
 
     # Dynamically create columns based on DataFrame columns and data types
+    # columns = [
+    #     Column(col, String if dtype == "object" else Integer)
+    #     for col, dtype in zip(df.columns, df.dtypes)
+    # ]
     columns = [
-        Column(col, String if dtype == "object" else Integer)
-        for col, dtype in zip(df.columns, df.dtypes)
+        Column(
+            df.columns.values[0], String if df.dtypes.values[0] == "object" else Integer
+        )
     ]
 
     # Create a table with the defined columns
-    table = Table(table_name, metadata_obj, *columns)
+    Table(table_name, metadata_obj, *columns)
 
     # Create the table in the database
     metadata_obj.create_all(engine)
 
     # Insert data from DataFrame into the table
-    with engine.connect() as conn:
-        for _, row in df.iterrows():
-            insert_stmt = table.insert().values(**row.to_dict())
-            conn.execute(insert_stmt)
-        conn.commit()
+    # with engine.connect() as conn:
+    #     for _, row in df.iterrows():
+    #         insert_stmt = table.insert().values(row.to_dict()[df.columns[0]])
+    #         conn.execute(insert_stmt)
+    #         break
+    #     conn.commit()
