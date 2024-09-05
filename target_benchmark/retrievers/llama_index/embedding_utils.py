@@ -25,6 +25,10 @@ Give me a summary of the table with the following JSON format.
 
 - The table name must be unique to the table and describe it while being concise.
 - Do NOT output a generic table name (e.g. table, my_table).
+- You are allowed to output a name like <meaningful_table_name>_2, since some big tables are broken up into many smaller tables.
+
+Existing Table Names:
+{names_tried}
 
 Table:
 {table_str}
@@ -49,34 +53,48 @@ def _get_table_info_with_index(
 
 
 def construct_table_info(
-    table_info_dir: str, df: pd.DataFrame, database_id: str, table_name: str
-) -> TableInfo:
-    table_info = _get_table_info_with_index(table_info_dir, table_name)
+    table_info_dir: str, 
+    df: pd.DataFrame, 
+    database_id: str, 
+    table_name: str,
+    existing_names: set,
+) -> Union[TableInfo, None]:
+    cleaned_table_name = re.sub(r'[^a-zA-Z0-9_]', '_', table_name)
+    cleaned_db_id = re.sub(r'[^a-zA-Z0-9_]', '_', database_id)
+    table_info = _get_table_info_with_index(table_info_dir, cleaned_table_name)
     if table_info:
         return table_info
 
     df_str = df.head(10).to_csv()
-    table_info_completion = client.beta.chat.completions.parse(
-        model="gpt-4o-2024-08-06",
-        messages=[
-            {"role": "system", "content": "You are a helpful AI assistant."},
-            {"role": "user", "content": prompt_str.format(table_str=df_str)},
-        ],
-        response_format=TableInfo,
-    )
-    message = table_info_completion.choices[0].message
-    if not message.parsed:
-        raise json.JSONDecodeError
-    table_info = TableInfo(
-        table_name=message.parsed.table_name,
-        table_summary=message.parsed.table_summary,
-    )
+    names_tried = set()
+    for i in range(15): # try up to 15 times
+        table_info_completion = client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant."},
+                {"role": "user", "content": prompt_str.format(table_str=df_str, names_tried=names_tried)},
+            ],
+            response_format=TableInfo,
+        )
+        message = table_info_completion.choices[0].message
+        if not message.parsed:
+            raise json.JSONDecodeError
+        if message.parsed.table_name in existing_names: 
+            # duplicate table names, try again
+            names_tried.add(message.parsed.table_name)
+            continue
+        table_info = TableInfo(
+            table_name=message.parsed.table_name,
+            table_summary=message.parsed.table_summary,
+        )
+        out_file_path = f"{table_info_dir}/{cleaned_db_id}_{cleaned_table_name}.json"
+        with open(out_file_path, "w") as file:
+            json.dump(table_info.model_dump(), file)
 
-    table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"  # forcefully prepend the official table name
-    out_file_path = f"{table_info_dir}/{database_id}_{table_name}.json"
-    with open(out_file_path, "w") as file:
-        json.dump(table_info.model_dump(), file)
-    return table_info
+    # table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"
+    # forcefully prepend the official table name
+        return table_info
+    return None
 
 
 # Function to create a sanitized column name

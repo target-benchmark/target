@@ -40,7 +40,7 @@ setup(
         "scipy==1.13.0",
         "setuptools==69.1.1",
         "transformers==4.41.2",
-        "tqdm==4.65.0",
+        "tqdm>=4.65.0",
     ],
     tests_require=[
         "unittest",

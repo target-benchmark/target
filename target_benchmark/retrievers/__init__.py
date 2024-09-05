@@ -5,5 +5,5 @@ from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
 )
 from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import HNSWOpenAIEmbeddingRetriever
 from target_benchmark.retrievers.naive.DefaultOpenAIEmbeddingRetriever import OpenAIEmbedder
-
+from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
 # from target_benchmark.retrievers.tapas.TapasDenseTableRetriever import TapasDenseTableRetriever
