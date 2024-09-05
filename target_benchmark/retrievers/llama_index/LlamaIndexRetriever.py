@@ -15,7 +15,7 @@ from target_benchmark.dictionary_keys import (
 )
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 
-from .embedding_utils import construct_table_info, create_table_from_dataframe, TableInfo
+from .embedding_utils import construct_table_info, create_table_from_dataframe
 
 cur_dir_path = Path(__file__).parent.resolve()
 data_path = cur_dir_path / "data/"
@@ -50,7 +50,9 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         dataset_persistence_path = data_path / dataset_name
         mapping_path = dataset_persistence_path / "name_mapping.json"
         if not dataset_persistence_path.exists() or not mapping_path.exists():
-            raise ValueError(f"embedding data has not been created or persisted! aborting retrieval")
+            raise ValueError(
+                "embedding data has not been created or persisted! aborting retrieval"
+            )
         with open(mapping_path, "r") as mapping_file:
             # load the generated -> real table name mapping
             mapping = json.load(mapping_file)
@@ -59,9 +61,11 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         answers = []
         for res in retrieved_tables:
             try:
-                answers.append(tuple(mapping[res]))
-            except KeyError as e:
-                raise ValueError(f"retrieved table name {res} does not map to a table in the dataset. Aborting retrieval!")
+                answers.append(tuple(mapping[res.table_name]))
+            except KeyError:
+                raise ValueError(
+                    f"retrieved table name {res} does not map to a table in the dataset. Aborting retrieval!"
+                )
 
         return answers
 
@@ -84,13 +88,15 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
                 table = entry_batch[TABLE_COL_NAME][i]
                 db_id = entry_batch[DATABASE_ID_COL_NAME][i]
                 table_id = entry_batch[TABLE_ID_COL_NAME][i]
-                table_info = construct_table_info(str(data_path), table, db_id, table_id)
+                table_info = construct_table_info(
+                    str(data_path), table, db_id, table_id, mapping
+                )
                 if not table_info:
-                    raise ValueError(f"a valid table name cannot be generated!")
+                    raise ValueError("a valid table name cannot be generated!")
 
                 # append the table info to list of all table infos
                 table_infos.append(table_info)
-                real_table_name = [db_id, table_id]
+                real_table_name = [str(db_id), table_id]
                 mapping[table_info.table_name] = real_table_name
                 # insert the table to the sql db.
                 create_table_from_dataframe(

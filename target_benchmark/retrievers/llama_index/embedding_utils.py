@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Union
+from typing import Dict, Union
 
 import pandas as pd
 from openai import OpenAI
@@ -53,33 +53,40 @@ def _get_table_info_with_index(
 
 
 def construct_table_info(
-    table_info_dir: str, 
-    df: pd.DataFrame, 
-    database_id: str, 
+    table_info_dir: str,
+    df: pd.DataFrame,
+    database_id: str,
     table_name: str,
-    existing_names: set,
+    existing_names: Dict,
 ) -> Union[TableInfo, None]:
-    cleaned_table_name = re.sub(r'[^a-zA-Z0-9_]', '_', table_name)
-    cleaned_db_id = re.sub(r'[^a-zA-Z0-9_]', '_', database_id)
+    cleaned_table_name = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
+    if isinstance(database_id, int):
+        database_id = str(database_id)
+    cleaned_db_id = re.sub(r"[^a-zA-Z0-9_]", "_", database_id)
     table_info = _get_table_info_with_index(table_info_dir, cleaned_table_name)
     if table_info:
         return table_info
 
     df_str = df.head(10).to_csv()
     names_tried = set()
-    for i in range(15): # try up to 15 times
+    for i in range(15):  # try up to 15 times
         table_info_completion = client.beta.chat.completions.parse(
             model="gpt-4o-2024-08-06",
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant."},
-                {"role": "user", "content": prompt_str.format(table_str=df_str, names_tried=names_tried)},
+                {
+                    "role": "user",
+                    "content": prompt_str.format(
+                        table_str=df_str, names_tried=names_tried
+                    ),
+                },
             ],
             response_format=TableInfo,
         )
         message = table_info_completion.choices[0].message
         if not message.parsed:
             raise json.JSONDecodeError
-        if message.parsed.table_name in existing_names: 
+        if message.parsed.table_name in existing_names:
             # duplicate table names, try again
             names_tried.add(message.parsed.table_name)
             continue
@@ -91,8 +98,8 @@ def construct_table_info(
         with open(out_file_path, "w") as file:
             json.dump(table_info.model_dump(), file)
 
-    # table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"
-    # forcefully prepend the official table name
+        # table_info.table_name = f"{database_id}:{table_name}:{table_info.table_name}"
+        # forcefully prepend the official table name
         return table_info
     return None
 
