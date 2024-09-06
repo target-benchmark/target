@@ -38,10 +38,10 @@ Summary: """
 client = OpenAI()
 
 
-def _get_table_info_with_index(
-    table_info_dir: str, table_name: str
+def get_table_info_with_index(
+    table_info_dir: str, db_id: str, table_name: str
 ) -> Union[TableInfo, None]:
-    results_gen = Path(table_info_dir).glob(f"{table_name}_*")
+    results_gen = Path(table_info_dir).glob(f"{db_id}_{table_name}.json")
     results_list = list(results_gen)
     if len(results_list) == 0:
         return None
@@ -63,8 +63,16 @@ def construct_table_info(
     if isinstance(database_id, int):
         database_id = str(database_id)
     cleaned_db_id = re.sub(r"[^a-zA-Z0-9_]", "_", database_id)
-    table_info = _get_table_info_with_index(table_info_dir, cleaned_table_name)
-    if table_info:
+    table_info = get_table_info_with_index(table_info_dir, database_id, cleaned_table_name)
+
+    if table_info.table_name in existing_names:
+        name = table_info.table_name
+        print(f"existing table: {name}, actual name: {existing_names[name]}")
+
+    # check if 
+    # table info has been constructed already 
+    # and not appeared in other tables
+    if table_info and table_info.table_name not in existing_names:
         return table_info
 
     df_str = df.head(10).to_csv()
