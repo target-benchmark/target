@@ -333,6 +333,7 @@ class TFIDFBuilder:
         freqs = np.array(binary.sum(1)).squeeze()
         return freqs
 
+
     def get_tfidf_matrix(self, cnts, idf_cnts, option="tfidf"):
         """Convert the word count matrix into tfidf one.
 

@@ -44,7 +44,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
         )
-
         if model_name == "tapas":
             self.model = TapasModel.from_pretrained(
                 "google/tapas-base" # check performance difference with fine-tuned model take qa as base
@@ -310,6 +309,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 Rows cannot contain 'None' values. Only generate tables, do not provide surrounding numbers or text.
 
                 For example, for 2 tables with 1 row to answer queries about the business performance of an energy company, you could generate:
+
                 [[['Quarter', 'Total Revenue (USD)', 'Net Profit (USD)', 'EBITDA (USD)', 'Total Energy Sold (MWh)', 'Customer Growth Rate (%)'], ['Q1 2024', '300M', '45M', '80M', '2.5M', 3]],
                 [['Quarter', 'Product', 'Sales Volume', 'Revenue', 'Market Share'],['Q1', 2024, 'Electricity', 1200000, 150000000, 25]]]
             """,

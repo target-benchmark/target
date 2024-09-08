@@ -105,7 +105,6 @@ if __name__ == "__main__":
                 out_dir=out_dir,
                 model_name=model_name,
                 num_rows=num_rows,
-                # num_schemas does not matter
                 num_schemas=num_schemas,
                 with_query=with_query,
                 aggregated=aggregated,

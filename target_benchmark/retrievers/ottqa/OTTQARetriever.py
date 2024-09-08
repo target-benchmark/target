@@ -72,7 +72,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         # Write the dictionary to a file in JSON format
         with open(os.path.join(self.out_dir, file_name), "w") as f:
             json.dump(converted_corpus, f)
-        
+
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(self.out_dir, converted_corpus, option=self.encoding)
         self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
