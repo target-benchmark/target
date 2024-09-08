@@ -1,9 +1,9 @@
 import unittest
 
-from evaluators.TARGET import TARGET
+from target_benchmark.evaluators.TARGET import TARGET
 
-from retrievers.hyse.HySERetriever import HySERetriever
-from tasks import TableRetrievalTask
+from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
+from target_benchmark.tasks import TableRetrievalTask
 
 
 class TestHyseBasics(unittest.TestCase):

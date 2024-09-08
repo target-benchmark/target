@@ -1,7 +1,7 @@
-from retrievers import AbsStandardEmbeddingRetriever
+from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 from typing import Dict, List
 from langchain_openai import OpenAIEmbeddings
-from retrievers.utils import json_table_str
+from target_benchmark.retrievers.utils import json_table_str
 
 
 class OpenAIEmbeddingRetriever(AbsStandardEmbeddingRetriever):

@@ -1,28 +1,28 @@
-from dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
-from dataset_loaders.LoadersDataModels import (
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     HFDatasetConfigDataModel,
     GenericDatasetConfigDataModel,
 )
 
-from dictionary_keys import *
+from target_benchmark.dictionary_keys import *
 
-from generators.AbsGenerator import AbsGenerator
-from generators.DefaultGenerator import DefaultGenerator
-from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators.AbsGenerator import AbsGenerator
+from target_benchmark.generators.DefaultGenerator import DefaultGenerator
+from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
 
-from retrievers.AbsRetrieverBase import AbsRetrieverBase
-from retrievers.AbsCustomEmbeddingRetriever import (
+from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from retrievers.AbsStandardEmbeddingRetriever import (
+from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
-from retrievers.utils import markdown_table_str
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.utils import markdown_table_str
 
 
-from tasks.TasksDataModels import (
+from target_benchmark.tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     DownstreamTaskPerformanceDataModel,
     TaskResultsDataModel,

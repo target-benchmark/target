@@ -1,4 +1,4 @@
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from typing import List
 
 from abc import ABC, abstractmethod

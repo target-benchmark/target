@@ -1,17 +1,17 @@
-from dataset_loaders.LoadersDataModels import (
+from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
 )
-from dataset_loaders.TargetDatasetConfig import *
-from dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
-from generators.AbsGenerator import AbsGenerator
-from generators.DefaultGenerator import DefaultGenerator
-from generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
-from generators.GeneratorPrompts import QA_SYSTEM_PROMPT, QA_USER_PROMPT
+from target_benchmark.dataset_loaders.TargetDatasetConfig import *
+from target_benchmark.dictionary_keys import ANSWER_COL_NAME, QUERY_COL_NAME, QUERY_ID_COL_NAME
+from target_benchmark.generators.AbsGenerator import AbsGenerator
+from target_benchmark.generators.DefaultGenerator import DefaultGenerator
+from target_benchmark.generators.GeneratorsDataModels import DownstreamGeneratedResultDataModel
+from target_benchmark.generators.GeneratorPrompts import QA_SYSTEM_PROMPT, QA_USER_PROMPT
 
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
-from tasks.AbsTask import AbsTask
-from tasks.TasksDataModels import (
+from target_benchmark.tasks.AbsTask import AbsTask
+from target_benchmark.tasks.TasksDataModels import (
     TableQATaskPerformanceDataModel,
 )
 

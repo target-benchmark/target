@@ -1,5 +1,5 @@
-from retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
+from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 import unittest
 import os
 

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 
-from dictionary_keys import (
+from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
     METADATA_TABLE_ID_KEY_NAME,
     METADATA_DB_ID_KEY_NAME,
@@ -10,8 +10,8 @@ from dictionary_keys import (
 )
 import numpy as np
 from qdrant_client import QdrantClient
-from retrievers.AbsRetrieverBase import AbsRetrieverBase
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from typing import List, Dict
 

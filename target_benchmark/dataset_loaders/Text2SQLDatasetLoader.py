@@ -1,13 +1,13 @@
 import json
 import requests
-from dataset_loaders.utils import (
+from target_benchmark.dataset_loaders.utils import (
     InMemoryDataFormat,
     array_of_arrays_to_df,
     array_of_arrays_to_dict,
     set_in_memory_data_format,
     write_table_to_path,
 )
-from dictionary_keys import *
+from target_benchmark.dictionary_keys import *
 
 
 from dataset_loaders import HFDatasetLoader

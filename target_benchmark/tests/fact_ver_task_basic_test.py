@@ -1,18 +1,18 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-from tasks import FactVerificationTask
-from tasks.TasksDataModels import *
-from dataset_loaders.HFDatasetLoader import HFDatasetLoader
-from dataset_loaders.TargetDatasetConfig import HFDatasetConfigDataModel
-from dataset_loaders.TargetDatasetConfig import (
+from target_benchmark.tasks import FactVerificationTask
+from target_benchmark.tasks.TasksDataModels import *
+from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from target_benchmark.dataset_loaders.TargetDatasetConfig import HFDatasetConfigDataModel
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_WIKITQ_DATASET_CONFIG,
     DEFAULT_FETAQA_DATASET_CONFIG,
 )
-from retrievers.AbsCustomEmbeddingRetriever import (
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 import logging
 

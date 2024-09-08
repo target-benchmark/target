@@ -1,6 +1,6 @@
-from dictionary_keys import QUERY_ID_COL_NAME, QUERY_COL_NAME
-from retrievers.AbsRetrieverBase import AbsRetrieverBase
-from retrievers.RetrieversDataModels import RetrievalResultDataModel
+from target_benchmark.dictionary_keys import QUERY_ID_COL_NAME, QUERY_COL_NAME
+from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
 from abc import abstractmethod
 from typing import List, Dict, Iterable, Tuple
