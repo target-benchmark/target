@@ -4,7 +4,7 @@ import pickle
 from typing import Dict, Iterable, Iterator, List, Tuple
 from dotenv import load_dotenv
 
-from retrievers import AbsCustomEmbeddingRetriever, utils
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "analysis")

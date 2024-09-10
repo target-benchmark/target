@@ -12,10 +12,10 @@ import sys
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-import drqa_tokenizers
 import numpy as np
 import scipy.sparse as sp
 
+from target_benchmark.retrievers.ottqa.drqa import drqa_tokenizers
 from . import utils
 
 current_path = os.path.dirname(os.path.abspath(__file__))

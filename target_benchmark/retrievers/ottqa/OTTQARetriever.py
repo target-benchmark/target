@@ -12,9 +12,9 @@ from typing import Dict, Iterable, List, Union
 
 from dotenv import load_dotenv
 
-from ..AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
-from .drqa import retriever
-from .utils import TFIDFBuilder, convert_table_representation
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
+from target_benchmark.retrievers.ottqa.utils import TFIDFBuilder, convert_table_representation
+from target_benchmark.retrievers.ottqa.drqa import retriever
 
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):

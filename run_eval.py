@@ -7,7 +7,9 @@ from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
 from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import (
     HNSWOpenAIEmbeddingRetriever,
 )
+from target_benchmark.retrievers.analysis.NoContextRetriever import NoContextRetriever
 from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
+
 
 
 class RetrieverEval:
@@ -64,8 +66,6 @@ class RetrieverEval:
 
 
 if __name__ == "__main__":
-    # TODO: fix creation of dirs
-    # TODO: make retrieval class keywords+functionality consistent in terms of paths
 
     tasks_list = ["Table Question Answering Task", "Fact Verification Task"]
     
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     )
     # OTTQA retriever
     for encoding in ["bm25", "tfidf"]:
-        for withtitle in [True]:#, False]:
+        for withtitle in [True, False]:
             ottqa_retriever = OTTQARetriever(encoding=encoding, out_dir=out_dir, withtitle=withtitle)
             RetrieverEval(
                 retriever_name="OTTQA",
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
 
     out_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/analysis"
+        os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/analysis/no-context"
     )
     analysis_nocontext_retriever = NoContextRetriever(out_dir=out_dir)
     RetrieverEval(
