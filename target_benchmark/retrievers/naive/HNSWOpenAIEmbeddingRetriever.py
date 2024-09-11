@@ -19,6 +19,11 @@ default_out_dir = os.path.join(file_dir, "retrieval_files", "openai")
 
 
 class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
+    """
+    The difference with the DefaultOpenAIEmbeddingRetriever is that it uses the
+    HNSW index for consistent evaluation with the HySE retriever.
+    """
+
     def __init__(
         self,
         out_dir: str = default_out_dir,
