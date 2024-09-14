@@ -3,13 +3,12 @@ import os
 import time
 
 from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.retrievers.analysis.NoContextRetriever import NoContextRetriever
 from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
 from target_benchmark.retrievers.naive.HNSWOpenAIEmbeddingRetriever import (
     HNSWOpenAIEmbeddingRetriever,
 )
-from target_benchmark.retrievers.analysis.NoContextRetriever import NoContextRetriever
 from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
-
 
 
 class RetrieverEval:
@@ -38,7 +37,9 @@ class RetrieverEval:
         """Runs evaluation and writes results (retrieval, downsream task, total eval time) to a json file."""
         self.target.logger.info(f"starting {self.retriever_name}")
         start = time.time()
-        res = self.target.run(self.retriever, split="validation", top_k=top_k, batch_size=100, debug=False)
+        res = self.target.run(
+            self.retriever, split="validation", top_k=top_k, batch_size=100, debug=False
+        )
         eval_time = time.time() - start
 
         num_schemas_appendix = ""
@@ -66,9 +67,8 @@ class RetrieverEval:
 
 
 if __name__ == "__main__":
-
     tasks_list = ["Table Question Answering Task", "Fact Verification Task"]
-    
+
     model_name = "openai"
     out_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/hyse/{model_name}"
@@ -90,7 +90,7 @@ if __name__ == "__main__":
                         out_dir=out_dir,
                         retriever=hyse_retriever,
                         tasks_list=tasks_list,
-                        result_appendix=f"numrows_{num_rows}_numschemas_{num_schemas}_aggregated_{aggregated}_withquery_{with_query}"
+                        result_appendix=f"numrows_{num_rows}_numschemas_{num_schemas}_aggregated_{aggregated}_withquery_{with_query}",
                     ).run_eval()
 
     model_name = "tapas"
@@ -114,11 +114,11 @@ if __name__ == "__main__":
                 out_dir=out_dir,
                 retriever=hyse_retriever,
                 tasks_list=tasks_list,
-                result_appendix=f"numrows_{num_rows}_numschemas_{num_schemas}_aggregated_{aggregated}_withquery_{with_query}"
+                result_appendix=f"numrows_{num_rows}_numschemas_{num_schemas}_aggregated_{aggregated}_withquery_{with_query}",
             ).run_eval()
-    
+
     out_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/hnswopenai"
+        os.path.dirname(os.path.abspath(__file__)), "retrieval_files/hnswopenai"
     )
     for num_rows in [0, 2]:
         naive_openai_retriever = HNSWOpenAIEmbeddingRetriever(
@@ -130,32 +130,34 @@ if __name__ == "__main__":
             out_dir=out_dir,
             retriever=naive_openai_retriever,
             tasks_list=tasks_list,
-            result_appendix=f"numrows_{num_rows}"
+            result_appendix=f"numrows_{num_rows}",
         ).run_eval()
 
     out_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/ottqa"
+        os.path.dirname(os.path.abspath(__file__)), "retrieval_files/ottqa"
     )
     # OTTQA retriever
     for encoding in ["bm25", "tfidf"]:
         for withtitle in [True, False]:
-            ottqa_retriever = OTTQARetriever(encoding=encoding, out_dir=out_dir, withtitle=withtitle)
+            ottqa_retriever = OTTQARetriever(
+                encoding=encoding, out_dir=out_dir, withtitle=withtitle
+            )
             RetrieverEval(
                 retriever_name="OTTQA",
                 out_dir=out_dir,
                 retriever=ottqa_retriever,
                 tasks_list=tasks_list,
-                result_appendix=f"encoding_{encoding}_withtitle_{withtitle}"
+                result_appendix=f"encoding_{encoding}_withtitle_{withtitle}",
             ).run_eval()
 
-
     out_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), f"retrieval_files/analysis/no-context"
+        os.path.dirname(os.path.abspath(__file__)),
+        "retrieval_files/analysis/no-context",
     )
     analysis_nocontext_retriever = NoContextRetriever(out_dir=out_dir)
     RetrieverEval(
-        retriever_name="NoContext", 
+        retriever_name="NoContext",
         out_dir=out_dir,
         retriever=analysis_nocontext_retriever,
-        tasks_list=tasks_list
+        tasks_list=tasks_list,
     ).run_eval()

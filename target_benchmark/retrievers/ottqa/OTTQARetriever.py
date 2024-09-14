@@ -12,9 +12,14 @@ from typing import Dict, Iterable, List, Union
 
 from dotenv import load_dotenv
 
-from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import AbsCustomEmbeddingRetriever
-from target_benchmark.retrievers.ottqa.utils import TFIDFBuilder, convert_table_representation
+from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
+    AbsCustomEmbeddingRetriever,
+)
 from target_benchmark.retrievers.ottqa.drqa import retriever
+from target_benchmark.retrievers.ottqa.utils import (
+    TFIDFBuilder,
+    convert_table_representation,
+)
 
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):
@@ -59,13 +64,16 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         for entry in corpus:
             for db_id, table_id, table in zip(
                 entry["database_id"], entry["table_id"], entry["table"]
-            ):  
+            ):
                 # Setting to evaluate influence of table name in embedding
-                if not self.withtitle: table_id = ""
+                if not self.withtitle:
+                    table_id = ""
 
                 tup = (db_id, table_id)
                 converted_corpus[str(tup)] = convert_table_representation(
-                    db_id, table_id, table, # middle arg was table_id but removed due to high correspondence
+                    db_id,
+                    table_id,
+                    table,  # middle arg was table_id but removed due to high correspondence
                 )
         file_name = "temp_data.json"
 
@@ -74,5 +82,9 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
             json.dump(converted_corpus, f)
 
         builder = TFIDFBuilder()
-        out_path = builder.build_tfidf(self.out_dir, converted_corpus, option=self.encoding)
-        self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
+        out_path = builder.build_tfidf(
+            self.out_dir, converted_corpus, option=self.encoding
+        )
+        self.rankers[dataset_name] = retriever.get_class(self.encoding)(
+            tfidf_path=out_path
+        )

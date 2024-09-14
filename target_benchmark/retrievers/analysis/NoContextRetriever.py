@@ -1,10 +1,9 @@
 import os
-import pickle
+from typing import Dict, Iterable
 
-from typing import Dict, Iterable, Iterator, List, Tuple
 from dotenv import load_dotenv
 
-from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "analysis")
@@ -29,7 +28,6 @@ class NoContextRetriever(AbsCustomEmbeddingRetriever):
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir, exist_ok=True)
 
-
     def retrieve(
         self,
         query: str,
@@ -37,13 +35,10 @@ class NoContextRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ):
-
         return []
-
 
     def embed_query(self, query: str):
         return
-
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """

@@ -1,15 +1,15 @@
 import os
 import pickle
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple
 
 import instructor
 import numpy as np
+import pandas as pd
 import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
-from pydantic import BaseModel, model_validator
-from transformers import TapasConfig, TapasModel, TapasTokenizer
-from typing import Dict, Iterable, Iterator, List, Tuple, Union, Optional
+from pydantic import BaseModel
+from transformers import TapasModel, TapasTokenizer
 
 from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
@@ -35,7 +35,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         num_rows: int = 2,
         num_schemas: int = 2,
         with_query: bool = True,
-        aggregated: bool = False
+        aggregated: bool = False,
     ):
         super().__init__(expected_corpus_format)
 
@@ -46,7 +46,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         )
         if model_name == "tapas":
             self.model = TapasModel.from_pretrained(
-                "google/tapas-base" # check performance difference with fine-tuned model take qa as base
+                "google/tapas-base"  # check performance difference with fine-tuned model take qa as base
             )
             self.tokenizer = TapasTokenizer.from_pretrained(
                 "google/tapas-base", drop_rows_to_fit=True
@@ -62,7 +62,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         self.num_schemas = num_schemas
         self.with_query = with_query
         self.aggregated = aggregated
-
 
     def retrieve(
         self,
@@ -95,12 +94,18 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
         """
         try:
             with open(
-                os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "rb"
+                os.path.join(
+                    self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"
+                ),
+                "rb",
             ) as f:
                 corpus_index = pickle.load(f)
 
             with open(
-                os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "rb"
+                os.path.join(
+                    self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"
+                ),
+                "rb",
             ) as f:
                 # stored separately as hnsw only takes int indices
                 db_table_ids = pickle.load(f)
@@ -119,7 +124,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
             # print("input query is: ", query)
             # print("generated the following schemas: ", hypothetical_schemas_query)
-            
+
             query_vector = np.array(hypothetical_schema_embeddings)
 
             # adapt inputs conditioned on single aggregated vector query or multi-table query
@@ -148,11 +153,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
             return retrieved_full_ids
         except Exception as e:
-
             print(f"encountered error on dataset: {dataset_name} and query: {query}", e)
 
             return []
-
 
     def embed_query(self, query: str, id: Tuple[int, str] = None) -> List[List]:
         """Embed query using given embedding model."""
@@ -172,7 +175,14 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                     return_tensors="pt",
                 )
 
-                embedding = self.model(**input).last_hidden_state[0].mean(axis=0).detach().numpy().tolist()
+                embedding = (
+                    self.model(**input)
+                    .last_hidden_state[0]
+                    .mean(axis=0)
+                    .detach()
+                    .numpy()
+                    .tolist()
+                )
 
                 return embedding
 
@@ -180,12 +190,10 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
             print("error on: ", id, e)
             return []
 
-
     def embed_table(self, table: List[list], id: Tuple[int, str] = None) -> List[List]:
         """Embed table using given embedding model."""
         try:
             if self.model_name == "openai":
-
                 table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
 
                 response = self.client.embeddings.create(
@@ -196,9 +204,9 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                 return response.data[0].embedding
 
             if self.model_name == "tapas":
-                # here, the table is actually a nested list 
-                table_df = pd.DataFrame(table[1:self.num_rows+1], columns=table[0])
-                
+                # here, the table is actually a nested list
+                table_df = pd.DataFrame(table[1 : self.num_rows + 1], columns=table[0])
+
                 input = self.tokenizer(
                     table=table_df.astype(str),
                     queries=[""],
@@ -206,7 +214,14 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
                     return_tensors="pt",
                 )
 
-                embedding = self.model(**input).last_hidden_state[0].mean(axis=0).detach().numpy().tolist()
+                embedding = (
+                    self.model(**input)
+                    .last_hidden_state[0]
+                    .mean(axis=0)
+                    .detach()
+                    .numpy()
+                    .tolist()
+                )
 
                 return embedding
 
@@ -245,7 +260,6 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         return hypothetical_schemas
 
-
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -255,13 +269,15 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
             corpus (Iterable[Dict[str, List]]): an iterable of dicts, each being a batch of entries in the corpus dataset,
             containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
-        
+
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
         self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
+        if os.path.exists(
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")
+        ):
             return
 
         embedded_corpus = {}
@@ -278,15 +294,16 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         # Store table embedding index and table ids in distinct files
         with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(corpus_index, f)
 
         with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"), "wb"
+            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
+            "wb",
         ) as f:
             pickle.dump(list(embedded_corpus.keys()), f)
-
 
     def get_hyse_prompt(self, query: str, with_rows: bool = False):
         # with rows or without
