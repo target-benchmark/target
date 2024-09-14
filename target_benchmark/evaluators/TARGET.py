@@ -60,7 +60,7 @@ class TARGET:
                 str: name of the single task to run.
                 Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name mapped to a dictionary containing the dataset name mapped to the split to run evaluation on. we only support one split for each dataset. example inputs:
                 ("Table Question Answering Task", ["fetaqa", "ottqa"])
-                ("Text to SQL Task", "spider)
+                ("Text to SQL Task", "spider")
                 AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
             OR you can pass in a list of containing multiple of these items. Be sure that any dataset is only mentioned once in your input.
             persist_log (bool, optional): whether to persist the log to a file or not.

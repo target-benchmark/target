@@ -65,13 +65,9 @@ def construct_table_info(
     cleaned_db_id = re.sub(r"[^a-zA-Z0-9_]", "_", database_id)
     table_info = get_table_info_with_index(table_info_dir, database_id, cleaned_table_name)
 
-    if table_info.table_name in existing_names:
-        name = table_info.table_name
-        print(f"existing table: {name}, actual name: {existing_names[name]}")
-
     # check if 
-    # table info has been constructed already 
-    # and not appeared in other tables
+    # - table info has been constructed already 
+    # - and not appeared in other tables
     if table_info and table_info.table_name not in existing_names:
         return table_info
 
