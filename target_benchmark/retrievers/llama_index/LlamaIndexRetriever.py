@@ -89,7 +89,7 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
                 db_id = entry_batch[DATABASE_ID_COL_NAME][i]
                 table_id = entry_batch[TABLE_ID_COL_NAME][i]
                 table_info = construct_table_info(
-                    str(data_path), table, db_id, table_id, mapping
+                    str(dataset_persistence_path), table, db_id, table_id, mapping
                 )
                 if not table_info:
                     raise ValueError("a valid table name cannot be generated!")
@@ -120,7 +120,7 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         self.object_indices[dataset_name] = obj_index
 
     def construct_query_pipeline(self, dataset_name: str, top_k: int):
-        query_pipeline = QP(verbose=True)
+        query_pipeline = QP(verbose=False)
         query_pipeline.add_modules(
             module_dict={
                 "input": InputComponent(),

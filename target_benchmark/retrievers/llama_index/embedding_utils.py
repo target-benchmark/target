@@ -98,7 +98,7 @@ def construct_table_info(
             table_name=message.parsed.table_name,
             table_summary=message.parsed.table_summary,
         )
-        out_file_path = f"{table_info_dir}/{cleaned_db_id}_{cleaned_table_name}.json"
+        out_file_path = Path(table_info_dir) / f"{cleaned_db_id}_{cleaned_table_name}.json"
         with open(out_file_path, "w") as file:
             json.dump(table_info.model_dump(), file)
 
@@ -125,11 +125,11 @@ def create_table_from_dataframe(
     #     Column(col, String if dtype == "object" else Integer)
     #     for col, dtype in zip(df.columns, df.dtypes)
     # ]
-    columns = [
-        Column(
-            df.columns.values[0], String if df.dtypes.values[0] == "object" else Integer
-        )
-    ]
+    columns = [Column("Column", String)]
+        # Column(
+        #     df.columns.values[0], String if df.dtypes.values[0] == "object" else Integer
+        # )
+    # ]
 
     # Create a table with the defined columns
     Table(table_name, metadata_obj, *columns)
