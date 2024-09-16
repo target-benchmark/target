@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import time
 from typing import Dict, List, Literal
 
 from huggingface_hub import snapshot_download
@@ -43,9 +44,13 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
             self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
         """
-        assert (
-            dataset_name == "spider" or dataset_name == "bird"
-        ), "we don't allow customized text2sql datasets yet. try spider or bird instead"
+
+        if "spider" in dataset_name:
+            dataset_name = "spider"
+        elif "bird" in dataset_name:
+            dataset_name = "bird"
+        else:
+            raise AssertionError("we don't allow customized text2sql datasets yet. try one of the splits of spider or bird instead")
 
         super().__init__(
             dataset_name=dataset_name,
@@ -63,6 +68,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         path_to_data_dir = snapshot_download(
             repo_id=self.hf_corpus_dataset_path, repo_type="dataset"
         )
+        time.sleep(0.5)
         path_to_context = Path(
             path_to_data_dir, f"{self.dataset_name}-corpus-{self.split}.json"
         )
