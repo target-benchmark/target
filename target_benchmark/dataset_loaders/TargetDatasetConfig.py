@@ -19,6 +19,7 @@ DEFAULT_OTTQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_corpus_dataset_path="target-benchmark/ottqa-corpus",
     hf_queries_dataset_path="target-benchmark/ottqa-queries",
     query_type="Table Question Answering",
+    split="validation",
 )
 
 DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(

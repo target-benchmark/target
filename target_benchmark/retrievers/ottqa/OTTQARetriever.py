@@ -8,7 +8,7 @@
 import ast
 import json
 import os
-from typing import Dict, Iterable, List, Union
+from typing import Dict, Iterable, List, Literal, Union
 
 from dotenv import load_dotenv
 
@@ -21,12 +21,15 @@ from target_benchmark.retrievers.ottqa.utils import (
     convert_table_representation,
 )
 
+file_dir = os.path.dirname(os.path.realpath(__file__))
+default_out_dir = os.path.join(file_dir, "retrieval_files")
+
 
 class OTTQARetriever(AbsCustomEmbeddingRetriever):
     def __init__(
         self,
-        out_dir: str,
-        encoding: str = "tfidf",
+        out_dir: str = default_out_dir,
+        encoding: Literal["tfidf", "bm25"] = "tfidf",
         withtitle: bool = False,
         expected_corpus_format: str = "nested array",
     ):
