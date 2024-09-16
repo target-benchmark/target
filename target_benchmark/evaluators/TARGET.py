@@ -3,6 +3,7 @@ import os
 import shutil
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Literal, Tuple, Union
 
 import numpy as np
@@ -415,6 +416,7 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 1,
         top_k: int = 5,
+        retrieval_results_file: str | None = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -491,6 +493,15 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
+            path_to_persistence = None
+            if retrieval_results_file:
+                path_to_persistence = Path(retrieval_results_file)
+                if not path_to_persistence.exists():
+                    self.logger.info(
+                        f"creating retrieval results persistence file at {str(path_to_persistence)}"
+                    )
+                    path_to_persistence.touch()
+
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
@@ -499,6 +510,7 @@ class TARGET:
                 batch_size=batch_size,
                 top_k=top_k,
                 client=client,
+                path_to_persistence=path_to_persistence,
                 **kwargs,
             )
 

@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from logging import Logger
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
@@ -179,6 +180,7 @@ class AbsTask(ABC):
         logger: Logger,
         batch_size: int = 64,
         top_k: int = 5,
+        path_to_persistence: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -222,6 +224,8 @@ class AbsTask(ABC):
                 )
                 total_duration += duration
                 self._update_retrieval_metrics(query_batch, retrieved_tables)
+                if path_to_persistence:
+                    self._write_retrieval_results(retrieved_tables, path_to_persistence)
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
@@ -230,9 +234,10 @@ class AbsTask(ABC):
                 )  # TODO: comment this out, this is for testing
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
-                logger.info(
-                    f"number of queries processed: {self.total_queries_processed}"
-                )
+                if self.total_queries_processed % 200 == 0:
+                    logger.info(
+                        f"number of queries processed: {self.total_queries_processed}"
+                    )
 
             # retrieval performance, precision, recall, f1, etc.
             retrieval_performance = self._calculate_table_retrieval_performance(
@@ -322,6 +327,16 @@ class AbsTask(ABC):
         )
         return retrieval_results, duration
 
+    def _write_retrieval_results(
+        new_retrieved_tables: List[RetrievalResultDataModel],
+        path_to_persistence: Path,
+    ):
+        if not path_to_persistence.exists():
+            path_to_persistence.touch()
+        with open(path_to_persistence, "a") as file:
+            for retrieval_result in new_retrieved_tables:
+                file.write(retrieval_result.model_dump_json() + "\n")
+
     def _update_retrieval_metrics(
         self,
         query_batch: Dict[str, List],
@@ -337,15 +352,13 @@ class AbsTask(ABC):
         Returns:
             None
         """
-        for db_id, table_id, retrieval_result in zip(
-            query_batch[DATABASE_ID_COL_NAME],
-            query_batch[TABLE_ID_COL_NAME],
-            new_retrieved_tables,
-        ):
-            if (
-                str(db_id),
-                str(table_id),
-            ) in retrieval_result.retrieval_results:
+        num_queries = len(new_retrieved_tables)
+        for idx in range(num_queries):
+            db_id = query_batch[DATABASE_ID_COL_NAME][idx]
+            table_id = query_batch[TABLE_ID_COL_NAME][idx]
+            retrieval_result = new_retrieved_tables[idx]
+
+            if (str(db_id), str(table_id)) in retrieval_result.retrieval_results:
                 self.true_positive += 1
             self.total_queries_processed += 1
 
