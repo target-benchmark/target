@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from logging import Logger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
-
+from tqdm import tqdm
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
@@ -213,6 +213,8 @@ class AbsTask(ABC):
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
             total_duration = 0
+            total_num_queries = dataset_loader.get_queries_size
+            progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
                 retrieved_tables, duration = self._get_retrieval_results(
                     retriever,
@@ -235,6 +237,9 @@ class AbsTask(ABC):
                     logger.info(
                         f"number of queries processed: {self.total_queries_processed}"
                     )
+                progress_bar.update(batch_size)
+            progress_bar.update(total_num_queries - progress_bar.n)
+            progress_bar.close()
 
             # retrieval performance, precision, recall, f1, etc.
             retrieval_performance = self._calculate_table_retrieval_performance(

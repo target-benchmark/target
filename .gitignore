@@ -178,3 +178,5 @@ logs/
 
 # data persistence folder
 *data/
+
+*.jsonl
