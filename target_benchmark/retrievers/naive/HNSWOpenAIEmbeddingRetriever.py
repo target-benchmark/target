@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Union
 
 import numpy as np
 import tqdm
@@ -33,7 +33,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         out_dir: str = default_out_dir,
         embedding_model_id: str = "text-embedding-3-small",
         expected_corpus_format: str = "nested array",
-        num_rows: int = 0,
+        num_rows: Union[int, None] = None,
     ):
         super().__init__(expected_corpus_format=expected_corpus_format)
 
