@@ -36,6 +36,7 @@ from target_benchmark.retrievers import (
 from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import (
+    DownstreamTaskPerformanceDataModel,
     EmbeddingStatisticsDataModel,
     TaskResultsDataModel,
 )
@@ -422,7 +423,7 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 1,
         top_k: int = 5,
-        retrieval_results_file: str | None = None,
+        retrieval_results_file: Union[str, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -527,3 +528,13 @@ class TARGET:
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")
         return all_results
+
+    @classmethod
+    def evaluate_downstream_task(
+        cls,
+        retrieval_results_file: str,
+        split: Literal["test", "train", "validation"] = "test",
+    ) -> DownstreamTaskPerformanceDataModel:
+        path_to_persistence = Path(retrieval_results_file)
+        if not path_to_persistence.exists():
+            raise ValueError(f"path passed {retrieval_results_file} in does not exist!")

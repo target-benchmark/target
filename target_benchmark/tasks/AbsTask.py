@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 from logging import Logger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
+
 from tqdm import tqdm
+
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
@@ -214,7 +216,9 @@ class AbsTask(ABC):
             table_id_to_table = dataset_loader.get_table_id_to_table()
             total_duration = 0
             total_num_queries = dataset_loader.get_queries_size
-            progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
+            progress_bar = tqdm(
+                total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
+            )
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
                 retrieved_tables, duration = self._get_retrieval_results(
                     retriever,
@@ -258,6 +262,27 @@ class AbsTask(ABC):
             )
             logger.info(f"finished running task {self.task_name}")
         return task_results
+
+    @classmethod
+    def evaluate_downstream(
+        cls,
+        dataset_loader: AbsDatasetLoader,
+        retrieved_tables: List[RetrievalResultDataModel],
+    ) -> DownstreamTaskPerformanceDataModel:
+        task = cls()
+        dataset_name = dataset_loader.dataset_name
+
+        for idx, query_batch in tqdm(
+            enumerate(dataset_loader.get_queries_for_task(1)),
+            total=dataset_loader.get_queries_size,
+            desc="Getting downstream task results...",
+        ):
+            retrieved_table = retrieved_tables[idx : idx + 1]
+            downstream_results = task._get_downstream_task_results(
+                query_batch, retrieved_table, dataset_name
+            )
+            task._update_downstream_task_metrics(query_batch, downstream_results)
+        return task._calculate_downstream_task_performance()
 
     def _fill_retrieval_results_with_table_strs(
         self,
