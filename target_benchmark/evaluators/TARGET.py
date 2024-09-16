@@ -8,6 +8,7 @@ from typing import Dict, List, Literal, Tuple, Union
 
 import numpy as np
 from qdrant_client import QdrantClient, models
+from tqdm import tqdm
 
 from target_benchmark.dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
@@ -362,11 +363,16 @@ class TARGET:
             ),
         )
         cur_dataloader = self.dataloaders[dataset_name]
+        total_entries = cur_dataloader.get_corpus_size()
         vectors = []
         metadata = []
         start_time = time.process_time()
-        for entry in cur_dataloader.convert_corpus_table_to(
-            retriever.get_expected_corpus_format()
+        for entry in tqdm(
+            cur_dataloader.convert_corpus_table_to(
+                retriever.get_expected_corpus_format()
+            ),
+            total=total_entries,
+            desc="Embedding Tables...",
         ):  # TODO: support batching
             entry = {key: value[0] for key, value in entry.items()}
             table_embedding = retriever.embed_corpus(dataset_name, entry)

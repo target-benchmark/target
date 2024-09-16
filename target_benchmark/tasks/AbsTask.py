@@ -229,9 +229,6 @@ class AbsTask(ABC):
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_tables, dataset_name
                 )
-                logger.info(
-                    f"generated results {downstream_results}"
-                )  # TODO: comment this out, this is for testing
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
                 if self.total_queries_processed % 200 == 0:
@@ -328,6 +325,7 @@ class AbsTask(ABC):
         return retrieval_results, duration
 
     def _write_retrieval_results(
+        self,
         new_retrieved_tables: List[RetrievalResultDataModel],
         path_to_persistence: Path,
     ):
