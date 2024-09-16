@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Dict, List, Literal
 
 from huggingface_hub import snapshot_download
@@ -50,7 +50,9 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         elif "bird" in dataset_name:
             dataset_name = "bird"
         else:
-            raise AssertionError("we don't allow customized text2sql datasets yet. try one of the splits of spider or bird instead")
+            raise AssertionError(
+                "we don't allow customized text2sql datasets yet. try one of the splits of spider or bird instead"
+            )
 
         super().__init__(
             dataset_name=dataset_name,
@@ -143,7 +145,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         """
         if not self.corpus:
             raise RuntimeError("Corpus datasets have not been loaded!")
-        return len(self.corpus)
+        return len(self.corpus[TABLE_COL_NAME])
 
     def get_corpus_header(self) -> List[str]:
         """
