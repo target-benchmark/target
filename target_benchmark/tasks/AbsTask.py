@@ -215,7 +215,7 @@ class AbsTask(ABC):
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
             total_duration = 0
-            total_num_queries = dataset_loader.get_queries_size
+            total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(
                 total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
             )
@@ -274,7 +274,7 @@ class AbsTask(ABC):
 
         for idx, query_batch in tqdm(
             enumerate(dataset_loader.get_queries_for_task(1)),
-            total=dataset_loader.get_queries_size,
+            total=dataset_loader.get_queries_size(),
             desc="Getting downstream task results...",
         ):
             retrieved_table = retrieved_tables[idx : idx + 1]
