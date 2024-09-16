@@ -6,7 +6,7 @@ from typing import Dict, Union
 import pandas as pd
 from openai import OpenAI
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, Engine, Integer, MetaData, String, Table
+from sqlalchemy import Column, Engine, MetaData, String, Table
 
 
 class TableInfo(BaseModel):
@@ -63,10 +63,12 @@ def construct_table_info(
     if isinstance(database_id, int):
         database_id = str(database_id)
     cleaned_db_id = re.sub(r"[^a-zA-Z0-9_]", "_", database_id)
-    table_info = get_table_info_with_index(table_info_dir, database_id, cleaned_table_name)
+    table_info = get_table_info_with_index(
+        table_info_dir, database_id, cleaned_table_name
+    )
 
-    # check if 
-    # - table info has been constructed already 
+    # check if
+    # - table info has been constructed already
     # - and not appeared in other tables
     if table_info and table_info.table_name not in existing_names:
         return table_info
@@ -98,7 +100,9 @@ def construct_table_info(
             table_name=message.parsed.table_name,
             table_summary=message.parsed.table_summary,
         )
-        out_file_path = Path(table_info_dir) / f"{cleaned_db_id}_{cleaned_table_name}.json"
+        out_file_path = (
+            Path(table_info_dir) / f"{cleaned_db_id}_{cleaned_table_name}.json"
+        )
         with open(out_file_path, "w") as file:
             json.dump(table_info.model_dump(), file)
 
@@ -126,9 +130,9 @@ def create_table_from_dataframe(
     #     for col, dtype in zip(df.columns, df.dtypes)
     # ]
     columns = [Column("Column", String)]
-        # Column(
-        #     df.columns.values[0], String if df.dtypes.values[0] == "object" else Integer
-        # )
+    # Column(
+    #     df.columns.values[0], String if df.dtypes.values[0] == "object" else Integer
+    # )
     # ]
 
     # Create a table with the defined columns
