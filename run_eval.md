@@ -27,6 +27,7 @@ target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
 target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
 target_tabfact = TARGET(("Table Retrieval Task", "tabfact"))
 target_spider = TARGET(("Table Retrieval Task", "spider-test"))
+target_infiagentda = TARGET(("Table Retrieval Task", "infiagentda"))
 ```
 
 # Llamaindex
@@ -121,6 +122,13 @@ results_oai_spider_test = target_spider.run(oai_embedder, "test", top_k=10, batc
 
 ```python
 results_oai_spider_test
+```
+
+## Infiagentda Test
+DON'T INCLUDE FOR NOW?
+
+```python
+results_oai_infiagentda_test = target_infiagentda.run(oai_embedder, "test", top_k=10, batch_size=100, retrieval_results_file="./oai_infiagentda_test_retrieval_results.jsonl")
 ```
 
 # HNSW OAI

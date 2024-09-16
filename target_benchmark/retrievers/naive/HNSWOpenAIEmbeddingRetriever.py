@@ -12,7 +12,11 @@ from target_benchmark.dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
-from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
+from target_benchmark.retrievers.utils import (
+    construct_embedding_index,
+    markdown_table_str,
+)
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "openai")
@@ -113,10 +117,10 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 corpus_dict[TABLE_COL_NAME],
             ):
                 tup_id = (db_id, table_id)
-                table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
+                table_str = markdown_table_str(table, num_rows=self.num_rows)
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
-        corpus_index = utils.construct_embedding_index(list(embedded_corpus.values()))
+        corpus_index = construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
         with open(
