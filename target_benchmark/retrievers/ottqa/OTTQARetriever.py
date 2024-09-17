@@ -8,6 +8,7 @@
 import ast
 import json
 import os
+from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Union
 
 from dotenv import load_dotenv
@@ -61,28 +62,21 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         return [ast.literal_eval(doc_name) for doc_name in doc_names]
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
-        if not os.path.exists(self.out_dir):
-            os.mkdir(self.out_dir)
-        converted_corpus = {}
-        for entry in corpus:
-            for db_id, table_id, table in zip(
-                entry["database_id"], entry["table_id"], entry["table"]
-            ):
-                # Setting to evaluate influence of table name in embedding
-                if not self.withtitle:
-                    table_id = ""
+        path_to_out_dir = Path(self.out_dir)
+        path_to_out_dir.mkdir(parents=True, exist_ok=True)
 
-                tup = (db_id, table_id)
-                converted_corpus[str(tup)] = convert_table_representation(
-                    db_id,
-                    table_id,
-                    table,  # middle arg was table_id but removed due to high correspondence
-                )
         file_name = f"{dataset_name}_{self.encoding}_{self.withtitle}.json"
-
-        # Write the dictionary to a file in JSON format
-        with open(os.path.join(self.out_dir, file_name), "w") as f:
-            json.dump(converted_corpus, f)
+        path_to_persist_file = Path(self.out_dir) / file_name
+        converted_corpus = {}
+        # either load or create converted corpus
+        if path_to_persist_file.exists():
+            with open(path_to_persist_file, "r") as file:
+                converted_corpus = json.load(file)
+        else:
+            converted_corpus = self.create_converted_corpus(corpus)
+            with open(path_to_persist_file, "w") as file:
+                # Write the dictionary to a file in JSON format
+                json.dump(converted_corpus, file)
 
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(
@@ -91,3 +85,21 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         self.rankers[dataset_name] = retriever.get_class(self.encoding)(
             tfidf_path=out_path
         )
+
+    def create_converted_corpus(
+        self,
+        corpus: Iterable[Dict],
+    ) -> Dict:
+        converted_corpus = {}
+        for entry in corpus:
+            for db_id, table_id, table in zip(
+                entry["database_id"], entry["table_id"], entry["table"]
+            ):
+                # Setting to evaluate influence of table name in embedding
+
+                tup = (db_id, table_id)
+                converted_corpus[str(tup)] = convert_table_representation(
+                    db_id,
+                    table_id if self.withtitle else "",
+                    table,  # middle arg was table_id but removed due to high correspondence
+                )
