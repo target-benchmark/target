@@ -100,7 +100,8 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                 tup = (db_id, table_id)
                 converted_corpus[str(tup)] = convert_table_representation(
                     db_id,
-                    table_id if self.withtitle else "",
-                    table,  # middle arg was table_id but removed due to high correspondence
+                    table_id,
+                    table,
+                    self.withtitle,
                 )
         return converted_corpus

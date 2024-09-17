@@ -178,13 +178,17 @@ def build_corpus(tables: dict, tmp_file: str):
 
 
 def convert_table_representation(
-    database_id, table_id: str, table_contents: List[List]
+    database_id,
+    table_id: str,
+    table_contents: List[List],
+    with_title: bool,
 ) -> Dict[str, object]:
     table_headers = table_contents[0]
     table_data = table_contents[1:]
+    # remove title due to high correspondence but keep uid
     return {
         "uid": str((database_id, table_id)),
-        "title": table_id,
+        "title": table_id if with_title else "",
         "header": table_headers,
         "data": table_data,
         "section_title": "",
