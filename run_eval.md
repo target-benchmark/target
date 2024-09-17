@@ -155,10 +155,18 @@ results_hnsw_oai_fetaqa_test
 results_hnsw_oai_ottqa_test = target_ottqa.run(hnsw_oai, "validation", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_ottqa_val_retrieval_results.jsonl")
 ```
 
+```python
+results_hnsw_oai_ottqa_test
+```
+
 ## Tabfact Test
 
 ```python
 results_hnsw_oai_tabfact_test = target_tabfact.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_tabfact_test_retrieval_results.jsonl")
+```
+
+```python
+results_hnsw_oai_tabfact_test
 ```
 
 ## Spider Test
@@ -167,15 +175,24 @@ results_hnsw_oai_tabfact_test = target_tabfact.run(hnsw_oai, "test", top_k = 10,
 results_hnsw_oai_spider_test = target_spider.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_spider_test_retrieval_results.jsonl")
 ```
 
+```python
+results_hnsw_oai_spider_test
+```
+
 # OTTQA
 
 ```python
 from target_benchmark.retrievers import OTTQARetriever
+tfidf_title = OTTQARetriever(encoding="tfidf", withtitle=True)
+
 ```
 
 ```python
-ottqa_tfidf = OTTQARetriever(encoding="bm25")
-results_ottqa_tfidf_fetaqa_test = target_fetaqa.run(ottqa_tfidf, "test", top_k = 10)
+results_tfidf_with_title_fetaqa_test = target_fetaqa.run(tfidf_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_fetaqa_test_retrieval_results.jsonl")
+```
+
+```python
+results_tfidf_with_title_fetaqa_test
 ```
 
 ```python
