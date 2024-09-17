@@ -11,7 +11,7 @@ from collections import Counter
 from functools import partial
 from multiprocessing import Pool as ProcessPool
 from multiprocessing.util import Finalize
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -209,6 +209,7 @@ class TFIDFBuilder:
         self,
         out_dir: str,
         corpus: Dict[str, object],
+        dataset_name: Union[str, None] = None,
         tmp_file: str = "/tmp/tf-idf-input.json",
         tmp_db_file: str = "/tmp/db.json",
         preprocess: str = None,
@@ -235,11 +236,12 @@ class TFIDFBuilder:
         freqs = self.get_doc_freqs(count_matrix)
 
         basename = "index"
-        basename += "-%s-ngram=%d-hash=%d-tokenizer=%s" % (
+        basename += "-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s" % (
             option,
             ngram,
             hash_size,
             tokenizer,
+            dataset_name,
         )
         filename = os.path.join(out_dir, basename)
 

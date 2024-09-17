@@ -80,7 +80,10 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
 
         builder = TFIDFBuilder()
         out_path = builder.build_tfidf(
-            self.out_dir, converted_corpus, option=self.encoding
+            self.out_dir,
+            converted_corpus,
+            option=self.encoding,
+            dataset_name=dataset_name,
         )
         self.rankers[dataset_name] = retriever.get_class(self.encoding)(
             tfidf_path=out_path
