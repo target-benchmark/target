@@ -43,9 +43,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             api_key=os.getenv("OPENAI_API_KEY"),
         )
         self.out_dir = out_dir
-        if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir, exist_ok=True)
-
+        self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
 
         self.num_rows = num_rows
@@ -101,8 +99,12 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir, exist_ok=True)
 
-        self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
+        self.corpus_identifier = f"{dataset_name}_numrows_all"
+        if self.num_rows:
+            self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
         if os.path.exists(
             os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")

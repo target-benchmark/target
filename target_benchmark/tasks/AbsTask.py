@@ -385,7 +385,6 @@ class AbsTask(ABC):
             db_id = query_batch[DATABASE_ID_COL_NAME][idx]
             table_id = query_batch[TABLE_ID_COL_NAME][idx]
             retrieval_result = new_retrieved_tables[idx]
-
             if (str(db_id), str(table_id)) in retrieval_result.retrieval_results:
                 self.true_positive += 1
             self.total_queries_processed += 1

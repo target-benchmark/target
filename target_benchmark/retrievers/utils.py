@@ -63,7 +63,7 @@ def markdown_table_str(
     # Start building the Markdown table
     markdown = "| " + " | ".join(str(header) for header in headers) + " |\n"
 
-    if num_rows > 0:
+    if num_rows and num_rows > 0:
         # Add separator
         markdown += "| " + " | ".join(["---"] * len(headers)) + " |\n"
 

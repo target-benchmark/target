@@ -107,7 +107,7 @@ results_oai_ottqa_val
 ## Tabfact Test
 
 ```python
-results_oai_tabfact_test = target_tabfact.run(oai_embedder, "test", top_k=10)
+results_oai_tabfact_test = target_tabfact.run(oai_embedder, "test", top_k=10, batch_size=100, retrieval_results_file="oai_tabfact_test_retrieval_results.jsonl")
 ```
 
 ```python
@@ -139,12 +139,32 @@ hnsw_oai = HNSWOpenAIEmbeddingRetriever()
 
 ```
 
+## Fetaqa Test
+
 ```python
-results_hnsw_oai_fetaqa_test = target_fetaqa.run(hnsw_oai, "test", top_k = 10)
+results_hnsw_oai_fetaqa_test = target_fetaqa.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_fetaqa_test_retrieval_results.jsonl")
 ```
 
 ```python
 results_hnsw_oai_fetaqa_test
+```
+
+## OTTQA Val
+
+```python
+results_hnsw_oai_ottqa_test = target_ottqa.run(hnsw_oai, "validation", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_ottqa_val_retrieval_results.jsonl")
+```
+
+## Tabfact Test
+
+```python
+results_hnsw_oai_tabfact_test = target_tabfact.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_tabfact_test_retrieval_results.jsonl")
+```
+
+## Spider Test
+
+```python
+results_hnsw_oai_spider_test = target_spider.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_spider_test_retrieval_results.jsonl")
 ```
 
 # OTTQA

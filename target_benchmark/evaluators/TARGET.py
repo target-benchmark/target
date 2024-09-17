@@ -133,9 +133,8 @@ class TARGET:
                         self.logger.error(
                             f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
                         )
-                    loaded_tasks[
-                        task_default_name
-                    ] = task_class()  # create a default instance of that task class
+                    # create a default instance of that task class
+                    loaded_tasks[task_default_name] = task_class()
                 else:
                     self.logger.warning(
                         f"task named {task} doesn't exist. please double check your input values. skipping this task..."
