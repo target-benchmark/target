@@ -3,9 +3,8 @@ repos:
   - repo: https://github.com/mwouts/jupytext
     rev: v1.16.4
     hooks:
-    - id: jupytext
-      args: [--to, md, --pre-commit-mode]
-      types: [jupyter]
+      - id: jupytext
+        args: [--sync]
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
@@ -25,9 +24,8 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --extend-ignore=E501]
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0  # Use the latest version available
+    rev: v4.4.0 # Use the latest version available
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]

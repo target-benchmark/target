@@ -27,6 +27,7 @@ target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
 target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
 target_tabfact = TARGET(("Table Retrieval Task", "tabfact"))
 target_spider = TARGET(("Table Retrieval Task", "spider-test"))
+target_bird = TARGET(("Table Retrieval Task", "bird-validation"))
 target_infiagentda = TARGET(("Table Retrieval Task", "infiagentda"))
 ```
 
@@ -224,6 +225,16 @@ results_tfidf_with_title_spider_test = target_spider.run(tfidf_with_title, "test
 
 ```python
 results_tfidf_with_title_spider_test
+```
+
+## BIRD Val
+
+```python
+results_tfidf_with_title_bird_val = target_bird.run(tfidf_with_title, "validation", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_with_title_bird_val_retrieval_results.jsonl")
+```
+
+```python
+results_tfidf_with_title_bird_val
 ```
 
 # OTTQA bm25 with Title

@@ -363,7 +363,9 @@ class AbsTask(ABC):
             path_to_persistence.touch()
         with open(path_to_persistence, "a") as file:
             for retrieval_result in new_retrieved_tables:
-                file.write(retrieval_result.model_dump_json() + "\n")
+                file.write(
+                    retrieval_result.model_dump_json(exclude="retrieved_tables") + "\n"
+                )
 
     def _update_retrieval_metrics(
         self,

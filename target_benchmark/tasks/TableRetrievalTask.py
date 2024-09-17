@@ -2,11 +2,12 @@ from typing import Dict, List
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
     DEFAULT_FETAQA_DATASET_CONFIG,
-    DEFAULT_OTTQA_DATASET_CONFIG,
-    DEFAULT_TABFACT_DATASET_CONFIG,
     DEFAULT_INFAGENTDA_DATASET_CONFIG,
+    DEFAULT_OTTQA_DATASET_CONFIG,
     DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+    DEFAULT_TABFACT_DATASET_CONFIG,
 )
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorsDataModels import (
@@ -56,6 +57,7 @@ class TableRetrievalTask(AbsTask):
             DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
             DEFAULT_INFAGENTDA_DATASET_CONFIG.dataset_name: DEFAULT_INFAGENTDA_DATASET_CONFIG,
             DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+            DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
         }
 
     def _get_downstream_task_results(
