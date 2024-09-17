@@ -110,32 +110,6 @@ class Text2SQLTask(AbsTask):
             schema_str += f"Table Name: {table[0]}\n Schema:\n{table[1]}\n"
         return schema_str
 
-    def _update_retrieval_metrics(
-        self,
-        query_batch: Dict[str, List],
-        new_retrieved_tables: List[RetrievalResultDataModel],
-    ) -> None:
-        """
-        Updates the tracked retrieval metrics with the new retrieval results.
-
-        Parameters:
-            query_batch (Dict[str, List]): queries & the corresponding gold table and gold answer.
-            new_retrieved_tables (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
-
-        Returns:
-            None
-        """
-        num_queries = len(new_retrieved_tables)
-        for idx in range(num_queries):
-            db_id = query_batch[DATABASE_ID_COL_NAME][idx]
-            retrieval_result = new_retrieved_tables[idx]
-
-            if str(db_id) in [
-                result[0] for result in retrieval_result.retrieval_results
-            ]:
-                self.true_positive += 1
-            self.total_queries_processed += 1
-
     def _get_downstream_task_results(
         self,
         query_batch: Dict[str, List],

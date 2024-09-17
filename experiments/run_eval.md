@@ -179,7 +179,7 @@ results_hnsw_oai_spider_test = target_spider.run(hnsw_oai, "test", top_k = 10, b
 results_hnsw_oai_spider_test
 ```
 
-# OTTQA TFIDF
+# OTTQA TFIDF with title
 
 ```python
 from target_benchmark.retrievers import OTTQARetriever
@@ -201,7 +201,7 @@ results_tfidf_with_title_fetaqa_test
 ## OTTQA Val
 
 ```python
-results_tfidf_title_ottqa_val = target_ottqa.run(tfidf_title, "validation", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_title_ottqa_val_retrieval_results.jsonl")
+results_tfidf_title_ottqa_val = target_ottqa.run(tfidf_with_title, "validation", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_title_ottqa_val_retrieval_results.jsonl")
 ```
 
 ```python
@@ -211,30 +211,32 @@ results_tfidf_title_ottqa_val
 ## Tabfact Test
 
 ```python
-results_tfidf_title_tabfact_test = target_tabfact.run(tfidf_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_title_tabfact_test_retrieval_results.jsonl")
+results_tfidf_with_title_tabfact_test = target_tabfact.run(tfidf_with_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_with_title_tabfact_test_retrieval_results.jsonl")
 ```
 
 ```python
-results_tfidf_title_tabfact_test
+results_tfidf_with_title_tabfact_test
 ```
 
 ## Spider test
 
 ```python
-results_tfidf_title_spider_test = target_spider.run(tfidf_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_title_spider_test_retrieval_results.jsonl")
+results_tfidf_with_title_spider_test = target_spider.run(tfidf_with_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_with_title_spider_test_retrieval_results.jsonl")
 ```
 
 ```python
 results_tfidf_title_spider_test
 ```
 
-# OTTQA bm25
+# OTTQA bm25 with Title
 
 ```python
 from target_benchmark.retrievers import OTTQARetriever
 bm25_with_title = OTTQARetriever(encoding="bm25", withtitle=True)
 # bm25_no_title = OTTQARetriever(encoding="bm25", withtitle=False)
 ```
+
+## Fetaqa Test
 
 ```python
 results_bm25_with_title_fetaqa_test = target_fetaqa.run(bm25_with_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./bm25_with_title_fetaqa_test_retrieval_results.jsonl")
@@ -244,6 +246,28 @@ results_bm25_with_title_fetaqa_test = target_fetaqa.run(bm25_with_title, "test",
 results_bm25_with_title_fetaqa_test
 ```
 
-```python
+## OTTQA Val
 
+```python
+results_bm25_with_title_ottqa_val = target_ottqa.run(bm25_with_title, "validation", top_k = 10, batch_size=100, retrieval_results_file="./bm25_with_title_ottqa_val_retrieval_results.jsonl")
+```
+
+```python
+results_bm25_with_title_ottqa_val
+```
+
+## Tabfact Test
+
+```python
+results_bm25_with_title_tabfact_test = target_tabfact.run(bm25_with_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./bm25_with_title_tabfact_test_retrieval_results.jsonl")
+```
+
+```python
+results_bm25_with_title_tabfact_test
+```
+
+## Spider Test
+
+```python
+results_bm25_with_title_spider_test = target_spider.run(bm25_with_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./bm25_with_title_spider_test_retrieval_results.jsonl")
 ```
