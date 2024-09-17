@@ -78,7 +78,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                     table_id,
                     table,  # middle arg was table_id but removed due to high correspondence
                 )
-        file_name = "temp_data.json"
+        file_name = f"{dataset_name}_{self.encoding}_{self.withtitle}.json"
 
         # Write the dictionary to a file in JSON format
         with open(os.path.join(self.out_dir, file_name), "w") as f:
