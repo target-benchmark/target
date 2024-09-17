@@ -14,21 +14,20 @@ jupyter:
 
 ```python
 from target_benchmark.evaluators import TARGET, get_task_names
-```
-
-```python
 get_task_names()
 ```
 
 ```python
-from target_benchmark.tasks import QuestionAnsweringTask
-QuestionAnsweringTask._get_default_dataset_config()
+from target_benchmark.tasks import TableRetrievalTask
+TableRetrievalTask._get_default_dataset_config()
 ```
 
 ```python
-target_fetaqa = TARGET(("Table Question Answering Task", "fetaqa"))
-target_ottqa = TARGET(("Table Question Answering Task", "ottqa"))
-target_tabfact = TARGET(("Fact Verification Task", "tabfact"))
+target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
+target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
+target_tabfact = TARGET(("Table Retrieval Task", "tabfact"))
+target_spider = TARGET(("Table Retrieval Task", "spider-test"))
+target_infiagentda = TARGET(("Table Retrieval Task", "infiagentda"))
 ```
 
 # Llamaindex
@@ -88,7 +87,7 @@ oai_embedder = OpenAIEmbedder()
 ## Fetaqa Test
 
 ```python
-results_oai_fetaqa_test = target_fetaqa.run(oai_embedder, "test", top_k = 10)
+results_oai_fetaqa_test = target_fetaqa.run(oai_embedder, "test", top_k = 10, batch_size=100, retrieval_results_file="./oai_fetaqa_test_retrieval_results.jsonl")
 ```
 
 ```python
@@ -98,7 +97,7 @@ results_oai_fetaqa_test
 ## OTTQA Val
 
 ```python
-results_oai_ottqa_val = target_ottqa.run(oai_embedder, "validation", top_k = 10)
+results_oai_ottqa_val = target_ottqa.run(oai_embedder, "validation", top_k = 10, batch_size=100, retrieval_results_file="./oai_ottqa_val_retrieval_results.jsonl")
 ```
 
 ```python
@@ -108,11 +107,28 @@ results_oai_ottqa_val
 ## Tabfact Test
 
 ```python
-results_oai_tabfact_test = target_tabfact.run(oai_embedder, "test", top_k=10)
+results_oai_tabfact_test = target_tabfact.run(oai_embedder, "test", top_k=10, batch_size=100, retrieval_results_file="oai_tabfact_test_retrieval_results.jsonl")
 ```
 
 ```python
 results_oai_tabfact_test
+```
+
+## Spider Test
+
+```python
+results_oai_spider_test = target_spider.run(oai_embedder, "test", top_k=10, batch_size=100, retrieval_results_file="./oai_spider_test_retrieval_results.jsonl")
+```
+
+```python
+results_oai_spider_test
+```
+
+## Infiagentda Test
+DON'T INCLUDE FOR NOW?
+
+```python
+results_oai_infiagentda_test = target_infiagentda.run(oai_embedder, "test", top_k=10, batch_size=100, retrieval_results_file="./oai_infiagentda_test_retrieval_results.jsonl")
 ```
 
 # HNSW OAI
@@ -123,23 +139,60 @@ hnsw_oai = HNSWOpenAIEmbeddingRetriever()
 
 ```
 
+## Fetaqa Test
+
 ```python
-results_hnsw_oai_fetaqa_test = target_fetaqa.run(hnsw_oai, "test", top_k = 10)
+results_hnsw_oai_fetaqa_test = target_fetaqa.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_fetaqa_test_retrieval_results.jsonl")
 ```
 
 ```python
 results_hnsw_oai_fetaqa_test
 ```
 
+## OTTQA Val
+
+```python
+results_hnsw_oai_ottqa_test = target_ottqa.run(hnsw_oai, "validation", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_ottqa_val_retrieval_results.jsonl")
+```
+
+```python
+results_hnsw_oai_ottqa_test
+```
+
+## Tabfact Test
+
+```python
+results_hnsw_oai_tabfact_test = target_tabfact.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_tabfact_test_retrieval_results.jsonl")
+```
+
+```python
+results_hnsw_oai_tabfact_test
+```
+
+## Spider Test
+
+```python
+results_hnsw_oai_spider_test = target_spider.run(hnsw_oai, "test", top_k = 10, batch_size=100, retrieval_results_file="./hnsw_oai_spider_test_retrieval_results.jsonl")
+```
+
+```python
+results_hnsw_oai_spider_test
+```
+
 # OTTQA
 
 ```python
 from target_benchmark.retrievers import OTTQARetriever
+tfidf_title = OTTQARetriever(encoding="tfidf", withtitle=True)
+
 ```
 
 ```python
-ottqa_tfidf = OTTQARetriever(encoding="bm25")
-results_ottqa_tfidf_fetaqa_test = target_fetaqa.run(ottqa_tfidf, "test", top_k = 10)
+results_tfidf_with_title_fetaqa_test = target_fetaqa.run(tfidf_title, "test", top_k = 10, batch_size=100, retrieval_results_file="./tfidf_fetaqa_test_retrieval_results.jsonl")
+```
+
+```python
+results_tfidf_with_title_fetaqa_test
 ```
 
 ```python

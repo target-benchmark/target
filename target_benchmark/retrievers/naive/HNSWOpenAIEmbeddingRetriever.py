@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Union
 
 import numpy as np
 import tqdm
@@ -12,7 +12,11 @@ from target_benchmark.dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
-from target_benchmark.retrievers import AbsCustomEmbeddingRetriever, utils
+from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
+from target_benchmark.retrievers.utils import (
+    construct_embedding_index,
+    markdown_table_str,
+)
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "openai")
@@ -29,7 +33,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         out_dir: str = default_out_dir,
         embedding_model_id: str = "text-embedding-3-small",
         expected_corpus_format: str = "nested array",
-        num_rows: int = 0,
+        num_rows: Union[int, None] = None,
     ):
         super().__init__(expected_corpus_format=expected_corpus_format)
 
@@ -39,9 +43,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             api_key=os.getenv("OPENAI_API_KEY"),
         )
         self.out_dir = out_dir
-        if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir, exist_ok=True)
-
+        self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
 
         self.num_rows = num_rows
@@ -97,8 +99,12 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir, exist_ok=True)
 
-        self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
+        self.corpus_identifier = f"{dataset_name}_numrows_all"
+        if self.num_rows:
+            self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
         if os.path.exists(
             os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")
@@ -113,10 +119,10 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 corpus_dict[TABLE_COL_NAME],
             ):
                 tup_id = (db_id, table_id)
-                table_str = utils.markdown_table_str(table, num_rows=self.num_rows)
+                table_str = markdown_table_str(table, num_rows=self.num_rows)
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
-        corpus_index = utils.construct_embedding_index(list(embedded_corpus.values()))
+        corpus_index = construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
         with open(

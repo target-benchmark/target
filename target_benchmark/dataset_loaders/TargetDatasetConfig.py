@@ -1,4 +1,7 @@
-from target_benchmark.dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
+from target_benchmark.dataset_loaders.LoadersDataModels import (
+    HFDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
+)
 
 DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="fetaqa",
@@ -26,9 +29,10 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="infiagentda",
     hf_corpus_dataset_path="target-benchmark/infiagentda-corpus",
     hf_queries_dataset_path="target-benchmark/infiagentda-queries",
+    query_type="Other",
 )
 
-DEFAULT_SPIDER_TEST_DATASET_CONFIG = HFDatasetConfigDataModel(
+DEFAULT_SPIDER_TEST_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="spider-test",
     hf_corpus_dataset_path="target-benchmark/spider-corpus-test",
     hf_queries_dataset_path="target-benchmark/spider-queries-test",
