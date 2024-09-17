@@ -103,3 +103,4 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                     table_id if self.withtitle else "",
                     table,  # middle arg was table_id but removed due to high correspondence
                 )
+        return converted_corpus
