@@ -75,6 +75,7 @@ class Text2SQLTask(AbsTask):
         return str(Text2SQLTask.AVAILABLE_METRICS)
 
     def setup_database_dirs(self, dataloaders: Dict[str, Text2SQLDatasetLoader]):
+        print(f"setting up database dirs with {dataloaders}")
         self.database_dirs = {
             name: loader.path_to_database_dir for name, loader in dataloaders.items()
         }

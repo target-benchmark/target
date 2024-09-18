@@ -41,6 +41,7 @@ DEFAULT_SPIDER_TEST_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
 
 DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="bird-validation",
+    split="validation",
     hf_corpus_dataset_path="target-benchmark/bird-corpus-validation",
     hf_queries_dataset_path="target-benchmark/bird-queries-validation",
     query_type="Text to SQL",
