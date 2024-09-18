@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
@@ -65,6 +65,7 @@ class TableRetrievalTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         return []
 

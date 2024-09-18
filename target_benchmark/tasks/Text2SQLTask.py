@@ -1,6 +1,6 @@
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
@@ -115,6 +115,7 @@ class Text2SQLTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses generator to generate a sql query.

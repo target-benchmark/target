@@ -89,7 +89,7 @@ class TARGET:
         self.logger.info(
             "Finished creating dataset config information. Finished setting up."
         )
-        self.dataloaders = {}
+        self.dataloaders: Dict[str, AbsDatasetLoader] = {}
 
     def load_tasks(
         self,
@@ -417,6 +417,14 @@ class TARGET:
         embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
         return duration, embedding_size
 
+    def _update_dataloaders(
+        self,
+        split: Literal["test", "train", "validation"] = "test",
+    ):
+        self.dataloaders = self.dataloaders | self.create_dataloaders(
+            self.dataset_info, split
+        )
+
     def run(
         self,
         retriever: AbsRetrieverBase,
@@ -436,9 +444,7 @@ class TARGET:
             top_k (int, optional): top k tables to retrieve.
         """
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders: Dict[
-            str, AbsDatasetLoader
-        ] = self.dataloaders | self.create_dataloaders(self.dataset_info, split)
+        self._update_dataloaders(split)
 
         all_results = {}
         loaded_datasets = set()
@@ -529,11 +535,10 @@ class TARGET:
         self.logger.info("Finished running all tasks!")
         return all_results
 
-    @classmethod
     def evaluate_downstream_task(
-        cls,
+        self,
         retrieval_results_file: str,
-        downstream_task_name: Union[str, None] = None,
+        downstream_task_name: str,
         split: Literal["test", "train", "validation"] = "test",
     ) -> DownstreamTaskPerformanceDataModel:
         path_to_persistence = Path(retrieval_results_file)
@@ -550,6 +555,15 @@ class TARGET:
                 "File empty or could not parse any RetrievalResultDataModel objects!"
             )
 
+        loaded_tasks = self.get_loaded_tasks()
+        if downstream_task_name not in loaded_tasks:
+            raise ValueError(
+                f"provided task {downstream_task_name} is not loaded! Loaded tasks include {loaded_tasks}. please create a TARGET object with the needed tasks."
+            )
+        self.tasks[downstream_task_name]
+        self._update_dataloaders(split)
+
         retrieval_results[0].dataset_name
+
         # find relevant task
         # load relevant dataloader

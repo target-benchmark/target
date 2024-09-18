@@ -3,6 +3,7 @@ import pickle
 from typing import Dict, Iterable, Union
 
 import numpy as np
+import tiktoken
 import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -45,7 +46,8 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         self.out_dir = out_dir
         self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
-
+        # TODO: need to get this dynamically according to model id
+        self.embedding_model_encoding = tiktoken.get_encoding("cl100k_base")
         self.num_rows = num_rows
 
     def retrieve(
@@ -119,7 +121,19 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 corpus_dict[TABLE_COL_NAME],
             ):
                 tup_id = (db_id, table_id)
-                table_str = markdown_table_str(table, num_rows=self.num_rows)
+                num_rows_to_include = self.num_rows
+                while True:
+                    table_str = markdown_table_str(table, num_rows=num_rows_to_include)
+                    num_tokens = len(self.embedding_model_encoding.encode(table_str))
+                    if (
+                        num_tokens < 8192
+                    ):  # this is not great, need to remove hardcode in future
+                        break
+                    num_rows_to_include -= 10
+
+                print(
+                    f"truncated input due to context length constraints, included {num_rows_to_include} rows"
+                )
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
         corpus_index = construct_embedding_index(list(embedded_corpus.values()))

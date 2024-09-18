@@ -56,7 +56,6 @@ class T2SDataloadersTest(unittest.TestCase):
                 dataset_name="spider",
                 query_id=0,
                 retrieval_results=[("soccer_3", "N/A")],
-                retrieved_tables=[],
             )
         ]
         dataset_name = "spider"

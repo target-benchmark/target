@@ -34,7 +34,6 @@ from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-from target_benchmark.retrievers.utils import markdown_table_str
 from target_benchmark.tasks.TasksDataModels import (
     DownstreamTaskPerformanceDataModel,
     RetrievalPerformanceDataModel,
@@ -220,20 +219,21 @@ class AbsTask(ABC):
                 total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
             )
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieved_tables, duration = self._get_retrieval_results(
+                retrieval_results, duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
-                    table_id_to_table,
                     dataset_name,
                     top_k,
                     **kwargs,
                 )
                 total_duration += duration
-                self._update_retrieval_metrics(query_batch, retrieved_tables)
+                self._update_retrieval_metrics(query_batch, retrieval_results)
                 if path_to_persistence:
-                    self._write_retrieval_results(retrieved_tables, path_to_persistence)
+                    self._write_retrieval_results(
+                        retrieval_results, path_to_persistence
+                    )
                 downstream_results = self._get_downstream_task_results(
-                    query_batch, retrieved_tables, dataset_name
+                    query_batch, retrieval_results, dataset_name, table_id_to_table
                 )
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
@@ -263,53 +263,30 @@ class AbsTask(ABC):
             logger.info(f"finished running task {self.task_name}")
         return task_results
 
-    @classmethod
     def evaluate_downstream(
-        cls,
+        self,
         dataset_loader: AbsDatasetLoader,
-        retrieved_tables: List[RetrievalResultDataModel],
+        retrieval_results: List[RetrievalResultDataModel],
     ) -> DownstreamTaskPerformanceDataModel:
-        task = cls()
         dataset_name = dataset_loader.dataset_name
+        table_id_to_table = dataset_loader.get_table_id_to_table()
 
         for idx, query_batch in tqdm(
             enumerate(dataset_loader.get_queries_for_task(1)),
             total=dataset_loader.get_queries_size(),
             desc="Getting downstream task results...",
         ):
-            retrieved_table = retrieved_tables[idx : idx + 1]
-            downstream_results = task._get_downstream_task_results(
-                query_batch, retrieved_table, dataset_name
+            retrieved_table = retrieval_results[idx : idx + 1]
+            downstream_results = self._get_downstream_task_results(
+                query_batch, retrieved_table, dataset_name, table_id_to_table
             )
-            task._update_downstream_task_metrics(query_batch, downstream_results)
-        return task._calculate_downstream_task_performance()
-
-    def _fill_retrieval_results_with_table_strs(
-        self,
-        retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_table: Dict[Tuple[str, str], List[List]],
-    ) -> None:
-        """
-        Fills the retrieval result data model objects with Markdown table strings based on the table IDs stored in each retrieval result.
-
-        Parameters:
-            retrieval_results (List[RetrievalResultDataModel]): List of retrieval result data models to be filled with table strings.
-            table_id_to_table (Dict[Tuple[str, str], List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
-
-        Returns:
-            None
-        """
-        for result in retrieval_results:
-            result.retrieved_tables = [
-                markdown_table_str(table_id_to_table[id])
-                for id in result.retrieval_results
-            ]
+            self._update_downstream_task_metrics(query_batch, downstream_results)
+        return self._calculate_downstream_task_performance()
 
     def _get_retrieval_results(
         self,
         retriever: AbsRetrieverBase,
         query_batch: Dict[str, List],
-        table_id_to_table: Dict[str, str],
         dataset_name: str,
         top_k: int,
         **kwargs,
@@ -348,45 +325,39 @@ class AbsTask(ABC):
             )
         end_time = time.process_time()
         duration = end_time - start_time
-        # complete the results data model objects with table strings
-        self._fill_retrieval_results_with_table_strs(
-            retrieval_results, table_id_to_table
-        )
         return retrieval_results, duration
 
     def _write_retrieval_results(
         self,
-        new_retrieved_tables: List[RetrievalResultDataModel],
+        new_retrieval_results: List[RetrievalResultDataModel],
         path_to_persistence: Path,
     ):
         if not path_to_persistence.exists():
             path_to_persistence.touch()
         with open(path_to_persistence, "a") as file:
-            for retrieval_result in new_retrieved_tables:
-                file.write(
-                    retrieval_result.model_dump_json(exclude="retrieved_tables") + "\n"
-                )
+            for retrieval_result in new_retrieval_results:
+                file.write(retrieval_result.model_dump_json() + "\n")
 
     def _update_retrieval_metrics(
         self,
         query_batch: Dict[str, List],
-        new_retrieved_tables: List[RetrievalResultDataModel],
+        new_retrieval_results: List[RetrievalResultDataModel],
     ) -> None:
         """
         Updates the tracked retrieval metrics with the new retrieval results.
 
         Parameters:
             query_batch (Dict[str, List]): queries & the corresponding gold table and gold answer.
-            new_retrieved_tables (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
+            new_retrieval_results (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
 
         Returns:
             None
         """
-        num_queries = len(new_retrieved_tables)
+        num_queries = len(new_retrieval_results)
         for idx in range(num_queries):
             db_id = query_batch[DATABASE_ID_COL_NAME][idx]
             table_id = query_batch[TABLE_ID_COL_NAME][idx]
-            retrieval_result = new_retrieved_tables[idx]
+            retrieval_result = new_retrieval_results[idx]
             if table_id == "N/A" or not table_id:
                 if str(db_id) in [
                     result[0] for result in retrieval_result.retrieval_results
@@ -432,6 +403,7 @@ class AbsTask(ABC):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses the tasks's generator to generate the downstream task result.

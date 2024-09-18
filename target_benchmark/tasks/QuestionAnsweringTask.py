@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import evaluate
 
@@ -91,6 +91,7 @@ class QuestionAnsweringTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         currently just markdown reps of table strings
@@ -102,7 +103,8 @@ class QuestionAnsweringTask(AbsTask):
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
                     table_str="\n".join(
-                        table_str for table_str in result.retrieved_tables
+                        table_id_to_table[retrieved_table]
+                        for retrieved_table in result.retrieval_results
                     ),
                     query=query_str,
                 ),

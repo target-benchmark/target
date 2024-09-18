@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
@@ -80,6 +80,7 @@ class FactVerificationTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
@@ -90,7 +91,8 @@ class FactVerificationTask(AbsTask):
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
                     table_str="\n".join(
-                        table_str for table_str in result.retrieved_tables
+                        table_id_to_table[retrieved_table]
+                        for retrieved_table in result.retrieval_results
                     ),
                     query=query_str,
                 ),
