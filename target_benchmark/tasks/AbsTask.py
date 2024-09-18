@@ -4,6 +4,7 @@ from logging import Logger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+from pydantic import BaseModel
 from tqdm import tqdm
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
@@ -181,7 +182,8 @@ class AbsTask(ABC):
         logger: Logger,
         batch_size: int = 64,
         top_k: int = 5,
-        path_to_persistence: Union[Path, None] = None,
+        path_to_retrieval_results: Union[Path, None] = None,
+        path_to_downstream_results: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -228,13 +230,15 @@ class AbsTask(ABC):
                 )
                 total_duration += duration
                 self._update_retrieval_metrics(query_batch, retrieval_results)
-                if path_to_persistence:
-                    self._write_retrieval_results(
-                        retrieval_results, path_to_persistence
-                    )
+                if path_to_retrieval_results:
+                    self._write_results(retrieval_results, path_to_retrieval_results)
+
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieval_results, dataset_name, table_id_to_table
                 )
+                if path_to_downstream_results:
+                    self._write_results(downstream_results, path_to_downstream_results)
+
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
                 if self.total_queries_processed % 200 == 0:
@@ -267,6 +271,7 @@ class AbsTask(ABC):
         self,
         dataset_loader: AbsDatasetLoader,
         retrieval_results: List[RetrievalResultDataModel],
+        path_to_downstream_results: Union[Path, None] = None,
     ) -> DownstreamTaskPerformanceDataModel:
         dataset_name = dataset_loader.dataset_name
         table_id_to_table = dataset_loader.get_table_id_to_table()
@@ -280,6 +285,8 @@ class AbsTask(ABC):
             downstream_results = self._get_downstream_task_results(
                 query_batch, retrieved_table, dataset_name, table_id_to_table
             )
+            if path_to_downstream_results:
+                self._write_results(downstream_results, path_to_downstream_results)
             self._update_downstream_task_metrics(query_batch, downstream_results)
         return self._calculate_downstream_task_performance()
 
@@ -327,15 +334,15 @@ class AbsTask(ABC):
         duration = end_time - start_time
         return retrieval_results, duration
 
-    def _write_retrieval_results(
+    def _write_results(
         self,
-        new_retrieval_results: List[RetrievalResultDataModel],
+        results: List[BaseModel],
         path_to_persistence: Path,
     ):
         if not path_to_persistence.exists():
             path_to_persistence.touch()
         with open(path_to_persistence, "a") as file:
-            for retrieval_result in new_retrieval_results:
+            for retrieval_result in results:
                 file.write(retrieval_result.model_dump_json() + "\n")
 
     def _update_retrieval_metrics(

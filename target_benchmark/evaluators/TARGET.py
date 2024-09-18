@@ -425,6 +425,20 @@ class TARGET:
             self.dataset_info, split
         )
 
+    def _create_persistence_file(
+        self,
+        file_path: Union[str, None] = None,
+    ) -> Union[Path, None]:
+        path_to_persistence = None
+        if file_path:
+            path_to_persistence = Path(file_path)
+            if not path_to_persistence.exists():
+                self.logger.info(
+                    f"creating persistence file at {str(path_to_persistence)}"
+                )
+                path_to_persistence.touch()
+        return path_to_persistence
+
     def run(
         self,
         retriever: AbsRetrieverBase,
@@ -432,6 +446,7 @@ class TARGET:
         batch_size: int = 1,
         top_k: int = 5,
         retrieval_results_file: Union[str, None] = None,
+        downstream_results_file: Union[str, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -506,15 +521,12 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
-            path_to_persistence = None
-            if retrieval_results_file:
-                path_to_persistence = Path(retrieval_results_file)
-                if not path_to_persistence.exists():
-                    self.logger.info(
-                        f"creating retrieval results persistence file at {str(path_to_persistence)}"
-                    )
-                    path_to_persistence.touch()
-
+            path_to_retrieval_results = self._create_persistence_file(
+                retrieval_results_file
+            )
+            path_to_downstream_results = self._create_persistence_file(
+                downstream_results_file
+            )
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
@@ -523,8 +535,8 @@ class TARGET:
                 batch_size=batch_size,
                 top_k=top_k,
                 client=client,
-                path_to_persistence=path_to_persistence,
-                **kwargs,
+                path_to_retrieval_results=path_to_retrieval_results,
+                path_to_downstream_results=path_to_downstream_results**kwargs,
             )
 
             # add the embedding duration & sizes statistics to the results
@@ -540,6 +552,7 @@ class TARGET:
         retrieval_results_file: str,
         downstream_task_name: str,
         split: Literal["test", "train", "validation"] = "test",
+        downstream_results_file: Union[str, None] = None,
     ) -> DownstreamTaskPerformanceDataModel:
         path_to_persistence = Path(retrieval_results_file)
         if not path_to_persistence.exists():
@@ -560,10 +573,25 @@ class TARGET:
             raise ValueError(
                 f"provided task {downstream_task_name} is not loaded! Loaded tasks include {loaded_tasks}. please create a TARGET object with the needed tasks."
             )
-        self.tasks[downstream_task_name]
+        task_to_run = self.tasks[downstream_task_name]
         self._update_dataloaders(split)
+        needed_dataset_names = set(
+            [result.dataset_name for result in retrieval_results]
+        )
+        needed_dataloaders = {
+            dataset_name: self.dataloaders[dataset_name]
+            for dataset_name in needed_dataset_names
+        }
 
-        retrieval_results[0].dataset_name
+        path_to_downstream_results = self._create_persistence_file(
+            downstream_results_file
+        )
+
+        task_to_run.evaluate_downstream(
+            needed_dataloaders,
+            retrieval_results,
+            path_to_downstream_results,
+        )
 
         # find relevant task
         # load relevant dataloader
