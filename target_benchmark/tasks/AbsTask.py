@@ -210,20 +210,26 @@ class AbsTask(ABC):
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
-            total_duration = 0
+            total_process_duration = 0
+            total_wall_clock_duration = 0
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(
                 total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
             )
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieval_results, duration = self._get_retrieval_results(
+                (
+                    retrieval_results,
+                    process_duration,
+                    wall_clock_duration,
+                ) = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     dataset_name,
                     top_k,
                     **kwargs,
                 )
-                total_duration += duration
+                total_process_duration += process_duration
+                total_wall_clock_duration += wall_clock_duration
                 self._update_retrieval_metrics(query_batch, retrieval_results)
                 if path_to_retrieval_results:
                     self._write_results(retrieval_results, path_to_retrieval_results)
@@ -245,10 +251,13 @@ class AbsTask(ABC):
             progress_bar.close()
 
             # retrieval performance, precision, recall, f1, etc.
+            num_queries = dataset_loader.get_queries_size()
             retrieval_performance = self._calculate_table_retrieval_performance(
                 top_k,
-                total_duration,
-                total_duration / dataset_loader.get_queries_size(),
+                total_process_duration,
+                total_process_duration / num_queries,
+                total_wall_clock_duration,
+                total_wall_clock_duration / num_queries,
             )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
@@ -301,7 +310,7 @@ class AbsTask(ABC):
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> Tuple[List[RetrievalResultDataModel], float]:
+    ) -> Tuple[List[RetrievalResultDataModel], float, float]:
         """
         Retrieves the top k results for each query in the batch using the specified retriever from a dataset.
 
@@ -314,7 +323,8 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
-        start_time = time.process_time()
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
@@ -334,9 +344,11 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
-        end_time = time.process_time()
-        duration = end_time - start_time
-        return retrieval_results, duration
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
+        return retrieval_results, process_duration, wall_clock_duration
 
     def _write_results(
         self,
@@ -382,8 +394,10 @@ class AbsTask(ABC):
     def _calculate_table_retrieval_performance(
         self,
         top_k: int,
-        total_retrieval_duration: float,
-        avg_retrieval_time: float,
+        total_retrieval_duration_process: float,
+        avg_retrieval_duration_process: float,
+        total_retrieval_duration_wall_clock: float,
+        avg_retrieval_duration_wall_clock: float,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -398,8 +412,14 @@ class AbsTask(ABC):
             performace = RetrievalPerformanceDataModel(
                 k=top_k,
                 accuracy=self.true_positive / self.total_queries_processed,
-                retrieval_time=round(total_retrieval_duration, 5),
-                avg_retrieval_time=round(avg_retrieval_time, 5),
+                retrieval_duration_process=round(total_retrieval_duration_process, 5),
+                avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
+                retrieval_duration_wall_clock=round(
+                    total_retrieval_duration_wall_clock, 5
+                ),
+                avg_retrieval_duration_wall_clock=round(
+                    avg_retrieval_duration_wall_clock, 5
+                ),
             )
         else:
             raise ValueError("haven't processed any queries!")

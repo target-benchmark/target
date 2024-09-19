@@ -4,11 +4,21 @@ from pydantic import BaseModel, Field
 
 
 class EmbeddingStatisticsDataModel(BaseModel):
-    embedding_creation_duration: float = Field(
-        ..., description="Total amount of time taken for the embedding to be created"
+    embedding_creation_duration_process: float = Field(
+        ...,
+        description="Total amount of time taken for the embedding to be created, measured by process time.",
     )
-    avg_embedding_creation_duration: float = Field(
-        ..., description="Average time taken to create embeddings"
+    avg_embedding_creation_duration_process: float = Field(
+        ...,
+        description="Average time taken to create embeddings, measured by process time.",
+    )
+    embedding_creation_duration_wall_clock: float = Field(
+        ...,
+        description="Total amount of time taken for the embedding to be created, measured by wall clock time.",
+    )
+    avg_embedding_creation_duration_wall_clock: float = Field(
+        ...,
+        description="Average time taken to create embeddings, measured by wall clock time.",
     )
     embedding_size: float = Field(
         ...,
@@ -26,12 +36,21 @@ class RetrievalPerformanceDataModel(BaseModel):
     precision: float = Field(default=None, description="the precision of the retrieval")
     recall: float = Field(default=None, description="the recall of the retrieval")
 
-    retrieval_time: float = Field(
+    retrieval_duration_process: float = Field(
         ...,
-        description="total time took to complete all retrievals in seconds.",
+        description="total time took to complete all retrievals in seconds, measured by process time.",
     )
-    avg_retrieval_time: float = Field(
-        ..., description="avg time too for each retrieval in seconds."
+    avg_retrieval_duration_process: float = Field(
+        ...,
+        description="avg time too for each retrieval in seconds, measured by process time.",
+    )
+    retrieval_duration_wall_clock: float = Field(
+        ...,
+        description="total time took to complete all retrievals in seconds, measured by wall clock time.",
+    )
+    avg_retrieval_duration_wall_clock: float = Field(
+        ...,
+        description="avg time too for each retrieval in seconds, measured by wall clock time.",
     )
 
 

@@ -373,7 +373,8 @@ class TARGET:
         total_entries = cur_dataloader.get_corpus_size()
         vectors = []
         metadata = []
-        start_time = time.process_time()
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
         for entry in tqdm(
             cur_dataloader.convert_corpus_table_to(
                 retriever.get_expected_corpus_format()
@@ -390,8 +391,10 @@ class TARGET:
                     METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
                 }
             )
-        end_time = time.process_time()
-        duration = end_time - start_time
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
         vectors = np.array(vectors)
         embedding_size = vectors.nbytes
 
@@ -400,7 +403,7 @@ class TARGET:
             vectors=vectors,
             payload=metadata,
         )
-        return duration, embedding_size
+        return process_duration, wall_clock_duration, embedding_size
 
     def embed_with_custom_embeddings(
         self,
@@ -409,19 +412,22 @@ class TARGET:
         batch_size: int,
     ) -> Tuple[float, float]:
         start_disk_usage = shutil.disk_usage("/").used
-        start_time = time.process_time()
-
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
-        end_time = time.process_time()
-        duration = end_time - start_time
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
+
         end_disk_usage = shutil.disk_usage("/").used
         embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
-        return duration, embedding_size
+        return process_duration, wall_clock_duration, embedding_size
 
     def _update_dataloaders(
         self,
@@ -495,25 +501,35 @@ class TARGET:
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
                     size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
-                    duration, embedding_size = -1.0, -1.0
+                    process_duration, wall_clock_duration, embedding_size = -1.0, -1.0
                     if standardized:
                         (
-                            duration,
+                            process_duration,
+                            wall_clock_duration,
                             embedding_size,
                         ) = self.embed_with_standardized_embeddings(
                             retriever, dataset_name, client
                         )
                     else:
-                        duration, embedding_size = self.embed_with_custom_embeddings(
+                        (
+                            process_duration,
+                            wall_clock_duration,
+                        ) = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
                     loaded_datasets.add(dataset_name)
 
                     # create embedding statistics data object to record latency & size of embedding
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        embedding_creation_duration=round(duration, 5),
-                        avg_embedding_creation_duration=round(
-                            duration / size_of_corpus, 5
+                        embedding_creation_duration_process=round(process_duration, 5),
+                        avg_embedding_creation_duration_process=round(
+                            process_duration / size_of_corpus, 5
+                        ),
+                        embedding_creation_duration_wall_clock=round(
+                            wall_clock_duration, 5
+                        ),
+                        avg_embedding_creation_duration_wall_clock=round(
+                            wall_clock_duration / size_of_corpus, 5
                         ),
                         embedding_size=round(embedding_size, 5),
                         avg_embedding_size=round(embedding_size / size_of_corpus, 5),

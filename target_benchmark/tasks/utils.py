@@ -22,9 +22,9 @@ def clean_abnormal(input):
 
 
 def execute_sql(sql, cursor):
-    start_time = time.process_time()
+    start_time = time.time()
     cursor.execute(sql)
-    exec_time = time.process_time() - start_time
+    exec_time = time.time() - start_time
 
     return exec_time
 
