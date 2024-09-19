@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
@@ -24,15 +24,15 @@ class TableRetrievalTask(AbsTask):
 
     def __init__(
         self,
-        datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
             task_generator=task_generator,
             **kwargs,
         )

@@ -8,10 +8,12 @@ from pydantic import BaseModel
 from tqdm import tqdm
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dataset_loaders.DatasetLoaderEnums import QueryType
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
@@ -20,6 +22,7 @@ from target_benchmark.dictionary_keys import (
     GENERIC_DATASET_CONFIG_FIELD,
     HF_DATASET_CONFIG_CORPUS_FIELD,
     HF_DATASET_CONFIG_QUERIES_FIELD,
+    QUERY_TYPE,
     TABLE_ID_COL_NAME,
 )
 from target_benchmark.generators.AbsGenerator import AbsGenerator
@@ -46,10 +49,9 @@ class AbsTask(ABC):
     def __init__(
         self,
         task_name: str = None,
-        datasets_config: Dict[
-            str, Union[Dict[str, str], DatasetConfigDataModel]
-        ] = None,  # TODO: allow dataset config inputs
-        overwrite_default_datasets: bool = False,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
@@ -69,17 +71,16 @@ class AbsTask(ABC):
                     'dataset_path': 'local/path/to/dataset/foler/'
                 }
 
-            overwrite_default_datasets (bool, optional): each task have a set of default datasets that will be tested on. if the user chooses to input some dataset config that has a dataset under the same name as one of the default sets, this boolean dictates whether to overwrite the default datasets or not. defaults to False, as no overwrites.
-
             task_generator (AbsGenerator, optional): each task as one corresponding generator for the downstream task. defaults to a default generator, just sends some openai api requests.
         """
         if task_name is None:
             self.task_name = self.get_default_task_name()
         else:
             self.task_name: str = task_name
+        print(f"dataset config: {datasets_config}")
         self.dataset_config: Dict[
             str, DatasetConfigDataModel
-        ] = self._construct_dataset_config(datasets_config, overwrite_default_datasets)
+        ] = self._construct_dataset_config(datasets_config)
 
         self.task_generator = (
             task_generator if task_generator is not None else DefaultGenerator()
@@ -111,50 +112,47 @@ class AbsTask(ABC):
 
     def _construct_dataset_config(
         self,
-        datasets_config: Dict[str, Dict[str, str]],
-        overwrite_default_datasets: bool,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
     ) -> Dict[str, DatasetConfigDataModel]:
         """
         builds the dataset config according to the user inputted dataset config (if any) and the default for the class.
 
         Parameters:
             datasets_config (Dict[str, Dict[str, str]]): user inputted datasets config dictionary.
-            overwrite_default_datasets (bool): whether to overwrite the default datasets or not if the same name dataset is provided.
 
         Returns:
             a dictionary mapping the names of the dataset to the corresponding dataset configuration data model objects.
         """
-        constructed_config: Dict[
-            str, DatasetConfigDataModel
-        ] = self._get_default_dataset_config()
-        if datasets_config is not None:
-            if overwrite_default_datasets:
-                constructed_config = {}
-            for key, value in datasets_config.items():
-                if isinstance(value, Dict):
-                    assert (
-                        HF_DATASET_CONFIG_CORPUS_FIELD in value
-                        and HF_DATASET_CONFIG_QUERIES_FIELD in value
-                    ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
-                    assert (
-                        key not in constructed_config
-                    ), f"duplicate dataset name {key}!"
-                    if key not in value:
-                        value[DATASET_NAME] = key
-                    if HF_DATASET_CONFIG_CORPUS_FIELD in value:
-                        constructed_config[key] = HFDatasetConfigDataModel(**value)
-                    else:
-                        constructed_config[key] = GenericDatasetConfigDataModel(**value)
-                elif isinstance(value, DatasetConfigDataModel):
-                    assert (
-                        key not in constructed_config
-                    ), f"duplicate dataset name {key}!"
-                    constructed_config[key] = value
+        if datasets_config is None:
+            return self._get_default_dataset_config()
+        constructed_config = {}
+        print(f"passed in datasets_config: {datasets_config}")
+        for key, value in datasets_config.items():
+            if isinstance(value, Dict):
+                assert (
+                    HF_DATASET_CONFIG_CORPUS_FIELD in value
+                    and HF_DATASET_CONFIG_QUERIES_FIELD in value
+                ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
+                assert key not in constructed_config, f"duplicate dataset name {key}!"
+                if key not in value:
+                    value[DATASET_NAME] = key
+                if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
+                    constructed_config[key] = Text2SQLDatasetConfigDataModel(**value)
+                if HF_DATASET_CONFIG_CORPUS_FIELD in value:
+                    constructed_config[key] = HFDatasetConfigDataModel(**value)
                 else:
-                    wrong_type = type(value)
-                    raise ValueError(
-                        f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
-                    )
+                    constructed_config[key] = GenericDatasetConfigDataModel(**value)
+            elif isinstance(value, DatasetConfigDataModel):
+                assert key not in constructed_config, f"duplicate dataset name {key}!"
+                print(f"constructing dataset config: {value}")
+                constructed_config[key] = value
+            else:
+                wrong_type = type(value)
+                raise ValueError(
+                    f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
+                )
 
         return constructed_config
 

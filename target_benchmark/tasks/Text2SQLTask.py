@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
     DEFAULT_SPIDER_TEST_DATASET_CONFIG,
 )
 from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
@@ -31,7 +32,6 @@ class Text2SQLTask(AbsTask):
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
@@ -40,8 +40,7 @@ class Text2SQLTask(AbsTask):
             task_generator = Text2SQLGenerater()
         super().__init__(
             task_name=self.get_default_task_name(),
-            datasets_config=None,
-            overwrite_default_datasets=False,
+            datasets_config=datasets_config,
             task_generator=task_generator,
             **kwargs,
         )
@@ -90,6 +89,7 @@ class Text2SQLTask(AbsTask):
         """
         return {  # TODO: add more text2sql dataset configs
             DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+            DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
         }
 
     def _get_schema(self, dataset_name: str, database_id: str):

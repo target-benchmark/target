@@ -35,8 +35,9 @@ class QuestionAnsweringTask(AbsTask):
 
     def __init__(
         self,
-        datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
         task_generator: AbsGenerator = None,
         lang: str = "en",
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
@@ -47,7 +48,6 @@ class QuestionAnsweringTask(AbsTask):
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
             task_generator=task_generator,
             **kwargs,
         )

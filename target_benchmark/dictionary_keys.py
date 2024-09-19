@@ -5,7 +5,7 @@ We use a lot of dictionaries for data. Subsequently, we are working with a set o
 HF_DATASET_CONFIG_CORPUS_FIELD: str = "hf_corpus_dataset_path"
 HF_DATASET_CONFIG_QUERIES_FIELD: str = "hf_queries_dataset_path"
 GENERIC_DATASET_CONFIG_FIELD: str = "dataset_path"
-
+QUERY_TYPE: str = "query_type"
 DATASET_NAME: str = "dataset_name"
 
 """

@@ -123,14 +123,12 @@ class TARGET:
         tasks_dict = find_tasks()
         for task in downstream_tasks:  # iterate through each of the passed in tasks
             if isinstance(task, str):  # if passed in task name
-                if (
-                    task in tasks_dict
-                ):  # check if task name exists in the available target tasks
+                if task in tasks_dict:
+                    # check if task name exists in the available target tasks
                     task_class = tasks_dict[task]
                     task_default_name = task_class.get_default_task_name()
-                    if (
-                        task_default_name in loaded_tasks
-                    ):  # warning for overwriting due to duplicate task names
+                    if task_default_name in loaded_tasks:
+                        # warning for overwriting due to duplicate task names
                         self.logger.error(
                             f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
                         )
@@ -140,9 +138,9 @@ class TARGET:
                     self.logger.warning(
                         f"task named {task} doesn't exist. please double check your input values. skipping this task..."
                     )
-            elif isinstance(
-                task, Tuple
-            ):  # otherwise if it's an instance of tuple, user specified task and datasets to run
+            elif isinstance(task, Tuple):
+                # otherwise if it's an instance of tuple,
+                # user specified task and datasets to run
                 task_name, task_dataset_names = task
                 # validating the dataset specified has the correct type
                 if not isinstance(task_dataset_names, (str, List)):
@@ -176,7 +174,7 @@ class TARGET:
                         )
                     # create the task with the specified dataset configs
                     loaded_tasks[task_default_name] = task_class(
-                        datasets_config=needed_datasets, overwrite_default_datasets=True
+                        datasets_config=needed_datasets,
                     )
                 else:
                     self.logger.warning(
@@ -578,6 +576,7 @@ class TARGET:
         task_to_run = self.tasks[downstream_task_name]
         self._update_dataloaders(split)
         dataset_names = task_to_run.get_dataset_config().keys()
+        print(list(dataset_names))
         dataloaders_for_task = self._load_datasets_for_task(
             dataset_names=dataset_names, task=task_to_run
         )

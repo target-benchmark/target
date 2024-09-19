@@ -34,7 +34,6 @@ class FactVerificationTask(AbsTask):
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
@@ -46,7 +45,6 @@ class FactVerificationTask(AbsTask):
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
             task_generator=task_generator,
             **kwargs,
         )
