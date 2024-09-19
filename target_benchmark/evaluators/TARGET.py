@@ -340,7 +340,7 @@ class TARGET:
         retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float]:
         """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
@@ -410,7 +410,7 @@ class TARGET:
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
         batch_size: int,
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float]:
         start_disk_usage = shutil.disk_usage("/").used
         start_process_time = time.process_time()
         start_wall_clock_time = time.time()
@@ -501,7 +501,11 @@ class TARGET:
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
                     size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
-                    process_duration, wall_clock_duration, embedding_size = -1.0, -1.0
+                    process_duration, wall_clock_duration, embedding_size = (
+                        -1.0,
+                        -1.0,
+                        -1.0,
+                    )
                     if standardized:
                         (
                             process_duration,
@@ -514,6 +518,7 @@ class TARGET:
                         (
                             process_duration,
                             wall_clock_duration,
+                            embedding_size,
                         ) = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
@@ -552,7 +557,8 @@ class TARGET:
                 top_k=top_k,
                 client=client,
                 path_to_retrieval_results=path_to_retrieval_results,
-                path_to_downstream_results=path_to_downstream_results**kwargs,
+                path_to_downstream_results=path_to_downstream_results,
+                **kwargs,
             )
 
             # add the embedding duration & sizes statistics to the results
