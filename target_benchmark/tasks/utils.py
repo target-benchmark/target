@@ -92,6 +92,7 @@ def execute_model(
     meta_time_out: float,
     include_ves: bool = False,
 ) -> Dict[str, Union[int, float]]:
+    sql_execution_res = 0
     try:
         # you can personalize the total timeout number
         # larger timeout leads to more stable ves
@@ -105,8 +106,10 @@ def execute_model(
         sys.exit(0)
     except FunctionTimedOut:
         time_ratio = 0
+        sql_execution_res = 0
     except Exception:
         time_ratio = 0
+        sql_execution_res = 0
     return {
         "sql_idx": idx,
         "time_ratio": time_ratio,
@@ -120,7 +123,7 @@ def run_sqls_parallel(
     db_root_path: str,
     num_cpus=1,
     iterate_num=10,
-    meta_time_out=30.0,
+    meta_time_out=60.0,
     include_ves: bool = False,
 ) -> List[Dict[str, Union[int, float]]]:
     pool = mp.Pool(processes=num_cpus)
