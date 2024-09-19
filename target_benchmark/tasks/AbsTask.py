@@ -274,7 +274,7 @@ class AbsTask(ABC):
         retrieval_results: List[RetrievalResultDataModel],
         path_to_downstream_results: Union[Path, None] = None,
         **kwargs,
-    ) -> DownstreamTaskPerformanceDataModel:
+    ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
         task_results = {}
         idx = 0
         for dataset_name, dataset_loader in dataset_loaders.items():
@@ -297,7 +297,7 @@ class AbsTask(ABC):
             task_results[dataset_name] = performance
             logger.info(f"finished running downstream eval on {dataset_name}")
 
-        return
+        return task_results
 
     def _get_retrieval_results(
         self,

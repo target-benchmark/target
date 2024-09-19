@@ -269,9 +269,10 @@ class TARGET:
                 )
         return eval_dataloaders
 
-    def load_datasets_for_task(
+    def _load_datasets_for_task(
         self,
         dataset_names: List[str],
+        task: AbsTask,
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
@@ -292,6 +293,13 @@ class TARGET:
                 dataloader = self.dataloaders[dataset_name]
                 dataloader.load()
                 dataloaders_for_task[dataset_name] = dataloader
+
+        if isinstance(task, Text2SQLTask):
+            for name, loader in dataloaders_for_task.items():
+                assert isinstance(
+                    loader, Text2SQLDatasetLoader
+                ), f"data loader for dataset {name} is not a text to sql dataset."
+            task.setup_database_dirs(dataloaders_for_task)
         return dataloaders_for_task
 
     def setup_logger(
@@ -480,15 +488,9 @@ class TARGET:
             self.logger.info("Start checking for new corpus to embed...")
             # load the datasets needed
             dataset_names = task.get_dataset_config().keys()
-            dataloaders_for_task = self.load_datasets_for_task(
-                dataset_names=dataset_names
+            dataloaders_for_task = self._load_datasets_for_task(
+                dataset_names=dataset_names, task=task
             )
-            if isinstance(task, Text2SQLTask):
-                for name, loader in dataloaders_for_task.items():
-                    assert isinstance(
-                        loader, Text2SQLDatasetLoader
-                    ), f"data loader for dataset {name} is not a text to sql dataset."
-                task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables
 
@@ -553,7 +555,7 @@ class TARGET:
         downstream_task_name: str,
         split: Literal["test", "train", "validation"] = "test",
         downstream_results_file: Union[str, None] = None,
-    ) -> DownstreamTaskPerformanceDataModel:
+    ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
         path_to_persistence = Path(retrieval_results_file)
         if not path_to_persistence.exists():
             raise ValueError(f"path passed {retrieval_results_file} in does not exist!")
@@ -575,13 +577,10 @@ class TARGET:
             )
         task_to_run = self.tasks[downstream_task_name]
         self._update_dataloaders(split)
-        needed_dataset_names = set(
-            [result.dataset_name for result in retrieval_results]
+        dataset_names = task_to_run.get_dataset_config().keys()
+        dataloaders_for_task = self._load_datasets_for_task(
+            dataset_names=dataset_names, task=task_to_run
         )
-        needed_dataloaders = {
-            dataset_name: self.dataloaders[dataset_name]
-            for dataset_name in needed_dataset_names
-        }
 
         path_to_downstream_results = self._create_persistence_file(
             downstream_results_file
@@ -589,10 +588,7 @@ class TARGET:
 
         return task_to_run.evaluate_downstream(
             self.logger,
-            needed_dataloaders,
+            dataloaders_for_task,
             retrieval_results,
             path_to_downstream_results,
         )
-
-        # find relevant task
-        # load relevant dataloader
