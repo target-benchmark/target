@@ -77,7 +77,6 @@ class AbsTask(ABC):
             self.task_name = self.get_default_task_name()
         else:
             self.task_name: str = task_name
-        print(f"dataset config: {datasets_config}")
         self.dataset_config: Dict[
             str, DatasetConfigDataModel
         ] = self._construct_dataset_config(datasets_config)
@@ -128,7 +127,6 @@ class AbsTask(ABC):
         if datasets_config is None:
             return self._get_default_dataset_config()
         constructed_config = {}
-        print(f"passed in datasets_config: {datasets_config}")
         for key, value in datasets_config.items():
             if isinstance(value, Dict):
                 assert (
@@ -146,7 +144,6 @@ class AbsTask(ABC):
                     constructed_config[key] = GenericDatasetConfigDataModel(**value)
             elif isinstance(value, DatasetConfigDataModel):
                 assert key not in constructed_config, f"duplicate dataset name {key}!"
-                print(f"constructing dataset config: {value}")
                 constructed_config[key] = value
             else:
                 wrong_type = type(value)

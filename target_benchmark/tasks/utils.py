@@ -36,6 +36,12 @@ def iterated_execute_sql(
     iterate_num: int,
     include_ves: bool = False,
 ) -> float:
+    assert (
+        len(predicted_sql_and_db) == 2
+    ), f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
+    assert (
+        len(ground_truth_sql_and_db) == 2
+    ), f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
     # given a predicted sql, ground truth sql,
