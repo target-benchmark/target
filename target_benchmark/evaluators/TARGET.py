@@ -476,6 +476,7 @@ class TARGET:
         all_results = {}
         loaded_datasets = set()
         embedding_stats = {}
+        standardized = False
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")

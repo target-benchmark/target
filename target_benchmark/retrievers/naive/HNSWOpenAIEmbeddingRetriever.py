@@ -105,7 +105,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             os.makedirs(self.out_dir, exist_ok=True)
 
         self.corpus_identifier = f"{dataset_name}_numrows_all"
-        if self.num_rows:
+        if self.num_rows is not None:
             self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
         if os.path.exists(
@@ -131,9 +131,10 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                         break
                     num_rows_to_include -= 10
 
-                print(
-                    f"truncated input due to context length constraints, included {num_rows_to_include} rows"
-                )
+                if num_rows_to_include != self.num_rows:
+                    print(
+                        f"truncated input due to context length constraints, included {num_rows_to_include} rows"
+                    )
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
         corpus_index = construct_embedding_index(list(embedded_corpus.values()))
