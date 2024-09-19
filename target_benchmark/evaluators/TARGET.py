@@ -587,7 +587,8 @@ class TARGET:
             downstream_results_file
         )
 
-        task_to_run.evaluate_downstream(
+        return task_to_run.evaluate_downstream(
+            self.logger,
             needed_dataloaders,
             retrieval_results,
             path_to_downstream_results,

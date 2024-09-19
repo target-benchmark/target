@@ -269,26 +269,35 @@ class AbsTask(ABC):
 
     def evaluate_downstream(
         self,
-        dataset_loader: AbsDatasetLoader,
+        logger: Logger,
+        dataset_loaders: Dict[str, AbsDatasetLoader],
         retrieval_results: List[RetrievalResultDataModel],
         path_to_downstream_results: Union[Path, None] = None,
+        **kwargs,
     ) -> DownstreamTaskPerformanceDataModel:
-        dataset_name = dataset_loader.dataset_name
-        table_id_to_table = dataset_loader.get_table_id_to_table()
+        task_results = {}
+        idx = 0
+        for dataset_name, dataset_loader in dataset_loaders.items():
+            table_id_to_table = dataset_loader.get_table_id_to_table()
 
-        for idx, query_batch in tqdm(
-            enumerate(dataset_loader.get_queries_for_task(1)),
-            total=dataset_loader.get_queries_size(),
-            desc="Getting downstream task results...",
-        ):
-            retrieved_table = retrieval_results[idx : idx + 1]
-            downstream_results = self._get_downstream_task_results(
-                query_batch, retrieved_table, dataset_name, table_id_to_table
-            )
-            if path_to_downstream_results:
-                self._write_results(downstream_results, path_to_downstream_results)
-            self._update_downstream_task_metrics(query_batch, downstream_results)
-        return self._calculate_downstream_task_performance()
+            for query_batch in tqdm(
+                dataset_loader.get_queries_for_task(1),
+                total=dataset_loader.get_queries_size(),
+                desc="Getting downstream task results...",
+            ):
+                retrieved_table = retrieval_results[idx : idx + 1]
+                downstream_results = self._get_downstream_task_results(
+                    query_batch, retrieved_table, dataset_name, table_id_to_table
+                )
+                if path_to_downstream_results:
+                    self._write_results(downstream_results, path_to_downstream_results)
+                self._update_downstream_task_metrics(query_batch, downstream_results)
+                idx += 1
+            performance = self._calculate_downstream_task_performance(**kwargs)
+            task_results[dataset_name] = performance
+            logger.info(f"finished running downstream eval on {dataset_name}")
+
+        return
 
     def _get_retrieval_results(
         self,
