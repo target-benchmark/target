@@ -113,6 +113,18 @@ class FactVerificationTask(AbsTask):
         Specifically, update the `self.pred_answers` and `self.ref_answers` lists
         based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
+        # for downstream_answer, query_answer in zip(downstream_results, query_batch[ANSWER_COL_NAME]):
+        #     if "true" in downstream_answer.generated_results.lower():
+        #         self.pred_answers.append(1)
+        #     elif "false" in downstream_answer.generated_results.lower():
+        #         self.pred_answers.append(0)
+        #     else:
+        #         # self.pred_answers.append(1 - self.ref_answers[-1])
+        #         continue
+        #     if "true" in query_answer.lower():
+        #         self.ref_answers.append(1)
+        #     else:
+        #         self.ref_answers.append(0)
         for downstream_answer in downstream_results:
             if "true" in downstream_answer.generated_results.lower():
                 self.pred_answers.append(1)
@@ -135,6 +147,7 @@ class FactVerificationTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
+        assert len(self.ref_answers) == len(self.pred_answers)
         accuracy = accuracy_score(self.ref_answers, self.pred_answers)
         precision, recall, fbeta, _ = precision_recall_fscore_support(
             self.ref_answers, self.pred_answers, average="weighted"

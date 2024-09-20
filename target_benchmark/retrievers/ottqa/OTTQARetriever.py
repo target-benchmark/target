@@ -95,8 +95,11 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
     ) -> Dict:
         converted_corpus = {}
         for entry in corpus:
-            for db_id, table_id, table in zip(
-                entry["database_id"], entry["table_id"], entry["table"]
+            for db_id, table_id, table, context in zip(
+                entry["database_id"],
+                entry["table_id"],
+                entry["table"],
+                entry["context"],
             ):
                 # Setting to evaluate influence of table name in embedding
 
@@ -105,6 +108,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                     db_id,
                     table_id,
                     table,
+                    context["section_title"] if "section_title" in context else "",
                     self.withtitle,
                 )
         return converted_corpus
