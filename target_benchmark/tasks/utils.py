@@ -14,6 +14,21 @@ from pydantic import BaseModel
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dictionary_keys import DATASET_NAME
+from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
+from target_benchmark.retrievers.utils import markdown_table_str
+
+
+def build_table_content_string(
+    retrieval_results: List[Tuple[str, str]],
+    table_id_to_table: Dict[Tuple[str, str], List[List]],
+) -> str:
+    tables = set()
+    for retrieved_table_id in retrieval_results:
+        if retrieved_table_id not in table_id_to_table:
+            return NO_CONTEXT_TABLE_PROMPT
+        else:
+            tables.add(markdown_table_str(table_id_to_table[retrieved_table_id]))
+    return "\n".join(table_content for table_content in tables)
 
 
 def load_data_model_from_persistence_file(

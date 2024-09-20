@@ -22,9 +22,9 @@ from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-from target_benchmark.retrievers.utils import markdown_table_str
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import TableQATaskPerformanceDataModel
+from target_benchmark.tasks.utils import build_table_content_string
 
 
 class QuestionAnsweringTask(AbsTask):
@@ -103,9 +103,9 @@ class QuestionAnsweringTask(AbsTask):
                 dataset_name=dataset_name,
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
-                    table_str="\n".join(
-                        markdown_table_str(table_id_to_table[retrieved_table])
-                        for retrieved_table in result.retrieval_results
+                    table_str=build_table_content_string(
+                        result.retrieval_results,
+                        table_id_to_table,
                     ),
                     query=query_str,
                 ),

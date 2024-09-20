@@ -56,9 +56,11 @@ def markdown_table_str(
     # the first row of the array is the header
     headers = table_array[0]
     # The rest of the array are the data rows
-    data_rows = table_array[1:]
-    if num_rows:
+    data_rows = []
+    if num_rows is not None:
         data_rows = table_array[1 : 1 + num_rows]
+    else:
+        data_rows = table_array[1:]
 
     # Start building the Markdown table
     markdown = "| " + " | ".join(str(header) for header in headers) + " |\n"

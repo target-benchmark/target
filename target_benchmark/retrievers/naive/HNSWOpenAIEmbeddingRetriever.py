@@ -6,7 +6,7 @@ import numpy as np
 import tiktoken
 import tqdm
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import BadRequestError, OpenAI
 
 from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
@@ -85,11 +85,15 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         return retrieved_full_ids
 
     def embed_query(self, query: str):
-        response = self.client.embeddings.create(
-            model=self.embedding_model_id,
-            input=query,
-        )
-        return response.data[0].embedding
+        try:
+            response = self.client.embeddings.create(
+                model=self.embedding_model_id,
+                input=query,
+            )
+            return response.data[0].embedding
+        except BadRequestError as e:
+            print(type(query), len(query))
+            raise e
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """

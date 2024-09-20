@@ -1,35 +1,13 @@
-import argparse
-
 from target_benchmark.evaluators import TARGET
-from target_benchmark.retrievers import (
-    HNSWOpenAIEmbeddingRetriever,
-    LlamaIndexRetriever,
-)
+from target_benchmark.retrievers import NoContextRetriever
 
-parser = argparse.ArgumentParser(description="Run downstream evals.")
-parser.add_argument("--retriever_name", type=str, help="name of the retriever")
-parser.add_argument(
-    "--num_rows", type=int, default=100, help="num rows to include for hnsw"
-)
-parser.add_argument(
-    "--persist",
-    action="store_true",
-    help="Whether to persist the data. Defaults to False.",
-)
-args = parser.parse_args()
-retriever_name = args.retriever_name
-num_rows = args.num_rows
-persist = args.persist
-print(f"persist: {persist}")
+target_fetaqa = TARGET(("Table Question Answering Task", "fetaqa"))
+target_ottqa = TARGET(("Table Question Answering Task", "ottqa"))
+target_tabfact = TARGET(("Fact Verification Task", "tabfact"))
+target_spider = TARGET(("Text to SQL Task", "spider-test"))
+target_bird = TARGET(("Text to SQL Task", "bird-validation"))
 
-target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
-target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
-target_tabfact = TARGET(("Table Retrieval Task", "tabfact"))
-target_spider = TARGET(("Table Retrieval Task", "spider-test"))
-target_bird = TARGET(("Table Retrieval Task", "bird-validation"))
-target_infiagentda = TARGET(("Table Retrieval Task", "infiagentda"))
-
-top_ks = [1, 5, 10, 25, 50]
+top_ks = [1]
 
 
 def run_eval_for_top_ks(
@@ -55,6 +33,7 @@ def run_eval_for_top_ks(
             batch_size=100,
             top_k=top_k,
             retrieval_results_file=persist_path,
+            downstream_results_file=f"./no_context_{dataset_name}_downstream_results.jsonl",
         )
         results.append(performance)
         print(performance)
@@ -67,18 +46,14 @@ def write_performances(results, dataset_name):
             file.write(str(result) + "\n")
 
 
-retriever = None
-if retriever_name == "llamaindex":
-    retriever = LlamaIndexRetriever()
-elif "hnsw_openai" in retriever_name:
-    print(num_rows)
-    retriever = HNSWOpenAIEmbeddingRetriever(num_rows=num_rows)
-
-# # fetaqa test
-# results_fetaqa_test = run_eval_for_top_ks(
-#     retriever, retriever_name, top_ks, target_fetaqa, "fetaqa", "test", persist
-# )
-# write_performances(results=results_fetaqa_test, dataset_name="fetaqa")
+retriever = NoContextRetriever()
+retriever_name = "no_context"
+persist = False
+# fetaqa test
+results_fetaqa_test = run_eval_for_top_ks(
+    retriever, retriever_name, top_ks, target_fetaqa, "fetaqa", "test", persist
+)
+write_performances(results=results_fetaqa_test, dataset_name="fetaqa")
 
 # ottqa
 results_ottqa_val = run_eval_for_top_ks(

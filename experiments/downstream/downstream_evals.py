@@ -22,42 +22,42 @@ retrieval_result_files_dir = (
 )
 
 
-# fetaqa_test_retrieval_result = retrieval_result_files_dir / "fetaqa_10.jsonl"
-# results_fetaqa_test = target_fetaqa.evaluate_downstream_task(
-#     str(fetaqa_test_retrieval_result),
-#     "Table Question Answering Task",
-#     "test",
-#     f"./{retriever_name}_fetaqa_downstream_results.jsonl",
-# )
+fetaqa_test_retrieval_result = retrieval_result_files_dir / "fetaqa_10.jsonl"
+results_fetaqa_test = target_fetaqa.evaluate_downstream_task(
+    str(fetaqa_test_retrieval_result),
+    "Table Question Answering Task",
+    "test",
+    f"./{retriever_name}_fetaqa_downstream_results.jsonl",
+)
 
-# with open("./fetaqa_performances.jsonl", "w") as file:
-#     for result in results_fetaqa_test.values():
-#         file.write(result.model_dump_json() + "\n")
+with open("./fetaqa_performances.jsonl", "w") as file:
+    for result in results_fetaqa_test.values():
+        file.write(result.model_dump_json() + "\n")
 
-# ottqa_val_retrieval_result = retrieval_result_files_dir / "ottqa_10.jsonl"
-# results_ottqa_val = target_ottqa.evaluate_downstream_task(
-#     str(ottqa_val_retrieval_result),
-#     "Table Question Answering Task",
-#     "validation",
-#     f"./{retriever_name}_ottqa_downstream_results.jsonl",
-# )
+ottqa_val_retrieval_result = retrieval_result_files_dir / "ottqa_10.jsonl"
+results_ottqa_val = target_ottqa.evaluate_downstream_task(
+    str(ottqa_val_retrieval_result),
+    "Table Question Answering Task",
+    "validation",
+    f"./{retriever_name}_ottqa_downstream_results.jsonl",
+)
 
-# with open("./ottqa_performances.jsonl", "w") as file:
-#     for result in results_ottqa_val.values():
-#         file.write(result.model_dump_json() + "\n")
+with open("./ottqa_performances.jsonl", "w") as file:
+    for result in results_ottqa_val.values():
+        file.write(result.model_dump_json() + "\n")
 
 
-# tabfact_test_retrieval_result = retrieval_result_files_dir / "tabfact_10.jsonl"
-# results_tabfact_test = target_tabfact.evaluate_downstream_task(
-#     str(tabfact_test_retrieval_result),
-#     "Fact Verification Task",
-#     "test",
-#     f"./{retriever_name}_tabfact_downstream_results.jsonl",
-# )
+tabfact_test_retrieval_result = retrieval_result_files_dir / "tabfact_10.jsonl"
+results_tabfact_test = target_tabfact.evaluate_downstream_task(
+    str(tabfact_test_retrieval_result),
+    "Fact Verification Task",
+    "test",
+    f"./{retriever_name}_tabfact_downstream_results.jsonl",
+)
 
-# with open("./tabfact_performances.jsonl", "w") as file:
-#     for result in results_tabfact_test.values():
-#         file.write(result.model_dump_json() + "\n")
+with open("./tabfact_performances.jsonl", "w") as file:
+    for result in results_tabfact_test.values():
+        file.write(result.model_dump_json() + "\n")
 
 spider_test_retrieval_result = retrieval_result_files_dir / "spider_1.jsonl"
 results_spider_test = target_spider.evaluate_downstream_task(

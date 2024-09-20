@@ -17,6 +17,7 @@ from target_benchmark.dictionary_keys import (
     QUERY_ID_COL_NAME,
 )
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
+from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
 from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,
 )
@@ -97,6 +98,8 @@ class Text2SQLTask(AbsTask):
             raise ValueError(
                 f"dataset {dataset_name} does not have a database directory setup."
             )
+        if database_id == "":
+            return NO_CONTEXT_TABLE_PROMPT
         db_path = Path(
             self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite"
         )
