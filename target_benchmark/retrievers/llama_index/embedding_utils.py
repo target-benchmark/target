@@ -77,7 +77,7 @@ def construct_table_info(
     names_tried = set()
     for i in range(15):  # try up to 15 times
         table_info_completion = client.beta.chat.completions.parse(
-            model="gpt-4o-2024-08-06",
+            model="gpt-4o-mini-2024-07-18",
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant."},
                 {

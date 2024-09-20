@@ -134,6 +134,12 @@ class QuestionAnsweringTask(AbsTask):
         self.ref_answers.extend(
             [query_answer for query_answer in query_batch[ANSWER_COL_NAME]]
         )
+        # for downstream_answer, query_answer in zip(downstream_results, query_batch[ANSWER_COL_NAME]):
+        #     generated_result = str(downstream_answer.generated_results).lower()
+        #     if "not enough information" in generated_result:
+        #         continue
+        #     self.pred_answers.append(downstream_answer.generated_results)
+        #     self.ref_answers.append(query_answer)
 
     def _calculate_downstream_task_performance(
         self, **kwargs
@@ -141,6 +147,7 @@ class QuestionAnsweringTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
+        print(f"num answers: {len(self.pred_answers)}")
         scores = {}
         for metric_name, evaluator in self.evals.items():
             calculated_result = None
