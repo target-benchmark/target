@@ -306,10 +306,11 @@ class AbsTask(ABC):
         prev_downstream_results = {}
         # put them into dictionary by dataset name
         for result in all_prev_downstream_results:
-            if result[DATASET_NAME] not in prev_downstream_results:
-                prev_downstream_results = [result]
+            current_dataset_name = result.dataset_name
+            if current_dataset_name not in prev_downstream_results:
+                prev_downstream_results[current_dataset_name] = [result]
             else:
-                prev_downstream_results.append(result)
+                prev_downstream_results[current_dataset_name].append(result)
         batch_size = 1
         for dataset_name, dataset_loader in dataset_loaders.items():
             table_id_to_table = dataset_loader.get_table_id_to_table()
@@ -340,7 +341,9 @@ class AbsTask(ABC):
                     self._write_results(downstream_results, path_to_downstream_results)
                 self._update_downstream_task_metrics(query_batch, downstream_results)
                 idx += 1
-            performance = self._calculate_downstream_task_performance(**kwargs)
+            performance = self._calculate_downstream_task_performance(
+                dataset_name=dataset_name, **kwargs
+            )
             task_results[dataset_name] = performance
             logger.info(f"finished running downstream eval on {dataset_name}")
 

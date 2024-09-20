@@ -122,7 +122,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             ):
                 tup_id = (db_id, table_id)
                 num_rows_to_include = self.num_rows
-                while True:
+                while num_rows_to_include >= 0:
                     table_str = markdown_table_str(table, num_rows=num_rows_to_include)
                     num_tokens = len(self.embedding_model_encoding.encode(table_str))
                     if (

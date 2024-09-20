@@ -59,17 +59,17 @@ retrieval_result_files_dir = (
 #     for result in results_tabfact_test.values():
 #         file.write(result.model_dump_json() + "\n")
 
-# spider_test_retrieval_result = retrieval_result_files_dir / "spider_1.jsonl"
-# results_spider_test = target_spider.evaluate_downstream_task(
-#     str(spider_test_retrieval_result),
-#     "Text to SQL Task",
-#     "test",
-#     f"./{retriever_name}_spider_downstream_results.jsonl",
-# )
+spider_test_retrieval_result = retrieval_result_files_dir / "spider_1.jsonl"
+results_spider_test = target_spider.evaluate_downstream_task(
+    str(spider_test_retrieval_result),
+    "Text to SQL Task",
+    "test",
+    f"./{retriever_name}_spider_downstream_results.jsonl",
+)
 
-# with open("./spider_performances.jsonl", "w") as file:
-#     for result in results_spider_test.values():
-#         file.write(result.model_dump_json() + "\n")
+with open("./spider_performances.jsonl", "w") as file:
+    for result in results_spider_test.values():
+        file.write(result.model_dump_json() + "\n")
 
 bird_val_retrieval_result = retrieval_result_files_dir / "bird_1.jsonl"
 results_bird_val = target_bird.evaluate_downstream_task(

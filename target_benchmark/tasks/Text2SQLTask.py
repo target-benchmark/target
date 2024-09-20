@@ -11,6 +11,7 @@ from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatas
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     DATABASE_ID_COL_NAME,
+    DATASET_NAME,
     DIFFICULTY_COL_NAME,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
@@ -177,12 +178,14 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
+        if DATASET_NAME in kwargs:
+            self.current_dataset = kwargs[DATASET_NAME]
         if self.current_dataset not in self.database_dirs:
             raise ValueError(
                 f"{self.current_dataset} does not have path to database files."
             )
         db_path = self.database_dirs[self.current_dataset]
-
+        print(f"num pred sql: {len(self.pred_sql)}")
         result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(
                 self.pred_sql,

@@ -20,6 +20,7 @@ args = parser.parse_args()
 retriever_name = args.retriever_name
 num_rows = args.num_rows
 persist = args.persist
+print(f"persist: {persist}")
 
 target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
 target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
@@ -85,11 +86,11 @@ elif "hnsw_openai" in retriever_name:
 # )
 # write_performances(results=results_ottqa_val, dataset_name="ottqa")
 
-# tabfact
-results_tabfact_test = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_tabfact, "tabfact", "test", persist
-)
-write_performances(results=results_tabfact_test, dataset_name="tabfact")
+# # tabfact
+# results_tabfact_test = run_eval_for_top_ks(
+#     retriever, retriever_name, top_ks, target_tabfact, "tabfact", "test", persist
+# )
+# write_performances(results=results_tabfact_test, dataset_name="tabfact")
 
 # spider
 results_spider_test = run_eval_for_top_ks(
