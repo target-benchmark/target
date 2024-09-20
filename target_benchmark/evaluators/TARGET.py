@@ -33,7 +33,6 @@ from target_benchmark.retrievers import (
     AbsRetrieverBase,
     AbsStandardEmbeddingRetriever,
 )
-from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import (
@@ -580,16 +579,6 @@ class TARGET:
         path_to_persistence = Path(retrieval_results_file)
         if not path_to_persistence.exists():
             raise ValueError(f"path passed {retrieval_results_file} in does not exist!")
-        retrieval_results: List[RetrievalResultDataModel] = []
-        with open(path_to_persistence, "r") as file:
-            for line in file.readlines():
-                retrieval_results.append(
-                    RetrievalResultDataModel.model_validate_json(line)
-                )
-        if not retrieval_results:
-            raise ValueError(
-                "File empty or could not parse any RetrievalResultDataModel objects!"
-            )
 
         loaded_tasks = self.get_loaded_tasks()
         if downstream_task_name not in loaded_tasks:
@@ -611,6 +600,6 @@ class TARGET:
         return task_to_run.evaluate_downstream(
             self.logger,
             dataloaders_for_task,
-            retrieval_results,
+            retrieval_results_file,
             path_to_downstream_results,
         )

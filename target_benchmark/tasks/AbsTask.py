@@ -43,6 +43,10 @@ from target_benchmark.tasks.TasksDataModels import (
     RetrievalPerformanceDataModel,
     TaskResultsDataModel,
 )
+from target_benchmark.tasks.utils import (
+    find_resume_indices,
+    load_data_model_from_persistence_file,
+)
 
 
 class AbsTask(ABC):
@@ -275,21 +279,60 @@ class AbsTask(ABC):
         self,
         logger: Logger,
         dataset_loaders: Dict[str, AbsDatasetLoader],
-        retrieval_results: List[RetrievalResultDataModel],
+        path_to_retrieval_results: Path,
         path_to_downstream_results: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
         task_results = {}
         idx = 0
+
+        # get the persisted retrieval results
+        retrieval_results = load_data_model_from_persistence_file(
+            path_to_retrieval_results, RetrievalResultDataModel
+        )
+        if not retrieval_results:
+            raise ValueError(
+                "File empty or could not parse any RetrievalResultDataModel objects!"
+            )
+        # if previously partial downstream results are obtained, find start indices
+        resume_indices = find_resume_indices(
+            dataset_loaders, path_to_downstream_results
+        )
+        print(f"resume indicies: {resume_indices}")
+        # load all downstream results in file
+        all_prev_downstream_results = load_data_model_from_persistence_file(
+            path_to_downstream_results, DownstreamGeneratedResultDataModel
+        )
+        prev_downstream_results = {}
+        # put them into dictionary by dataset name
+        for result in all_prev_downstream_results:
+            if result[DATASET_NAME] not in prev_downstream_results:
+                prev_downstream_results = [result]
+            else:
+                prev_downstream_results.append(result)
+        batch_size = 1
         for dataset_name, dataset_loader in dataset_loaders.items():
             table_id_to_table = dataset_loader.get_table_id_to_table()
-
-            for query_batch in tqdm(
-                dataset_loader.get_queries_for_task(1),
+            resume_index = resume_indices[dataset_name]
+            for current_index, query_batch in tqdm(
+                enumerate(dataset_loader.get_queries_for_task(batch_size)),
                 total=dataset_loader.get_queries_size(),
                 desc="Getting downstream task results...",
             ):
-                retrieved_table = retrieval_results[idx : idx + 1]
+                if current_index < resume_index:
+                    # if the resume index is greater,
+                    # just update metrics using the existing index
+                    self._update_downstream_task_metrics(
+                        query_batch,
+                        prev_downstream_results[dataset_name][
+                            current_index : current_index + batch_size
+                        ],
+                    )
+                    idx += 1
+                    continue
+                if current_index == resume_index:
+                    print("resume generation of downstream results!")
+                retrieved_table = retrieval_results[idx : idx + batch_size]
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_table, dataset_name, table_id_to_table
                 )

@@ -1,13 +1,43 @@
+import json
 import math
 import multiprocessing as mp
 import os
 import sqlite3
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
+from pydantic import BaseModel
+
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dictionary_keys import DATASET_NAME
+
+
+def load_data_model_from_persistence_file(
+    path_to_persistence: Path,
+    datamodel: type[BaseModel],
+) -> List[BaseModel]:
+    loaded_models = []
+    with open(path_to_persistence, "r") as file:
+        for line in file.readlines():
+            loaded_models.append(datamodel.model_validate_json(line))
+    return loaded_models
+
+
+def find_resume_indices(
+    dataset_loaders: Dict[str, AbsDatasetLoader],
+    path_to_results: Union[Path, None] = None,
+):
+    start_query_idx = {dataset_name: 0 for dataset_name in dataset_loaders.keys()}
+    if path_to_results is None:
+        return start_query_idx
+    with open(path_to_results, "r") as file:
+        for line in file.readlines():
+            start_query_idx[json.loads(line)[DATASET_NAME]] += 1
+    return start_query_idx
 
 
 def clean_abnormal(input):
