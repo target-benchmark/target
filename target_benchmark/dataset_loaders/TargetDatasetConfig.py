@@ -37,7 +37,25 @@ DEFAULT_SPIDER_TEST_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     hf_corpus_dataset_path="target-benchmark/spider-corpus-test",
     hf_queries_dataset_path="target-benchmark/spider-queries-test",
     query_type="Text to SQL",
+    split="test",
 )
+
+DEFAULT_SPIDER_TRAIN_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
+    dataset_name="spider-train",
+    hf_corpus_dataset_path="target-benchmark/spider-corpus-train",
+    hf_queries_dataset_path="target-benchmark/spider-queries-train",
+    query_type="Text to SQL",
+    split="train",
+)
+
+DEFAULT_SPIDER_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
+    dataset_name="spider-validation",
+    hf_corpus_dataset_path="target-benchmark/spider-corpus-validation",
+    hf_queries_dataset_path="target-benchmark/spider-queries-validation",
+    query_type="Text to SQL",
+    split="train",
+)
+
 
 DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="bird-validation",

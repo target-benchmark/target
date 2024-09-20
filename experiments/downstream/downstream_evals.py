@@ -47,38 +47,38 @@ retrieval_result_files_dir = (
 #         file.write(result.model_dump_json() + "\n")
 
 
-tabfact_test_retrieval_result = retrieval_result_files_dir / "tabfact_10.jsonl"
-results_tabfact_test = target_tabfact.evaluate_downstream_task(
-    str(tabfact_test_retrieval_result),
-    "Fact Verification Task",
-    "test",
-    f"./{retriever_name}_tabfact_downstream_results.jsonl",
-)
-
-with open("./tabfact_performances.jsonl", "w") as file:
-    for result in results_tabfact_test.values():
-        file.write(result.model_dump_json() + "\n")
-
-spider_test_retrieval_result = retrieval_result_files_dir / "spider_1.jsonl"
-results_spider_test = target_spider.evaluate_downstream_task(
-    str(spider_test_retrieval_result),
-    "Text to SQL Task",
-    "test",
-    f"./{retriever_name}_spider_downstream_results.jsonl",
-)
-
-with open("./spider_performances.jsonl", "w") as file:
-    for result in results_spider_test.values():
-        file.write(result.model_dump_json() + "\n")
-
-# bird_val_retrieval_result = retrieval_result_files_dir / "bird_1.jsonl"
-# results_bird_val = target_bird.evaluate_downstream_task(
-#     str(bird_val_retrieval_result),
-#     "Text to SQL Task",
-#     "validation",
-#     f"./{retriever_name}_bird_downstream_results.jsonl",
+# tabfact_test_retrieval_result = retrieval_result_files_dir / "tabfact_10.jsonl"
+# results_tabfact_test = target_tabfact.evaluate_downstream_task(
+#     str(tabfact_test_retrieval_result),
+#     "Fact Verification Task",
+#     "test",
+#     f"./{retriever_name}_tabfact_downstream_results.jsonl",
 # )
 
-# with open("./bird_performances.jsonl", "w") as file:
-#     for result in results_bird_val.values():
+# with open("./tabfact_performances.jsonl", "w") as file:
+#     for result in results_tabfact_test.values():
 #         file.write(result.model_dump_json() + "\n")
+
+# spider_test_retrieval_result = retrieval_result_files_dir / "spider_1.jsonl"
+# results_spider_test = target_spider.evaluate_downstream_task(
+#     str(spider_test_retrieval_result),
+#     "Text to SQL Task",
+#     "test",
+#     f"./{retriever_name}_spider_downstream_results.jsonl",
+# )
+
+# with open("./spider_performances.jsonl", "w") as file:
+#     for result in results_spider_test.values():
+#         file.write(result.model_dump_json() + "\n")
+
+bird_val_retrieval_result = retrieval_result_files_dir / "bird_1.jsonl"
+results_bird_val = target_bird.evaluate_downstream_task(
+    str(bird_val_retrieval_result),
+    "Text to SQL Task",
+    "validation",
+    f"./{retriever_name}_bird_downstream_results.jsonl",
+)
+
+with open("./bird_performances.jsonl", "w") as file:
+    for result in results_bird_val.values():
+        file.write(result.model_dump_json() + "\n")
