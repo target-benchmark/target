@@ -17,7 +17,9 @@ from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultData
 
 class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
     """
-    This retriever class includes both an embed query and an embed corpus method. If the user choose to inherit their retriever class after this, they need to implement both functions. The user implementated retriever is not expected to persist any data. Instead, as long as the embed corpus and embed query functions return a vector (list of floats) of the same dimension, the persistence of the data for the evaluation will be dealt with automatically.
+    This retriever class includes both an embed query and an embed corpus method. If the user choose to inherit their retriever after this class, they need to implement both functions. The user implementated retriever is not expected to persist any data. Instead, as long as the embed corpus and embed query functions return a vector (list of floats) of the same dimension, the storage of the data for the evaluation will be dealt with automatically.
+
+    NOTE: Storage of data is done with an in memory instance of a Qdrant vector database, which means it is not persisted across calls to `TARGET.run`.
 
     Some reasons to inherit from this class as opposed to `AbsCustomEmbeddingRetreiver`
     - the embedding of your tool is simply a vector or array of floats. example: the retriever is just an embedding model that produces vectors.
@@ -85,7 +87,6 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
             queries (str): the actual query string.
 
             dataset_name (str): identifier for the dataset that these queries come from. since retrieval evaluation can be done for multiple datasets, use this as a way of choosing which dataset's corpus to retrieve from.
-            any additional kwargs you'd like to include.
 
         Returns:
             the embeddings for the query

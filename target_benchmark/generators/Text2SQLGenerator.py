@@ -46,4 +46,9 @@ class Text2SQLGenerater(DefaultGenerator):
         self.chain = self.chat_template | self.language_model | self.output_parser
 
     def generate(self, table_str: str, query: str) -> str:
+        # Note: currently text 2 sql generator takes in a database schema string
+        # in the `table_str` input. In order to modify this, you can change the
+        # `_get_downstream_task_results` method of the text 2 sql task. More
+        # details can be found in the docs.
+
         return self.chain.invoke({"table_str": table_str, "query_str": query})

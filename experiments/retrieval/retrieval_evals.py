@@ -74,11 +74,11 @@ elif "hnsw_openai" in retriever_name:
     print(num_rows)
     retriever = HNSWOpenAIEmbeddingRetriever(num_rows=num_rows)
 
-# # fetaqa test
-# results_fetaqa_test = run_eval_for_top_ks(
-#     retriever, retriever_name, top_ks, target_fetaqa, "fetaqa", "test", persist
-# )
-# write_performances(results=results_fetaqa_test, dataset_name="fetaqa")
+# fetaqa test
+results_fetaqa_test = run_eval_for_top_ks(
+    retriever, retriever_name, top_ks, target_fetaqa, "fetaqa", "test", persist
+)
+write_performances(results=results_fetaqa_test, dataset_name="fetaqa")
 
 # ottqa
 results_ottqa_val = run_eval_for_top_ks(

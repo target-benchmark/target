@@ -311,6 +311,7 @@ class AbsTask(ABC):
                 prev_downstream_results[current_dataset_name] = [result]
             else:
                 prev_downstream_results[current_dataset_name].append(result)
+        # TODO: support batching
         batch_size = 1
         for dataset_name, dataset_loader in dataset_loaders.items():
             table_id_to_table = dataset_loader.get_table_id_to_table()
@@ -331,8 +332,6 @@ class AbsTask(ABC):
                     )
                     idx += 1
                     continue
-                if current_index == resume_index:
-                    print("resume generation of downstream results!")
                 retrieved_table = retrieval_results[idx : idx + batch_size]
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_table, dataset_name, table_id_to_table
