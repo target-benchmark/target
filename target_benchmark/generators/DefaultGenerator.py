@@ -17,7 +17,7 @@ class DefaultGenerator(AbsGenerator):
     ):
         super().__init__()
         self.language_model = ChatOpenAI(
-            model="gpt-4o",
+            model="gpt-4o-mini-2024-07-18",
             temperature=0.0,
         )
         self.chat_template = ChatPromptTemplate.from_messages(

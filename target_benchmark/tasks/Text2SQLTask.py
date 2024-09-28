@@ -1,20 +1,23 @@
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
     DEFAULT_SPIDER_TEST_DATASET_CONFIG,
 )
 from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     DATABASE_ID_COL_NAME,
+    DATASET_NAME,
     DIFFICULTY_COL_NAME,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
 )
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
+from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
 from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,
 )
@@ -31,7 +34,6 @@ class Text2SQLTask(AbsTask):
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
         **kwargs,
@@ -40,8 +42,7 @@ class Text2SQLTask(AbsTask):
             task_generator = Text2SQLGenerater()
         super().__init__(
             task_name=self.get_default_task_name(),
-            datasets_config=None,
-            overwrite_default_datasets=False,
+            datasets_config=datasets_config,
             task_generator=task_generator,
             **kwargs,
         )
@@ -89,6 +90,7 @@ class Text2SQLTask(AbsTask):
         """
         return {  # TODO: add more text2sql dataset configs
             DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+            DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
         }
 
     def _get_schema(self, dataset_name: str, database_id: str):
@@ -96,6 +98,8 @@ class Text2SQLTask(AbsTask):
             raise ValueError(
                 f"dataset {dataset_name} does not have a database directory setup."
             )
+        if database_id == "":
+            return NO_CONTEXT_TABLE_PROMPT
         db_path = Path(
             self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite"
         )
@@ -115,6 +119,7 @@ class Text2SQLTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses generator to generate a sql query.
@@ -176,12 +181,14 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
+        if DATASET_NAME in kwargs:
+            self.current_dataset = kwargs[DATASET_NAME]
         if self.current_dataset not in self.database_dirs:
             raise ValueError(
                 f"{self.current_dataset} does not have path to database files."
             )
         db_path = self.database_dirs[self.current_dataset]
-
+        print(f"num pred sql: {len(self.pred_sql)}")
         result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(
                 self.pred_sql,

@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import evaluate
 
@@ -24,6 +24,7 @@ from target_benchmark.generators.GeneratorsDataModels import (
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import TableQATaskPerformanceDataModel
+from target_benchmark.tasks.utils import build_table_content_string
 
 
 class QuestionAnsweringTask(AbsTask):
@@ -34,8 +35,9 @@ class QuestionAnsweringTask(AbsTask):
 
     def __init__(
         self,
-        datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
         task_generator: AbsGenerator = None,
         lang: str = "en",
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
@@ -46,7 +48,6 @@ class QuestionAnsweringTask(AbsTask):
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
             task_generator=task_generator,
             **kwargs,
         )
@@ -91,6 +92,7 @@ class QuestionAnsweringTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         currently just markdown reps of table strings
@@ -101,8 +103,9 @@ class QuestionAnsweringTask(AbsTask):
                 dataset_name=dataset_name,
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
-                    table_str="\n".join(
-                        table_str for table_str in result.retrieved_tables
+                    table_str=build_table_content_string(
+                        result.retrieval_results,
+                        table_id_to_table,
                     ),
                     query=query_str,
                 ),
@@ -131,6 +134,12 @@ class QuestionAnsweringTask(AbsTask):
         self.ref_answers.extend(
             [query_answer for query_answer in query_batch[ANSWER_COL_NAME]]
         )
+        # for downstream_answer, query_answer in zip(downstream_results, query_batch[ANSWER_COL_NAME]):
+        #     generated_result = str(downstream_answer.generated_results).lower()
+        #     if "not enough information" in generated_result:
+        #         continue
+        #     self.pred_answers.append(downstream_answer.generated_results)
+        #     self.ref_answers.append(query_answer)
 
     def _calculate_downstream_task_performance(
         self, **kwargs
@@ -138,6 +147,7 @@ class QuestionAnsweringTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
+        print(f"num answers: {len(self.pred_answers)}")
         scores = {}
         for metric_name, evaluator in self.evals.items():
             calculated_result = None

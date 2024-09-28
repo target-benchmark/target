@@ -11,7 +11,7 @@ from collections import Counter
 from functools import partial
 from multiprocessing import Pool as ProcessPool
 from multiprocessing.util import Finalize
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -178,16 +178,21 @@ def build_corpus(tables: dict, tmp_file: str):
 
 
 def convert_table_representation(
-    database_id, table_id: str, table_contents: List[List]
+    database_id,
+    table_id: str,
+    table_contents: List[List],
+    section_title: str,
+    with_title: bool,
 ) -> Dict[str, object]:
     table_headers = table_contents[0]
     table_data = table_contents[1:]
+    # remove title due to high correspondence but keep uid
     return {
         "uid": str((database_id, table_id)),
-        "title": table_id,
+        "title": table_id if with_title else "",
         "header": table_headers,
         "data": table_data,
-        "section_title": "",
+        "section_title": section_title,
     }
 
 
@@ -205,6 +210,7 @@ class TFIDFBuilder:
         self,
         out_dir: str,
         corpus: Dict[str, object],
+        dataset_name: Union[str, None] = None,
         tmp_file: str = "/tmp/tf-idf-input.json",
         tmp_db_file: str = "/tmp/db.json",
         preprocess: str = None,
@@ -231,11 +237,12 @@ class TFIDFBuilder:
         freqs = self.get_doc_freqs(count_matrix)
 
         basename = "index"
-        basename += "-%s-ngram=%d-hash=%d-tokenizer=%s" % (
+        basename += "-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s" % (
             option,
             ngram,
             hash_size,
             tokenizer,
+            dataset_name,
         )
         filename = os.path.join(out_dir, basename)
 

@@ -11,7 +11,7 @@ class AbsGenerator(ABC):
         Generate a response with the generator.
 
         Parameters:
-            table_str (str): the string representation of the table related to the query
+            table_str (str): the string representation of the table/information related to the query
             query (str): the query string
 
         Returns:

@@ -6,7 +6,7 @@ from typing import Dict, Union
 import pandas as pd
 from openai import OpenAI
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, Engine, MetaData, String, Table
+from sqlalchemy import Column, Engine, MetaData, String, Table, inspect
 
 
 class TableInfo(BaseModel):
@@ -77,7 +77,7 @@ def construct_table_info(
     names_tried = set()
     for i in range(15):  # try up to 15 times
         table_info_completion = client.beta.chat.completions.parse(
-            model="gpt-4o-2024-08-06",
+            model="gpt-4o-mini-2024-07-18",
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant."},
                 {
@@ -105,7 +105,6 @@ def construct_table_info(
         )
         with open(out_file_path, "w") as file:
             json.dump(table_info.model_dump(), file)
-
         return table_info
     return None
 
@@ -119,7 +118,12 @@ def sanitize_column_name(col_name):
 # Function to create a table from a DataFrame using SQLAlchemy
 def create_table_from_dataframe(
     df: pd.DataFrame, table_name: str, engine: Engine, metadata_obj: MetaData
-):
+) -> None:
+    # Use inspector to check if the table already exists
+    inspector = inspect(engine)
+    if inspector.has_table(table_name):
+        return  # Exit the function to avoid recreating the table
+
     # Sanitize column names
     sanitized_columns = {col: sanitize_column_name(col) for col in df.columns}
     df = df.rename(columns=sanitized_columns)

@@ -237,7 +237,7 @@ class HySERetriever(AbsCustomEmbeddingRetriever):
 
         # TODO: ensure correctness of output type and dimension
         response = client.chat.completions.create(
-            model="gpt-4o-2024-05-13",
+            model="gpt-4o-mini-2024-07-18",
             messages=[
                 {
                     "role": "system",

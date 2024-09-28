@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
@@ -25,6 +25,7 @@ from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
+from target_benchmark.tasks.utils import build_table_content_string
 
 
 class FactVerificationTask(AbsTask):
@@ -33,7 +34,6 @@ class FactVerificationTask(AbsTask):
     def __init__(
         self,
         datasets_config: Dict[str, Dict[str, str]] = None,
-        overwrite_default_datasets: bool = False,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
@@ -45,7 +45,6 @@ class FactVerificationTask(AbsTask):
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
-            overwrite_default_datasets=overwrite_default_datasets,
             task_generator=task_generator,
             **kwargs,
         )
@@ -80,6 +79,7 @@ class FactVerificationTask(AbsTask):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
@@ -89,8 +89,9 @@ class FactVerificationTask(AbsTask):
                 dataset_name=dataset_name,
                 query_id=query_id,
                 generated_results=self.task_generator.generate(
-                    table_str="\n".join(
-                        table_str for table_str in result.retrieved_tables
+                    table_str=build_table_content_string(
+                        result.retrieval_results,
+                        table_id_to_table,
                     ),
                     query=query_str,
                 ),
@@ -112,6 +113,18 @@ class FactVerificationTask(AbsTask):
         Specifically, update the `self.pred_answers` and `self.ref_answers` lists
         based on the predicted answers in downstream_results and ground truth answers in query_batch.
         """
+        # for downstream_answer, query_answer in zip(downstream_results, query_batch[ANSWER_COL_NAME]):
+        #     if "true" in downstream_answer.generated_results.lower():
+        #         self.pred_answers.append(1)
+        #     elif "false" in downstream_answer.generated_results.lower():
+        #         self.pred_answers.append(0)
+        #     else:
+        #         # self.pred_answers.append(1 - self.ref_answers[-1])
+        #         continue
+        #     if "true" in query_answer.lower():
+        #         self.ref_answers.append(1)
+        #     else:
+        #         self.ref_answers.append(0)
         for downstream_answer in downstream_results:
             if "true" in downstream_answer.generated_results.lower():
                 self.pred_answers.append(1)
@@ -134,6 +147,7 @@ class FactVerificationTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
+        assert len(self.ref_answers) == len(self.pred_answers)
         accuracy = accuracy_score(self.ref_answers, self.pred_answers)
         precision, recall, fbeta, _ = precision_recall_fscore_support(
             self.ref_answers, self.pred_answers, average="weighted"

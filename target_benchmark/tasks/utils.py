@@ -1,13 +1,58 @@
+import json
 import math
 import multiprocessing as mp
 import os
 import sqlite3
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
+from pydantic import BaseModel
+
+from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dictionary_keys import DATASET_NAME
+from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
+from target_benchmark.retrievers.utils import markdown_table_str
+
+
+def build_table_content_string(
+    retrieval_results: List[Tuple[str, str]],
+    table_id_to_table: Dict[Tuple[str, str], List[List]],
+) -> str:
+    tables = set()
+    for retrieved_table_id in retrieval_results:
+        if retrieved_table_id not in table_id_to_table:
+            return NO_CONTEXT_TABLE_PROMPT
+        else:
+            tables.add(markdown_table_str(table_id_to_table[retrieved_table_id]))
+    return "\n".join(table_content for table_content in tables)
+
+
+def load_data_model_from_persistence_file(
+    path_to_persistence: Path,
+    datamodel: type[BaseModel],
+) -> List[BaseModel]:
+    loaded_models = []
+    with open(path_to_persistence, "r") as file:
+        for line in file.readlines():
+            loaded_models.append(datamodel.model_validate_json(line))
+    return loaded_models
+
+
+def find_resume_indices(
+    dataset_loaders: Dict[str, AbsDatasetLoader],
+    path_to_results: Union[Path, None] = None,
+):
+    start_query_idx = {dataset_name: 0 for dataset_name in dataset_loaders.keys()}
+    if path_to_results is None:
+        return start_query_idx
+    with open(path_to_results, "r") as file:
+        for line in file.readlines():
+            start_query_idx[json.loads(line)[DATASET_NAME]] += 1
+    return start_query_idx
 
 
 def clean_abnormal(input):
@@ -22,9 +67,9 @@ def clean_abnormal(input):
 
 
 def execute_sql(sql, cursor):
-    start_time = time.process_time()
+    start_time = time.time()
     cursor.execute(sql)
-    exec_time = time.process_time() - start_time
+    exec_time = time.time() - start_time
 
     return exec_time
 
@@ -36,6 +81,12 @@ def iterated_execute_sql(
     iterate_num: int,
     include_ves: bool = False,
 ) -> float:
+    assert (
+        len(predicted_sql_and_db) == 2
+    ), f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
+    assert (
+        len(ground_truth_sql_and_db) == 2
+    ), f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
     # given a predicted sql, ground truth sql,
@@ -86,6 +137,7 @@ def execute_model(
     meta_time_out: float,
     include_ves: bool = False,
 ) -> Dict[str, Union[int, float]]:
+    sql_execution_res = 0
     try:
         # you can personalize the total timeout number
         # larger timeout leads to more stable ves
@@ -99,8 +151,10 @@ def execute_model(
         sys.exit(0)
     except FunctionTimedOut:
         time_ratio = 0
+        sql_execution_res = 0
     except Exception:
         time_ratio = 0
+        sql_execution_res = 0
     return {
         "sql_idx": idx,
         "time_ratio": time_ratio,
@@ -114,7 +168,7 @@ def run_sqls_parallel(
     db_root_path: str,
     num_cpus=1,
     iterate_num=10,
-    meta_time_out=30.0,
+    meta_time_out=60.0,
     include_ves: bool = False,
 ) -> List[Dict[str, Union[int, float]]]:
     pool = mp.Pool(processes=num_cpus)

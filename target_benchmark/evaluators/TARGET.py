@@ -3,10 +3,12 @@ import os
 import shutil
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Literal, Tuple, Union
 
 import numpy as np
 from qdrant_client import QdrantClient, models
+from tqdm import tqdm
 
 from target_benchmark.dataset_loaders import HFDatasetLoader, Text2SQLDatasetLoader
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
@@ -34,6 +36,7 @@ from target_benchmark.retrievers import (
 from target_benchmark.tasks import TableRetrievalTask, Text2SQLTask
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import (
+    DownstreamTaskPerformanceDataModel,
     EmbeddingStatisticsDataModel,
     TaskResultsDataModel,
 )
@@ -85,7 +88,7 @@ class TARGET:
         self.logger.info(
             "Finished creating dataset config information. Finished setting up."
         )
-        self.dataloaders = {}
+        self.dataloaders: Dict[str, AbsDatasetLoader] = {}
 
     def load_tasks(
         self,
@@ -119,27 +122,24 @@ class TARGET:
         tasks_dict = find_tasks()
         for task in downstream_tasks:  # iterate through each of the passed in tasks
             if isinstance(task, str):  # if passed in task name
-                if (
-                    task in tasks_dict
-                ):  # check if task name exists in the available target tasks
+                if task in tasks_dict:
+                    # check if task name exists in the available target tasks
                     task_class = tasks_dict[task]
                     task_default_name = task_class.get_default_task_name()
-                    if (
-                        task_default_name in loaded_tasks
-                    ):  # warning for overwriting due to duplicate task names
+                    if task_default_name in loaded_tasks:
+                        # warning for overwriting due to duplicate task names
                         self.logger.error(
                             f"task by name {task_default_name} already loaded. this action will overwrite the previously loaded task. be careful as this may not be intended behavior!"
                         )
-                    loaded_tasks[
-                        task_default_name
-                    ] = task_class()  # create a default instance of that task class
+                    # create a default instance of that task class
+                    loaded_tasks[task_default_name] = task_class()
                 else:
                     self.logger.warning(
                         f"task named {task} doesn't exist. please double check your input values. skipping this task..."
                     )
-            elif isinstance(
-                task, Tuple
-            ):  # otherwise if it's an instance of tuple, user specified task and datasets to run
+            elif isinstance(task, Tuple):
+                # otherwise if it's an instance of tuple,
+                # user specified task and datasets to run
                 task_name, task_dataset_names = task
                 # validating the dataset specified has the correct type
                 if not isinstance(task_dataset_names, (str, List)):
@@ -173,7 +173,7 @@ class TARGET:
                         )
                     # create the task with the specified dataset configs
                     loaded_tasks[task_default_name] = task_class(
-                        datasets_config=needed_datasets, overwrite_default_datasets=True
+                        datasets_config=needed_datasets,
                     )
                 else:
                     self.logger.warning(
@@ -266,9 +266,10 @@ class TARGET:
                 )
         return eval_dataloaders
 
-    def load_datasets_for_task(
+    def _load_datasets_for_task(
         self,
         dataset_names: List[str],
+        task: AbsTask,
     ) -> Dict[str, AbsDatasetLoader]:
         """
         Load the datasets through the dataloaders for a task.
@@ -289,6 +290,13 @@ class TARGET:
                 dataloader = self.dataloaders[dataset_name]
                 dataloader.load()
                 dataloaders_for_task[dataset_name] = dataloader
+
+        if isinstance(task, Text2SQLTask):
+            for name, loader in dataloaders_for_task.items():
+                assert isinstance(
+                    loader, Text2SQLDatasetLoader
+                ), f"data loader for dataset {name} is not a text to sql dataset."
+            task.setup_database_dirs(dataloaders_for_task)
         return dataloaders_for_task
 
     def setup_logger(
@@ -331,7 +339,7 @@ class TARGET:
         retriever: AbsStandardEmbeddingRetriever,
         dataset_name: str,
         client: QdrantClient,
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float]:
         """
         Create embeddings with retriever inheriting from `AbsStandardizedEmbeddingRetriever`. Includes an in-memory vector database for storage support. Should only be used after the dataloaders have been correctly loaded.
 
@@ -361,11 +369,17 @@ class TARGET:
             ),
         )
         cur_dataloader = self.dataloaders[dataset_name]
+        total_entries = cur_dataloader.get_corpus_size()
         vectors = []
         metadata = []
-        start_time = time.process_time()
-        for entry in cur_dataloader.convert_corpus_table_to(
-            retriever.get_expected_corpus_format()
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
+        for entry in tqdm(
+            cur_dataloader.convert_corpus_table_to(
+                retriever.get_expected_corpus_format()
+            ),
+            total=total_entries,
+            desc="Embedding Tables...",
         ):  # TODO: support batching
             entry = {key: value[0] for key, value in entry.items()}
             table_embedding = retriever.embed_corpus(dataset_name, entry)
@@ -376,8 +390,10 @@ class TARGET:
                     METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
                 }
             )
-        end_time = time.process_time()
-        duration = end_time - start_time
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
         vectors = np.array(vectors)
         embedding_size = vectors.nbytes
 
@@ -386,28 +402,53 @@ class TARGET:
             vectors=vectors,
             payload=metadata,
         )
-        return duration, embedding_size
+        return process_duration, wall_clock_duration, embedding_size
 
     def embed_with_custom_embeddings(
         self,
         retriever: AbsCustomEmbeddingRetriever,
         dataset_name: str,
         batch_size: int,
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float]:
         start_disk_usage = shutil.disk_usage("/").used
-        start_time = time.process_time()
-
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
         retriever.embed_corpus(
             dataset_name,
             self.dataloaders[dataset_name].convert_corpus_table_to(
                 retriever.get_expected_corpus_format(), batch_size
             ),
         )
-        end_time = time.process_time()
-        duration = end_time - start_time
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
+
         end_disk_usage = shutil.disk_usage("/").used
         embedding_size = (end_disk_usage - start_disk_usage) * 1.0 / 1_000_000
-        return duration, embedding_size
+        return process_duration, wall_clock_duration, embedding_size
+
+    def _update_dataloaders(
+        self,
+        split: Literal["test", "train", "validation"] = "test",
+    ):
+        self.dataloaders = self.dataloaders | self.create_dataloaders(
+            self.dataset_info, split
+        )
+
+    def _create_persistence_file(
+        self,
+        file_path: Union[str, None] = None,
+    ) -> Union[Path, None]:
+        path_to_persistence = None
+        if file_path:
+            path_to_persistence = Path(file_path)
+            if not path_to_persistence.exists():
+                self.logger.info(
+                    f"creating persistence file at {str(path_to_persistence)}"
+                )
+                path_to_persistence.touch()
+        return path_to_persistence
 
     def run(
         self,
@@ -415,8 +456,11 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 1,
         top_k: int = 5,
+        retrieval_results_file: Union[str, None] = None,
+        downstream_results_file: Union[str, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
+        # TODO: add resume
         """
         Call this function to run the tasks! Woohoo!!!
 
@@ -427,13 +471,12 @@ class TARGET:
             top_k (int, optional): top k tables to retrieve.
         """
         self.logger.info("Started creating data loader objects...")
-        self.dataloaders: Dict[
-            str, AbsDatasetLoader
-        ] = self.dataloaders | self.create_dataloaders(self.dataset_info, split)
+        self._update_dataloaders(split)
 
         all_results = {}
         loaded_datasets = set()
         embedding_stats = {}
+        standardized = False
         if isinstance(retriever, AbsStandardEmbeddingRetriever):
             standardized = True
             client = QdrantClient(":memory:")
@@ -450,40 +493,49 @@ class TARGET:
             self.logger.info("Start checking for new corpus to embed...")
             # load the datasets needed
             dataset_names = task.get_dataset_config().keys()
-            dataloaders_for_task = self.load_datasets_for_task(
-                dataset_names=dataset_names
+            dataloaders_for_task = self._load_datasets_for_task(
+                dataset_names=dataset_names, task=task
             )
-            if isinstance(task, Text2SQLTask):
-                for name, loader in dataloaders_for_task.items():
-                    assert isinstance(
-                        loader, Text2SQLDatasetLoader
-                    ), f"data loader for dataset {name} is not a text to sql dataset."
-                task.setup_database_dirs(dataloaders_for_task)
 
             # call embed corpus on the retriever to embed/preprocess the tables
 
             for dataset_name in dataset_names:
                 if dataset_name not in loaded_datasets:
                     size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
-                    duration, embedding_size = -1.0, -1.0
+                    process_duration, wall_clock_duration, embedding_size = (
+                        -1.0,
+                        -1.0,
+                        -1.0,
+                    )
                     if standardized:
                         (
-                            duration,
+                            process_duration,
+                            wall_clock_duration,
                             embedding_size,
                         ) = self.embed_with_standardized_embeddings(
                             retriever, dataset_name, client
                         )
                     else:
-                        duration, embedding_size = self.embed_with_custom_embeddings(
+                        (
+                            process_duration,
+                            wall_clock_duration,
+                            embedding_size,
+                        ) = self.embed_with_custom_embeddings(
                             retriever, dataset_name, batch_size
                         )
                     loaded_datasets.add(dataset_name)
 
                     # create embedding statistics data object to record latency & size of embedding
                     embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        embedding_creation_duration=round(duration, 5),
-                        avg_embedding_creation_duration=round(
-                            duration / size_of_corpus, 5
+                        embedding_creation_duration_process=round(process_duration, 5),
+                        avg_embedding_creation_duration_process=round(
+                            process_duration / size_of_corpus, 5
+                        ),
+                        embedding_creation_duration_wall_clock=round(
+                            wall_clock_duration, 5
+                        ),
+                        avg_embedding_creation_duration_wall_clock=round(
+                            wall_clock_duration / size_of_corpus, 5
                         ),
                         embedding_size=round(embedding_size, 5),
                         avg_embedding_size=round(embedding_size / size_of_corpus, 5),
@@ -491,6 +543,12 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
+            path_to_retrieval_results = self._create_persistence_file(
+                retrieval_results_file
+            )
+            path_to_downstream_results = self._create_persistence_file(
+                downstream_results_file
+            )
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
@@ -499,6 +557,8 @@ class TARGET:
                 batch_size=batch_size,
                 top_k=top_k,
                 client=client,
+                path_to_retrieval_results=path_to_retrieval_results,
+                path_to_downstream_results=path_to_downstream_results,
                 **kwargs,
             )
 
@@ -509,3 +569,38 @@ class TARGET:
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")
         return all_results
+
+    def evaluate_downstream_task(
+        self,
+        retrieval_results_file: str,
+        downstream_task_name: str,
+        split: Literal["test", "train", "validation"] = "test",
+        downstream_results_file: Union[str, None] = None,
+    ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
+        path_to_persistence = Path(retrieval_results_file)
+        if not path_to_persistence.exists():
+            raise ValueError(f"path passed {retrieval_results_file} in does not exist!")
+
+        loaded_tasks = self.get_loaded_tasks()
+        if downstream_task_name not in loaded_tasks:
+            raise ValueError(
+                f"provided task {downstream_task_name} is not loaded! Loaded tasks include {loaded_tasks}. please create a TARGET object with the needed tasks."
+            )
+        task_to_run = self.tasks[downstream_task_name]
+        self._update_dataloaders(split)
+        dataset_names = task_to_run.get_dataset_config().keys()
+        print(list(dataset_names))
+        dataloaders_for_task = self._load_datasets_for_task(
+            dataset_names=dataset_names, task=task_to_run
+        )
+
+        path_to_downstream_results = self._create_persistence_file(
+            downstream_results_file
+        )
+
+        return task_to_run.evaluate_downstream(
+            self.logger,
+            dataloaders_for_task,
+            retrieval_results_file,
+            path_to_downstream_results,
+        )

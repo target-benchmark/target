@@ -1,13 +1,19 @@
 import time
 from abc import ABC, abstractmethod
 from logging import Logger
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+from pydantic import BaseModel
+from tqdm import tqdm
+
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dataset_loaders.DatasetLoaderEnums import QueryType
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
@@ -16,6 +22,7 @@ from target_benchmark.dictionary_keys import (
     GENERIC_DATASET_CONFIG_FIELD,
     HF_DATASET_CONFIG_CORPUS_FIELD,
     HF_DATASET_CONFIG_QUERIES_FIELD,
+    QUERY_TYPE,
     TABLE_ID_COL_NAME,
 )
 from target_benchmark.generators.AbsGenerator import AbsGenerator
@@ -31,11 +38,14 @@ from target_benchmark.retrievers.AbsStandardEmbeddingRetriever import (
     AbsStandardEmbeddingRetriever as StandardizedEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-from target_benchmark.retrievers.utils import markdown_table_str
 from target_benchmark.tasks.TasksDataModels import (
     DownstreamTaskPerformanceDataModel,
     RetrievalPerformanceDataModel,
     TaskResultsDataModel,
+)
+from target_benchmark.tasks.utils import (
+    find_resume_indices,
+    load_data_model_from_persistence_file,
 )
 
 
@@ -43,10 +53,9 @@ class AbsTask(ABC):
     def __init__(
         self,
         task_name: str = None,
-        datasets_config: Dict[
-            str, Union[Dict[str, str], DatasetConfigDataModel]
-        ] = None,  # TODO: allow dataset config inputs
-        overwrite_default_datasets: bool = False,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
@@ -66,8 +75,6 @@ class AbsTask(ABC):
                     'dataset_path': 'local/path/to/dataset/foler/'
                 }
 
-            overwrite_default_datasets (bool, optional): each task have a set of default datasets that will be tested on. if the user chooses to input some dataset config that has a dataset under the same name as one of the default sets, this boolean dictates whether to overwrite the default datasets or not. defaults to False, as no overwrites.
-
             task_generator (AbsGenerator, optional): each task as one corresponding generator for the downstream task. defaults to a default generator, just sends some openai api requests.
         """
         if task_name is None:
@@ -76,7 +83,7 @@ class AbsTask(ABC):
             self.task_name: str = task_name
         self.dataset_config: Dict[
             str, DatasetConfigDataModel
-        ] = self._construct_dataset_config(datasets_config, overwrite_default_datasets)
+        ] = self._construct_dataset_config(datasets_config)
 
         self.task_generator = (
             task_generator if task_generator is not None else DefaultGenerator()
@@ -108,50 +115,45 @@ class AbsTask(ABC):
 
     def _construct_dataset_config(
         self,
-        datasets_config: Dict[str, Dict[str, str]],
-        overwrite_default_datasets: bool,
+        datasets_config: Union[
+            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
+        ] = None,
     ) -> Dict[str, DatasetConfigDataModel]:
         """
         builds the dataset config according to the user inputted dataset config (if any) and the default for the class.
 
         Parameters:
             datasets_config (Dict[str, Dict[str, str]]): user inputted datasets config dictionary.
-            overwrite_default_datasets (bool): whether to overwrite the default datasets or not if the same name dataset is provided.
 
         Returns:
             a dictionary mapping the names of the dataset to the corresponding dataset configuration data model objects.
         """
-        constructed_config: Dict[
-            str, DatasetConfigDataModel
-        ] = self._get_default_dataset_config()
-        if datasets_config is not None:
-            if overwrite_default_datasets:
-                constructed_config = {}
-            for key, value in datasets_config.items():
-                if isinstance(value, Dict):
-                    assert (
-                        HF_DATASET_CONFIG_CORPUS_FIELD in value
-                        and HF_DATASET_CONFIG_QUERIES_FIELD in value
-                    ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
-                    assert (
-                        key not in constructed_config
-                    ), f"duplicate dataset name {key}!"
-                    if key not in value:
-                        value[DATASET_NAME] = key
-                    if HF_DATASET_CONFIG_CORPUS_FIELD in value:
-                        constructed_config[key] = HFDatasetConfigDataModel(**value)
-                    else:
-                        constructed_config[key] = GenericDatasetConfigDataModel(**value)
-                elif isinstance(value, DatasetConfigDataModel):
-                    assert (
-                        key not in constructed_config
-                    ), f"duplicate dataset name {key}!"
-                    constructed_config[key] = value
+        if datasets_config is None:
+            return self._get_default_dataset_config()
+        constructed_config = {}
+        for key, value in datasets_config.items():
+            if isinstance(value, Dict):
+                assert (
+                    HF_DATASET_CONFIG_CORPUS_FIELD in value
+                    and HF_DATASET_CONFIG_QUERIES_FIELD in value
+                ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
+                assert key not in constructed_config, f"duplicate dataset name {key}!"
+                if key not in value:
+                    value[DATASET_NAME] = key
+                if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
+                    constructed_config[key] = Text2SQLDatasetConfigDataModel(**value)
+                if HF_DATASET_CONFIG_CORPUS_FIELD in value:
+                    constructed_config[key] = HFDatasetConfigDataModel(**value)
                 else:
-                    wrong_type = type(value)
-                    raise ValueError(
-                        f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
-                    )
+                    constructed_config[key] = GenericDatasetConfigDataModel(**value)
+            elif isinstance(value, DatasetConfigDataModel):
+                assert key not in constructed_config, f"duplicate dataset name {key}!"
+                constructed_config[key] = value
+            else:
+                wrong_type = type(value)
+                raise ValueError(
+                    f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
+                )
 
         return constructed_config
 
@@ -179,6 +181,8 @@ class AbsTask(ABC):
         logger: Logger,
         batch_size: int = 64,
         top_k: int = 5,
+        path_to_retrieval_results: Union[Path, None] = None,
+        path_to_downstream_results: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -210,35 +214,54 @@ class AbsTask(ABC):
         for dataset_name, dataset_loader in dataset_loaders.items():
             logger.info(f"running task on dataset {dataset_name}")
             table_id_to_table = dataset_loader.get_table_id_to_table()
-            total_duration = 0
+            total_process_duration = 0
+            total_wall_clock_duration = 0
+            total_num_queries = dataset_loader.get_queries_size()
+            progress_bar = tqdm(
+                total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
+            )
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieved_tables, duration = self._get_retrieval_results(
+                (
+                    retrieval_results,
+                    process_duration,
+                    wall_clock_duration,
+                ) = self._get_retrieval_results(
                     retriever,
                     query_batch,
-                    table_id_to_table,
                     dataset_name,
                     top_k,
                     **kwargs,
                 )
-                total_duration += duration
-                self._update_retrieval_metrics(query_batch, retrieved_tables)
+                total_process_duration += process_duration
+                total_wall_clock_duration += wall_clock_duration
+                self._update_retrieval_metrics(query_batch, retrieval_results)
+                if path_to_retrieval_results:
+                    self._write_results(retrieval_results, path_to_retrieval_results)
+
                 downstream_results = self._get_downstream_task_results(
-                    query_batch, retrieved_tables, dataset_name
+                    query_batch, retrieval_results, dataset_name, table_id_to_table
                 )
-                logger.info(
-                    f"generated results {downstream_results}"
-                )  # TODO: comment this out, this is for testing
+                if path_to_downstream_results:
+                    self._write_results(downstream_results, path_to_downstream_results)
+
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
-                logger.info(
-                    f"number of queries processed: {self.total_queries_processed}"
-                )
+                if self.total_queries_processed % 200 == 0:
+                    logger.info(
+                        f"number of queries processed: {self.total_queries_processed}"
+                    )
+                progress_bar.update(batch_size)
+            progress_bar.update(total_num_queries - progress_bar.n)
+            progress_bar.close()
 
             # retrieval performance, precision, recall, f1, etc.
+            num_queries = dataset_loader.get_queries_size()
             retrieval_performance = self._calculate_table_retrieval_performance(
                 top_k,
-                total_duration,
-                total_duration / dataset_loader.get_queries_size(),
+                total_process_duration,
+                total_process_duration / num_queries,
+                total_wall_clock_duration,
+                total_wall_clock_duration / num_queries,
             )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(
@@ -252,36 +275,87 @@ class AbsTask(ABC):
             logger.info(f"finished running task {self.task_name}")
         return task_results
 
-    def _fill_retrieval_results_with_table_strs(
+    def evaluate_downstream(
         self,
-        retrieval_results: List[RetrievalResultDataModel],
-        table_id_to_table: Dict[Tuple[str, str], List[List]],
-    ) -> None:
-        """
-        Fills the retrieval result data model objects with Markdown table strings based on the table IDs stored in each retrieval result.
+        logger: Logger,
+        dataset_loaders: Dict[str, AbsDatasetLoader],
+        path_to_retrieval_results: Path,
+        path_to_downstream_results: Union[Path, None] = None,
+        **kwargs,
+    ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
+        task_results = {}
+        idx = 0
 
-        Parameters:
-            retrieval_results (List[RetrievalResultDataModel]): List of retrieval result data models to be filled with table strings.
-            table_id_to_table (Dict[Tuple[str, str], List[List]]): Dictionary mapping table IDs to their corresponding table data in nested list format.
+        # get the persisted retrieval results
+        retrieval_results = load_data_model_from_persistence_file(
+            path_to_retrieval_results, RetrievalResultDataModel
+        )
+        if not retrieval_results:
+            raise ValueError(
+                "File empty or could not parse any RetrievalResultDataModel objects!"
+            )
+        # if previously partial downstream results are obtained, find start indices
+        resume_indices = find_resume_indices(
+            dataset_loaders, path_to_downstream_results
+        )
+        print(f"resume indicies: {resume_indices}")
+        # load all downstream results in file
+        all_prev_downstream_results = load_data_model_from_persistence_file(
+            path_to_downstream_results, DownstreamGeneratedResultDataModel
+        )
+        prev_downstream_results = {}
+        # put them into dictionary by dataset name
+        for result in all_prev_downstream_results:
+            current_dataset_name = result.dataset_name
+            if current_dataset_name not in prev_downstream_results:
+                prev_downstream_results[current_dataset_name] = [result]
+            else:
+                prev_downstream_results[current_dataset_name].append(result)
+        # TODO: support batching
+        batch_size = 1
+        for dataset_name, dataset_loader in dataset_loaders.items():
+            table_id_to_table = dataset_loader.get_table_id_to_table()
+            resume_index = resume_indices[dataset_name]
+            for current_index, query_batch in tqdm(
+                enumerate(dataset_loader.get_queries_for_task(batch_size)),
+                total=dataset_loader.get_queries_size(),
+                desc="Getting downstream task results...",
+            ):
+                if current_index < resume_index:
+                    # if the resume index is greater,
+                    # just update metrics using the existing index
+                    self._update_downstream_task_metrics(
+                        query_batch,
+                        prev_downstream_results[dataset_name][
+                            current_index : current_index + batch_size
+                        ],
+                    )
+                    idx += 1
+                    continue
+                retrieved_table = retrieval_results[idx : idx + batch_size]
+                downstream_results = self._get_downstream_task_results(
+                    query_batch, retrieved_table, dataset_name, table_id_to_table
+                )
+                if path_to_downstream_results:
+                    self._write_results(downstream_results, path_to_downstream_results)
+                self._update_downstream_task_metrics(query_batch, downstream_results)
+                idx += 1
+            performance = self._calculate_downstream_task_performance(
+                dataset_name=dataset_name, **kwargs
+            )
+            task_results[dataset_name] = performance
+            logger.info(f"finished running downstream eval on {dataset_name}")
 
-        Returns:
-            None
-        """
-        for result in retrieval_results:
-            result.retrieved_tables = [
-                markdown_table_str(table_id_to_table[id])
-                for id in result.retrieval_results
-            ]
+        return task_results
 
     def _get_retrieval_results(
         self,
         retriever: AbsRetrieverBase,
         query_batch: Dict[str, List],
-        table_id_to_table: Dict[str, str],
         dataset_name: str,
         top_k: int,
         **kwargs,
-    ) -> Tuple[List[RetrievalResultDataModel], float]:
+    ) -> Tuple[List[RetrievalResultDataModel], float, float]:
         """
         Retrieves the top k results for each query in the batch using the specified retriever from a dataset.
 
@@ -294,7 +368,8 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
-        start_time = time.process_time()
+        start_process_time = time.process_time()
+        start_wall_clock_time = time.time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(
@@ -314,46 +389,60 @@ class AbsTask(ABC):
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
             )
-        end_time = time.process_time()
-        duration = end_time - start_time
-        # complete the results data model objects with table strings
-        self._fill_retrieval_results_with_table_strs(
-            retrieval_results, table_id_to_table
-        )
-        return retrieval_results, duration
+        end_process_time = time.process_time()
+        end_wall_clock_time = time.time()
+        process_duration = end_process_time - start_process_time
+        wall_clock_duration = end_wall_clock_time - start_wall_clock_time
+        return retrieval_results, process_duration, wall_clock_duration
+
+    def _write_results(
+        self,
+        results: List[BaseModel],
+        path_to_persistence: Path,
+    ):
+        if not path_to_persistence.exists():
+            path_to_persistence.touch()
+        with open(path_to_persistence, "a") as file:
+            for retrieval_result in results:
+                file.write(retrieval_result.model_dump_json() + "\n")
 
     def _update_retrieval_metrics(
         self,
         query_batch: Dict[str, List],
-        new_retrieved_tables: List[RetrievalResultDataModel],
+        new_retrieval_results: List[RetrievalResultDataModel],
     ) -> None:
         """
         Updates the tracked retrieval metrics with the new retrieval results.
 
         Parameters:
             query_batch (Dict[str, List]): queries & the corresponding gold table and gold answer.
-            new_retrieved_tables (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
+            new_retrieval_results (List[RetrievalResultDataModel]): New retrieval result data models that contains the retrieval results.
 
         Returns:
             None
         """
-        for db_id, table_id, retrieval_result in zip(
-            query_batch[DATABASE_ID_COL_NAME],
-            query_batch[TABLE_ID_COL_NAME],
-            new_retrieved_tables,
-        ):
-            if (
-                str(db_id),
-                str(table_id),
-            ) in retrieval_result.retrieval_results:
-                self.true_positive += 1
+        num_queries = len(new_retrieval_results)
+        for idx in range(num_queries):
+            db_id = query_batch[DATABASE_ID_COL_NAME][idx]
+            table_id = query_batch[TABLE_ID_COL_NAME][idx]
+            retrieval_result = new_retrieval_results[idx]
+            if table_id == "N/A" or not table_id:
+                if str(db_id) in [
+                    result[0] for result in retrieval_result.retrieval_results
+                ]:
+                    self.true_positive += 1
+            else:
+                if (str(db_id), str(table_id)) in retrieval_result.retrieval_results:
+                    self.true_positive += 1
             self.total_queries_processed += 1
 
     def _calculate_table_retrieval_performance(
         self,
         top_k: int,
-        total_retrieval_duration: float,
-        avg_retrieval_time: float,
+        total_retrieval_duration_process: float,
+        avg_retrieval_duration_process: float,
+        total_retrieval_duration_wall_clock: float,
+        avg_retrieval_duration_wall_clock: float,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -368,8 +457,14 @@ class AbsTask(ABC):
             performace = RetrievalPerformanceDataModel(
                 k=top_k,
                 accuracy=self.true_positive / self.total_queries_processed,
-                retrieval_time=round(total_retrieval_duration, 5),
-                avg_retrieval_time=round(avg_retrieval_time, 5),
+                retrieval_duration_process=round(total_retrieval_duration_process, 5),
+                avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
+                retrieval_duration_wall_clock=round(
+                    total_retrieval_duration_wall_clock, 5
+                ),
+                avg_retrieval_duration_wall_clock=round(
+                    avg_retrieval_duration_wall_clock, 5
+                ),
             )
         else:
             raise ValueError("haven't processed any queries!")
@@ -384,6 +479,7 @@ class AbsTask(ABC):
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
         Given the query and the retrieval results, generate downstream task results. Uses the tasks's generator to generate the downstream task result.

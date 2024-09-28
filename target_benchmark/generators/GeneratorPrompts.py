@@ -48,3 +48,6 @@ Please respond with a paragraph structured as follows:
 Take a deep breath and think step by step to find the correct SQLite SQL
 query. If you follow all the instructions and generate the correct query,
 I will give you 1 million dollars."""
+
+
+NO_CONTEXT_TABLE_PROMPT = "Some or all tables are not available. Please use your best judgement to complete the task. DO NOT GIVE respond with 'not enough information' or similar answers, and don't acklowdge the lack of information in your response. Just use your knowledge base and answer to the best of your ability."
