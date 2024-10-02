@@ -3,22 +3,25 @@ requires = ["setuptools >= 64", "wheel"]
 build-backendsetuptools.build_meta"
 
 [project]
-nametarget_benchmark"
-version0.1.0"
-descriptionTable Retrieval for Generative Tasks Benchmark"
-readmeREADME.md"
-license = { textApache-2.0" }
+name = "target_benchmark"
+version = "0.1.0"
+description = "Table Retrieval for Generative Tasks Benchmark"
+readme = "README.md"
+license = { text = "Apache-2.0" }
 authors = [
-    { nameXingyu Ji", emailjixy2012@berkeley.edu" },
-    { nameMadelon Hulsebos", emailmadelon@berkeley.edu" }
+    { name = "Xingyu Ji", email = "jixy2012@berkeley.edu" },
+    { name = "Madelon Hulsebos", email = "madelon@berkeley.edu" }
 ]
-homepagehttps://github.com/target-benchmark/target"
-requires-python>=3.8"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
+
+[project.urls]
+Homepage = "https://target-benchmark.github.io/"
+Repository = "https://github.com/target-benchmark/target"
 
 dependencies = [
     "datasets>=2.19.0",
@@ -58,9 +61,9 @@ ottqa_retriever = [
     "spacy>=3.7.4"
 ]
 
-[project.urls]
-Homepagehttps://target-benchmark.github.io/"
-Repositoryhttps://github.com/target-benchmark/target"
-
 [tool.setuptools.packages.find]
 exclude = ["tests"]
+
+# pytest configuration for running tests locally
+[tool.pytest.ini_options]
+testpaths = ["tests"]
