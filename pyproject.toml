@@ -18,11 +18,6 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
-
-[project.urls]
-Homepage = "https://target-benchmark.github.io/"
-Repository = "https://github.com/target-benchmark/target"
-
 dependencies = [
     "datasets>=2.19.0",
     "evaluate>=0.4.2",
@@ -60,6 +55,10 @@ ottqa_retriever = [
     "pexpect>=4.9.0",
     "spacy>=3.7.4"
 ]
+
+[project.urls]
+Homepage = "https://target-benchmark.github.io/"
+Repository = "https://github.com/target-benchmark/target"
 
 [tool.setuptools.packages.find]
 exclude = ["tests"]
