@@ -21,7 +21,7 @@ pip install -e .
 If you want to use the default generators for generating downstream task answers, you need to add your OpenAI API key as one of the environment variables:
 
 ```shell
-export OPENAI_API_KEY=<your azure openai api key>
+export OPENAI_API_KEY=<your openai api key>
 ```
 
 ## Features
