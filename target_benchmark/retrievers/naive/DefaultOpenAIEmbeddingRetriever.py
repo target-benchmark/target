@@ -2,6 +2,7 @@ from typing import Dict, Union
 
 import numpy as np
 from langchain_openai import OpenAIEmbeddings
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 from target_benchmark.retrievers.utils import markdown_table_str
@@ -23,10 +24,18 @@ class OpenAIEmbedder(AbsStandardEmbeddingRetriever):
         dataset_name: str,
         **kwargs,
     ) -> np.ndarray:
-        emb = self.embedding_model.embed_query(query)
+        emb = self.create_embedding(query)
         return np.array(emb)
 
     def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> np.ndarray:
         table_str = markdown_table_str(corpus_entry["table"], self.num_rows)
-        emb = self.embedding_model.embed_query(table_str)
+        emb = self.create_embedding(table_str)
         return np.array(emb)
+
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=32),
+    )
+    def create_embedding(self, table_str: str):
+        return self.embedding_model.embed_query(table_str)
