@@ -110,6 +110,10 @@ class AbsTask(ABC):
         """
         pass
 
+    @classmethod
+    def get_available_datasets(cls) -> List[str]:
+        return list(cls.append_nih_datasets(cls._get_default_dataset_config).keys())
+
     def get_task_name(self):
         """
         Returns the name of the task. NOTE: not the same as `get_default_task_name`. this name can be customized upon creation of the task.
@@ -188,7 +192,7 @@ class AbsTask(ABC):
             TODO: more to come
         """
         updated_configs = dict(NEEDLE_IN_HAYSTACK_DATASETS)
-        updated_configs.update(configs)
+        updated_configs.update(dict(configs))
         return updated_configs
 
     def task_run(

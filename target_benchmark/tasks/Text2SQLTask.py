@@ -86,7 +86,7 @@ class Text2SQLTask(AbsTask):
             Spider
             TODO: more to come
         """
-        return cls.append_nih_datasets(TEXT_2_SQL_DATASETS)
+        return dict(TEXT_2_SQL_DATASETS)
 
     def _get_schema(self, dataset_name: str, database_id: str):
         if dataset_name not in self.database_dirs:

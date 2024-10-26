@@ -68,7 +68,7 @@ class FactVerificationTask(AbsTask):
             TabFact
             TODO: more to come
         """
-        return cls.append_nih_datasets(FACT_VER_DATASETS)
+        return dict(FACT_VER_DATASETS)
 
     def _get_downstream_task_results(
         self,

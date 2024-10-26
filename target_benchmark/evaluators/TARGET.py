@@ -110,9 +110,10 @@ class TARGET:
         Parameters:
             downstream_tasks (Union[str, Tuple[str, Union[str, List[str]]], AbsTask, List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]]], optional): tasks to perform. can be either a single:
                 str: name of the single task to run.
-                Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name mapped to a dictionary containing the dataset name mapped to the split to run evaluation on. we only support one split for each dataset. example inputs:
-                ("Table Question Answering Task", ["fetaqa", "ottqa"])
-                ("Text to SQL Task", "spider-test")
+                Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name followed by a single dataset name or a list of dataset names. example inputs:
+                    ("Table Question Answering Task", ["fetaqa", "ottqa", "gittables"])
+                    ("Text to SQL Task", "spider-test")
+                    NOTE: Datasets
                 AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
             OR a list of containing multiple of these items. Be sure that any dataset is only mentioned once in your input.
 
@@ -157,13 +158,13 @@ class TARGET:
                 # check that the task is one of the target default tasks
                 if task_name in tasks_dict:
                     task_class = tasks_dict[task_name]
-                    default_datasets = task_class._get_default_dataset_config()
+                    default_datasets = task_class.get_available_datasets()
                     needed_datasets = {}
                     # validating dataset names provided are a part of the default datasets for that class
                     for task_dataset_name in task_dataset_names:
                         if task_dataset_name not in default_datasets:
                             task_class_name = task_class.__name__
-                            error_msg = f"provided dataset {task_dataset_name} is not one of the datasets available for task {task_name}. pls use `{task_class_name}._get_default_dataset_config()` to check what default datasets are available"
+                            error_msg = f"provided dataset {task_dataset_name} is not one of the datasets available for task {task_name}. pls use `{task_class_name}.get_available_datasets()` to check what default datasets are available"
                             self.logger.error(error_msg)
                             raise ValueError(error_msg)
                         else:

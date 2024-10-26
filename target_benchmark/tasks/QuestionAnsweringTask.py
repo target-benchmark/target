@@ -83,7 +83,7 @@ class QuestionAnsweringTask(AbsTask):
             OTTQA
             TODO: more to come
         """
-        return cls.append_nih_datasets(QUESTION_ANSWERING_DATASETS)
+        return dict(QUESTION_ANSWERING_DATASETS)
 
     def _get_downstream_task_results(
         self,
