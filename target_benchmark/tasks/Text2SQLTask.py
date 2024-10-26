@@ -3,10 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
-    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
-)
+from target_benchmark.dataset_loaders.TargetDatasetConfig import TEXT_2_SQL_DATASETS
 from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
@@ -83,15 +80,13 @@ class Text2SQLTask(AbsTask):
     @classmethod
     def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
-        Returns the default dataset config for fact verification.
+        Returns the default dataset config for text 2 sql.
         Includes the following datasets:
-            TabFact
+            BIRD
+            Spider
             TODO: more to come
         """
-        return {  # TODO: add more text2sql dataset configs
-            DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
-            DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
-        }
+        return cls.append_nih_datasets(TEXT_2_SQL_DATASETS)
 
     def _get_schema(self, dataset_name: str, database_id: str):
         if dataset_name not in self.database_dirs:

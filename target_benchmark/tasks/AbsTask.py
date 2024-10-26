@@ -16,6 +16,9 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    NEEDLE_IN_HAYSTACK_DATASETS,
+)
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
     DATABASE_ID_COL_NAME,
@@ -173,6 +176,20 @@ class AbsTask(ABC):
         Returns the default dataset config for the task. MUST be implemented by any inherited task class. For example, text-2-sql task would probably have SPIDER and BIRD as default datasets, thus the configs for these datasets should be included in this function when implementing the text-2-sql task class.
         """
         pass
+
+    @classmethod
+    def append_nih_datasets(
+        cls, configs: Dict[str, DatasetConfigDataModel]
+    ) -> Dict[str, DatasetConfigDataModel]:
+        """
+        Appends needle in haystack dataset configs to the passed in configs.
+        Needle in Haystack includes the following datasets:
+            gittables
+            TODO: more to come
+        """
+        updated_configs = dict(NEEDLE_IN_HAYSTACK_DATASETS)
+        updated_configs.update(configs)
+        return updated_configs
 
     def task_run(
         self,
