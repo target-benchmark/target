@@ -7,11 +7,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorPrompts import (
+    DEFAULT_LM,
     DEFAULT_SYSTEM_PROMPT,
     QA_USER_PROMPT,
 )
-
-default_lm = "gpt-4o-mini-2024-07-18"
 
 
 class DefaultGenerator(AbsGenerator):
@@ -21,7 +20,7 @@ class DefaultGenerator(AbsGenerator):
         user_message: str = QA_USER_PROMPT,
     ):
         super().__init__()
-        self.language_model = ChatOpenAI(model=default_lm, temperature=0.0)
+        self.language_model = ChatOpenAI(model=DEFAULT_LM, temperature=0.0)
         self.chat_template = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(content=(system_message)),
