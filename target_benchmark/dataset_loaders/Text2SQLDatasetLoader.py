@@ -11,12 +11,6 @@ from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
-    """
-    The abstrack super class of target dataset loaders.
-    This class contains implementations of utility functions shared by subclasses,
-    but the loading functions are left as abstract so the subclasses will need to implement them separately.
-    """
-
     def __init__(
         self,
         dataset_name: str,
@@ -26,25 +20,6 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         data_directory: str = None,
         **kwargs,
     ):
-        """
-        Constructor for the abstract data loader class.
-
-        Parameters:
-            dataset_name (str): a string for the name of the dataset. required
-
-            split (Literal["test", "train", "validation"], optional): split of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
-
-            data_directory (str, optional): a directory where data files are stored. you don't have to provide one if you don't need to persist the file after loading it.
-
-            query_type (str, optional): the type of queries that the dataset focuses on, for example fact verification, table QA, text to sql, etc. defaults to None.
-
-        Instance Variables:
-            aside from instance variables of the same name & purposes as the parameters, there's also:
-
-            self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
-            self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
-        """
-
         if "spider" in dataset_name:
             dataset_name = "spider"
         elif "bird" in dataset_name:

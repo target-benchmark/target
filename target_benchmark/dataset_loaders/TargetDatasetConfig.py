@@ -1,5 +1,6 @@
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     HFDatasetConfigDataModel,
+    NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
 
@@ -63,6 +64,12 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     hf_corpus_dataset_path="target-benchmark/bird-corpus-validation",
     hf_queries_dataset_path="target-benchmark/bird-queries-validation",
     query_type="Text to SQL",
+)
+
+DEFAULT_GITTABLES_DATASET_CONFIG = NeedleInHaystackDatasetConfigDataModel(
+    dataset_name="gittables",
+    hf_corpus_dataset_path="target-benchmark/gittables-corpus",
+    split="train",
 )
 
 # TESTING ONLY

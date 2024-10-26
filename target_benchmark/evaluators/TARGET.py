@@ -59,12 +59,17 @@ class TARGET:
 
         Parameters:
             downstream_tasks (Union[str, Tuple[str, Union[str, List[str]]], AbsTask, List[Union[str, Tuple[str, Union[str, List[str]]], AbsTask]]], optional): tasks to perform. you can pass in either a single:
-                str: name of the single task to run.
-                Tuple[str, Union[str, List[str]]]: if you'd like more granular control, you can specify the task name mapped to a dictionary containing the dataset name mapped to the split to run evaluation on. we only support one split for each dataset. example inputs:
-                ("Table Question Answering Task", ["fetaqa", "ottqa"])
-                ("Text to SQL Task", "spider")
-                AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
-            OR you can pass in a list of containing multiple of these items. Be sure that any dataset is only mentioned once in your input.
+                - **str**: name of the single task to run.
+
+                - **Tuple[str, Union[str, List[str]]]**: For granular control, specify the task name and the dataset(s) in a tuple. The tuple format is:
+                    - `("Task Name", [<dataset_name>, <dataset_name>]
+                    Example inputs:
+                    - `("Table Question Answering Task", ["fetaqa", "ottqa"],)`
+                    - `("Text to SQL Task", "spider-test",)`
+
+                - AbsTask: a custom task. if a you want to run some task with a custom dataset that is not one of target's default datasets, you can first create the task object with the specified dataset configs, then simply pass the task object in here.
+
+            OR you can pass in a list containing multiple of these items.
             persist_log (bool, optional): whether to persist the log to a file or not.
             log_file_path (string, optional): the path to persis the log to. if none is provided, default to target_run_log_<current time>.txt
         """

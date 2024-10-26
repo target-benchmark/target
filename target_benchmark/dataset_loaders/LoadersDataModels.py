@@ -54,5 +54,10 @@ class HFDatasetConfigDataModel(DatasetConfigDataModel):
     )
 
 
+class NeedleInHaystackDatasetConfigDataModel(HFDatasetConfigDataModel):
+    query_type: str = "Needle in Haystack"
+    hf_queries_dataset_path: str = ""
+
+
 class Text2SQLDatasetConfigDataModel(HFDatasetConfigDataModel):
     query_type: str = "Text to SQL"

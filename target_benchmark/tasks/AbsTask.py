@@ -133,6 +133,7 @@ class AbsTask(ABC):
         constructed_config = {}
         for key, value in datasets_config.items():
             if isinstance(value, Dict):
+                # TODO: Needle in haystack config creation
                 assert (
                     HF_DATASET_CONFIG_CORPUS_FIELD in value
                     and HF_DATASET_CONFIG_QUERIES_FIELD in value
