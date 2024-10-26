@@ -13,15 +13,14 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
+    NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
     DATABASE_ID_COL_NAME,
     DATASET_NAME,
-    GENERIC_DATASET_CONFIG_FIELD,
     HF_DATASET_CONFIG_CORPUS_FIELD,
-    HF_DATASET_CONFIG_QUERIES_FIELD,
     QUERY_TYPE,
     TABLE_ID_COL_NAME,
 )
@@ -46,6 +45,7 @@ from target_benchmark.tasks.TasksDataModels import (
 from target_benchmark.tasks.utils import (
     find_resume_indices,
     load_data_model_from_persistence_file,
+    validate_dataset_configs,
 )
 
 
@@ -132,30 +132,29 @@ class AbsTask(ABC):
             return self._get_default_dataset_config()
         constructed_config = {}
         for key, value in datasets_config.items():
+            assert key not in constructed_config, f"duplicate dataset name {key}!"
             if isinstance(value, Dict):
                 # TODO: Needle in haystack config creation
-                assert (
-                    HF_DATASET_CONFIG_CORPUS_FIELD in value
-                    and HF_DATASET_CONFIG_QUERIES_FIELD in value
-                ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
-                assert key not in constructed_config, f"duplicate dataset name {key}!"
                 if key not in value:
                     value[DATASET_NAME] = key
                 if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
                     constructed_config[key] = Text2SQLDatasetConfigDataModel(**value)
-                if HF_DATASET_CONFIG_CORPUS_FIELD in value:
+                elif value[QUERY_TYPE] == QueryType.NIH.value:
+                    constructed_config[key] = NeedleInHaystackDatasetConfigDataModel(
+                        **value
+                    )
+                elif HF_DATASET_CONFIG_CORPUS_FIELD in value:
                     constructed_config[key] = HFDatasetConfigDataModel(**value)
                 else:
                     constructed_config[key] = GenericDatasetConfigDataModel(**value)
             elif isinstance(value, DatasetConfigDataModel):
-                assert key not in constructed_config, f"duplicate dataset name {key}!"
                 constructed_config[key] = value
             else:
                 wrong_type = type(value)
                 raise ValueError(
                     f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
                 )
-
+        validate_dataset_configs(constructed_config)
         return constructed_config
 
     def get_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:

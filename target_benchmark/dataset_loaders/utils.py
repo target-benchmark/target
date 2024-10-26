@@ -20,6 +20,8 @@ def set_query_type(string_rep: str) -> QueryType:
         return QueryType.TABLE_QA
     elif string_rep in QueryType.TEXT_2_SQL.value.lower():
         return QueryType.TEXT_2_SQL
+    elif string_rep in QueryType.NIH.value.lower():
+        return QueryType.NIH
     else:
         return QueryType.OTHER
 

@@ -16,7 +16,7 @@ class DatasetConfigDataModel(BaseModel):
         default="test",
         description="Split to include. Defaults to only the test split.",
     )
-    data_directory: str = Field(
+    data_directory: Optional[str] = Field(
         default=None,
         description="directory for where to persist the data to. defaults to None.",
     )
