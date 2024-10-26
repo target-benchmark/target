@@ -22,6 +22,20 @@ logging.getLogger("openai").setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
 class TestBasicTaskInit(unittest.TestCase):
+    def test_default_datasets(self):
+        def_datasets = TableRetrievalTask._get_default_dataset_config()
+        self.assertIn("tabfact", def_datasets)
+        self.assertIn("fetaqa", def_datasets)
+        self.assertIn("ottqa", def_datasets)
+        self.assertNotIn("gittables", def_datasets)
+    
+    def test_available_datasets(self):
+        def_datasets = TableRetrievalTask.get_available_datasets()
+        self.assertIn("tabfact", def_datasets)
+        self.assertIn("fetaqa", def_datasets)
+        self.assertIn("ottqa", def_datasets)
+        self.assertIn("gittables", def_datasets)
+        
 
     def test_task_creation_with_dict(self):
         task = TableRetrievalTask(
