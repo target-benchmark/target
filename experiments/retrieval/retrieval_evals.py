@@ -1,35 +1,32 @@
 import argparse
+from pathlib import Path
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
+    OTTQARetriever,
 )
 
-parser = argparse.ArgumentParser(description="Run downstream evals.")
-parser.add_argument("--retriever_name", type=str, help="name of the retriever")
-parser.add_argument(
-    "--num_rows", type=int, default=100, help="num rows to include for hnsw"
-)
-parser.add_argument(
-    "--persist",
-    action="store_true",
-    help="Whether to persist the data. Defaults to False.",
-)
-args = parser.parse_args()
-retriever_name = args.retriever_name
-num_rows = args.num_rows
-persist = args.persist
-print(f"persist: {persist}")
 
-target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
-target_ottqa = TARGET(("Table Retrieval Task", "ottqa"))
-target_tabfact = TARGET(("Table Retrieval Task", "tabfact"))
-target_spider = TARGET(("Table Retrieval Task", "spider-test"))
-target_bird = TARGET(("Table Retrieval Task", "bird-validation"))
-target_infiagentda = TARGET(("Table Retrieval Task", "infiagentda"))
-
-top_ks = [1, 5, 10, 25, 50]
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Run downstream evals.")
+    parser.add_argument("--retriever_name", type=str, help="name of the retriever")
+    parser.add_argument("--num_rows", type=int, default=100, help="num rows to include for hnsw")
+    parser.add_argument(
+        "--persist",
+        action="store_true",
+        help="Whether to persist the data. Defaults to False.",
+    )
+    parser.add_argument(
+        "--top_ks",
+        type=str,
+        default="1 5 10 25 50",
+        help="Space separated list of top ks. for example '1 3 5 10'.",
+    )
+    args = parser.parse_args()
+    args.top_ks = [int(k) for k in args.top_ks.split(" ")]
+    return args
 
 
 def run_eval_for_top_ks(
@@ -46,7 +43,9 @@ def run_eval_for_top_ks(
 
     for top_k in top_ks:
         if persist:
-            persist_path = f"./{dataset_name}_{top_k}.jsonl"
+            path = Path("./") / retriever_name / dataset_name / f"{top_k}.jsonl"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            persist_path = str(path)
         else:
             persist_path = None
         performance = target.run(
@@ -61,45 +60,53 @@ def run_eval_for_top_ks(
     return results
 
 
-def write_performances(results, dataset_name):
-    with open(f"./{dataset_name}_performances.jsonl", "w") as file:
+def write_performances(results, retriever_name: str, dataset_name: str):
+    path = Path("./") / retriever_name / dataset_name / "performances.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as file:
         for result in results:
             file.write(str(result) + "\n")
 
 
-retriever = None
-if retriever_name == "llamaindex":
-    retriever = LlamaIndexRetriever()
-elif "hnsw_openai" in retriever_name:
-    print(num_rows)
-    retriever = HNSWOpenAIEmbeddingRetriever(num_rows=num_rows)
+def initialize_retriever(retriever_name: str, num_rows: int = None):
+    if retriever_name == "llamaindex":
+        return LlamaIndexRetriever()
+    elif "hnsw_openai" in retriever_name:
+        return HNSWOpenAIEmbeddingRetriever(num_rows=num_rows)
+    elif "tfidf_no_title" in retriever_name:
+        return OTTQARetriever(encoding="tfidf", withtitle=False)
+    elif "tfidf_with_title" in retriever_name:
+        return OTTQARetriever(encoding="tfidf", withtitle=True)
+    elif "bm25_no_title" in retriever_name:
+        return OTTQARetriever(encoding="bm25", withtitle=False)
+    elif "bm25_with_title" in retriever_name:
+        return OTTQARetriever(encoding="bm25", withtitle=True)
+    else:
+        raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 
-# fetaqa test
-results_fetaqa_test = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_fetaqa, "fetaqa", "test", persist
-)
-write_performances(results=results_fetaqa_test, dataset_name="fetaqa")
 
-# ottqa
-results_ottqa_val = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_ottqa, "ottqa", "validation", persist
-)
-write_performances(results=results_ottqa_val, dataset_name="ottqa")
+def main():
+    args = parse_arguments()
+    retriever_name = args.retriever_name
+    num_rows = args.num_rows
+    persist = args.persist
+    top_ks = args.top_ks
 
-# tabfact
-results_tabfact_test = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_tabfact, "tabfact", "test", persist
-)
-write_performances(results=results_tabfact_test, dataset_name="tabfact")
+    retriever = initialize_retriever(retriever_name, num_rows)
 
-# spider
-results_spider_test = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_spider, "spider", "test", persist
-)
-write_performances(results=results_spider_test, dataset_name="spider")
+    evals = [
+        # ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
+        ("fetaqa_gittables", TARGET(("Table Retrieval Task", ["fetaqa", "gittables"])), "test"),
+        # ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
+        # ("ottqa_gittables", TARGET(("Table Retrieval Task", ["ottqa", "gittables"])), "validation"),
+        # ("tabfact", TARGET(("Table Retrieval Task", "tabfact")), "test"),
+        # ("spider", TARGET(("Table Retrieval Task", "spider-test")), "test"),
+        # ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
+    ]
+    for dataset_name, target_eval, split in evals:
+        results = run_eval_for_top_ks(retriever, retriever_name, top_ks, target_eval, dataset_name, split, persist)
+        write_performances(results, retriever_name, dataset_name)
 
-# bird
-results_bird_validation = run_eval_for_top_ks(
-    retriever, retriever_name, top_ks, target_bird, "bird", "validation", persist
-)
-write_performances(results=results_bird_validation, dataset_name="bird")
+
+if __name__ == "__main__":
+    main()
