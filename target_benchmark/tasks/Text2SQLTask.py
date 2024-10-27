@@ -183,7 +183,6 @@ class Text2SQLTask(AbsTask):
                 f"{self.current_dataset} does not have path to database files."
             )
         db_path = self.database_dirs[self.current_dataset]
-        print(f"num pred sql: {len(self.pred_sql)}")
         result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(
                 self.pred_sql,

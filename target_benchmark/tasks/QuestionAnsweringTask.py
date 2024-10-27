@@ -145,7 +145,6 @@ class QuestionAnsweringTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
-        print(f"num answers: {len(self.pred_answers)}")
         scores = {}
         for metric_name, evaluator in self.evals.items():
             calculated_result = None

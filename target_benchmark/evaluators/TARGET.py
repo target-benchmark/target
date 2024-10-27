@@ -526,7 +526,6 @@ class TARGET:
             task_dataloaders, nih_dataloaders = self._load_datasets_for_task(task)
             nih_dataloaders = list(nih_dataloaders.values())
             # call embed corpus on the retriever to embed/preprocess the tables
-            print(task_dataloaders, nih_dataloaders)
             for dataset_name, task_dataloader in task_dataloaders.items():
                 if dataset_name not in loaded_datasets:
                     task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
