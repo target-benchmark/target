@@ -221,8 +221,8 @@ class AbsTask(ABC):
             A dictionary with the results of the retrieval task. Maps dataset name to a task result data model object. The task result data model object records both the retrieval performance and the downstream generation results.
         """
         assert (
-            self.dataset_config.keys() <= dataset_loaders.keys()
-        ), f"task's dataset config is not a subset of the dataset loaders passed in! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
+            dataset_loaders.keys() <= self.dataset_config.keys()
+        ), f"the dataset loaders passed in is not a subset of task's dataset config! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
 
         assert isinstance(retriever, CustomEmbRetr) or isinstance(
             retriever, StandardizedEmbRetr
