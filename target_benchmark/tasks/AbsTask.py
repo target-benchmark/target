@@ -454,9 +454,11 @@ class AbsTask(ABC):
             a retrieval performance data model that contains the accuracy of the retrieval for a dataset on this task.
         """
         if self.total_queries_processed != 0:
+            # TODO: update recall calculation once text 2 sql in db retrieval is done
             performace = RetrievalPerformanceDataModel(
                 k=top_k,
                 accuracy=self.true_positive / self.total_queries_processed,
+                recall=self.true_positive / self.total_queries_processed,
                 retrieval_duration_process=round(total_retrieval_duration_process, 5),
                 avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
                 retrieval_duration_wall_clock=round(
