@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
@@ -30,6 +31,7 @@ def parse_arguments():
 
 def run_eval_for_top_ks(
     retriever,
+    retriever_name: str,
     top_ks: list[int],
     target: TARGET,
     dataset_name: str,
@@ -41,7 +43,9 @@ def run_eval_for_top_ks(
 
     for top_k in top_ks:
         if persist:
-            persist_path = f"./{dataset_name}_{top_k}.jsonl"
+            path = Path("./") / retriever_name / dataset_name / f"{top_k}.jsonl"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            persist_path = str(path)
         else:
             persist_path = None
         performance = target.run(
@@ -56,8 +60,10 @@ def run_eval_for_top_ks(
     return results
 
 
-def write_performances(results, dataset_name):
-    with open(f"./{dataset_name}_performances.jsonl", "w") as file:
+def write_performances(results, retriever_name: str, dataset_name: str):
+    path = Path("./") / retriever_name / dataset_name / "performances.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as file:
         for result in results:
             file.write(str(result) + "\n")
 
@@ -89,7 +95,7 @@ def main():
     retriever = initialize_retriever(retriever_name, num_rows)
 
     evals = [
-        ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
+        # ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
         ("fetaqa_gittables", TARGET(("Table Retrieval Task", ["fetaqa", "gittables"])), "test"),
         # ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
         # ("ottqa_gittables", TARGET(("Table Retrieval Task", ["ottqa", "gittables"])), "validation"),
@@ -98,8 +104,8 @@ def main():
         # ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
     ]
     for dataset_name, target_eval, split in evals:
-        results = run_eval_for_top_ks(retriever, top_ks, target_eval, dataset_name, split, persist)
-        write_performances(results, dataset_name)
+        results = run_eval_for_top_ks(retriever, retriever_name, top_ks, target_eval, dataset_name, split, persist)
+        write_performances(results, retriever_name, dataset_name)
 
 
 if __name__ == "__main__":
