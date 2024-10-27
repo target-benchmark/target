@@ -7,6 +7,7 @@ import pandas as pd
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Engine, MetaData, String, Table, inspect
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 
 class TableInfo(BaseModel):
@@ -52,6 +53,43 @@ def get_table_info_with_index(
         raise ValueError(f"More than one file matching index: {list(results_gen)}")
 
 
+class DuplicateTableNameError(Exception):
+    pass
+
+
+@retry(
+    reraise=True,
+    retry=(
+        retry_if_exception(json.JSONDecodeError)
+        | retry_if_exception(DuplicateTableNameError),
+    ),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=32),
+)
+def get_table_info_from_lm(df_str: str, names_tried: set, existing_names: Dict):
+    table_info_completion = client.beta.chat.completions.parse(
+        model="gpt-4o-mini-2024-07-18",
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant."},
+            {
+                "role": "user",
+                "content": prompt_str.format(table_str=df_str, names_tried=names_tried),
+            },
+        ],
+        response_format=TableInfo,
+    )
+    message = table_info_completion.choices[0].message
+    if not message.parsed:
+        raise json.JSONDecodeError
+    if message.parsed.table_name in existing_names:
+        # duplicate table names, try again
+        names_tried.add(message.parsed.table_name)
+        raise DuplicateTableNameError(
+            f"Table name {message.parsed.table_name} is a duplicate."
+        )
+    return message
+
+
 def construct_table_info(
     table_info_dir: str,
     df: pd.DataFrame,
@@ -75,38 +113,16 @@ def construct_table_info(
 
     df_str = df.head(10).to_csv()
     names_tried = set()
-    for i in range(15):  # try up to 15 times
-        table_info_completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini-2024-07-18",
-            messages=[
-                {"role": "system", "content": "You are a helpful AI assistant."},
-                {
-                    "role": "user",
-                    "content": prompt_str.format(
-                        table_str=df_str, names_tried=names_tried
-                    ),
-                },
-            ],
-            response_format=TableInfo,
-        )
-        message = table_info_completion.choices[0].message
-        if not message.parsed:
-            raise json.JSONDecodeError
-        if message.parsed.table_name in existing_names:
-            # duplicate table names, try again
-            names_tried.add(message.parsed.table_name)
-            continue
-        table_info = TableInfo(
-            table_name=message.parsed.table_name,
-            table_summary=message.parsed.table_summary,
-        )
-        out_file_path = (
-            Path(table_info_dir) / f"{cleaned_db_id}_{cleaned_table_name}.json"
-        )
-        with open(out_file_path, "w") as file:
-            json.dump(table_info.model_dump(), file)
-        return table_info
-    return None
+
+    message = get_table_info_from_lm(df_str, names_tried, existing_names)
+    table_info = TableInfo(
+        table_name=message.parsed.table_name,
+        table_summary=message.parsed.table_summary,
+    )
+    out_file_path = Path(table_info_dir) / f"{cleaned_db_id}_{cleaned_table_name}.json"
+    with open(out_file_path, "w") as file:
+        json.dump(table_info.model_dump(), file)
+    return table_info
 
 
 # Function to create a sanitized column name

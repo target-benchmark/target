@@ -7,6 +7,7 @@ import tiktoken
 import tqdm
 from dotenv import load_dotenv
 from openai import BadRequestError, OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
@@ -84,6 +85,11 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         return retrieved_full_ids
 
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=32),
+    )
     def embed_query(self, query: str):
         try:
             response = self.client.embeddings.create(
