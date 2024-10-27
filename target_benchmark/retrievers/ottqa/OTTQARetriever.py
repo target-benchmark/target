@@ -100,6 +100,7 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                 ngram=self.ngram,
                 hash_size=self.hash_size,
                 tokenizer=self.tokenizer,
+                with_title=self.withtitle,
             )
         self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
 
