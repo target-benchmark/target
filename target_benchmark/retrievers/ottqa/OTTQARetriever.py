@@ -20,6 +20,9 @@ from target_benchmark.retrievers.ottqa.drqa import retriever
 from target_benchmark.retrievers.ottqa.utils import (
     TFIDFBuilder,
     convert_table_representation,
+    default_hash_size,
+    default_tokenizer,
+    get_filename,
 )
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -32,6 +35,9 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         out_dir: str = default_out_dir,
         encoding: Literal["tfidf", "bm25"] = "tfidf",
         withtitle: bool = False,
+        ngram: int = 2,
+        hash_size: int = default_hash_size,
+        tokenizer: str = default_tokenizer,
         expected_corpus_format: str = "nested array",
     ):
         super().__init__(expected_corpus_format)
@@ -39,11 +45,12 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         load_dotenv()
 
         self.out_dir = out_dir
-        self.rankers: Dict[
-            str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]
-        ] = {}
+        self.rankers: Dict[str, Union[retriever.TfidfDocRanker, retriever.BM25DocRanker]] = {}
         self.withtitle = withtitle
         self.encoding = encoding
+        self.ngram = ngram
+        self.hash_size = hash_size
+        self.tokenizer = tokenizer
 
         assert encoding in [
             "tfidf",
@@ -70,24 +77,31 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         converted_corpus = {}
         # either load or create converted corpus
         if path_to_persist_file.exists():
-            with open(path_to_persist_file, "r") as file:
-                converted_corpus = json.load(file)
+            out_path = get_filename(
+                self.out_dir,
+                self.encoding,
+                self.withtitle,
+                self.ngram,
+                self.hash_size,
+                self.tokenizer,
+                dataset_name,
+            )
         else:
             converted_corpus = self.create_converted_corpus(corpus)
             with open(path_to_persist_file, "w") as file:
                 # Write the dictionary to a file in JSON format
                 json.dump(converted_corpus, file)
-
-        builder = TFIDFBuilder()
-        out_path = builder.build_tfidf(
-            self.out_dir,
-            converted_corpus,
-            option=self.encoding,
-            dataset_name=dataset_name,
-        )
-        self.rankers[dataset_name] = retriever.get_class(self.encoding)(
-            tfidf_path=out_path
-        )
+            builder = TFIDFBuilder()
+            out_path = builder.build_tfidf(
+                self.out_dir,
+                converted_corpus,
+                dataset_name=dataset_name,
+                option=self.encoding,
+                ngram=self.ngram,
+                hash_size=self.hash_size,
+                tokenizer=self.tokenizer,
+            )
+        self.rankers[dataset_name] = retriever.get_class(self.encoding)(tfidf_path=out_path)
 
     def create_converted_corpus(
         self,
