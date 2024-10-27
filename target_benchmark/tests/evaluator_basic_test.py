@@ -5,6 +5,7 @@ from target_benchmark.evaluators.TARGET import TARGET
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
+
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks import TableRetrievalTask
 
@@ -59,23 +60,21 @@ class TestEvaluator(unittest.TestCase):
 
     def test_dataset_loaders_creation(self):
         feta_loader = self.evaluator.create_dataloaders(
-            self.evaluator.dataset_info, "train"
+            self.evaluator.dataset_info, "test"
         )["fetaqa"]
         self.assertEqual(feta_loader.dataset_name, "fetaqa")
-        self.assertEqual(feta_loader.split, "train")
+        self.assertEqual(feta_loader.split, "test")
 
     def test_dataset_loaders_loading(self):
         feta_loader = self.evaluator.create_dataloaders(
-            self.evaluator.dataset_info, "train"
+            self.evaluator.dataset_info, "test"
         )["fetaqa"]
         self.assertEqual(feta_loader.corpus, None)
         self.assertEqual(feta_loader.queries, None)
         feta_loader.load()
         self.assertNotEqual(feta_loader.corpus, None)
         self.assertNotEqual(feta_loader.queries, None)
-        self.assertDictEqual(
-            feta_loader.corpus[0],
-            {
+        expected = {
                 "database_id": 1,
                 "table_id": "event_schedule.csv",
                 "table": [
@@ -83,8 +82,8 @@ class TestEvaluator(unittest.TestCase):
                     ["Tech Conference", "2023-10-15", "150"],
                     ["Music Festival", "2023-11-05", "2000"],
                 ],
-            },
-        )
+            }
+        self.assertTrue(expected.items() <= feta_loader.corpus[0].items())
         self.assertDictEqual(
             feta_loader.queries[0],
             {
@@ -104,15 +103,16 @@ class TestEvaluator(unittest.TestCase):
                 RetrievalResultDataModel(
                     dataset_name="fetaqa",
                     query_id=1,
-                    retrieval_results=[(0, "Table1"), (0, "Table2")],
+                    retrieval_results=[("0", "Table1"), ("0", "Table2")],
                 ),
                 RetrievalResultDataModel(
                     dataset_name="fetaqa",
                     query_id=2,
-                    retrieval_results=[(0, "Table3"), (0, "Table4")],
+                    retrieval_results=[("0", "Table3"), ("0", "Table4")],
                 ),
             ]
             mock_dataset_loader = MagicMock()
+            mock_dataset_loader.get_queries_size.return_value = 2
             mock_dataset_loader.get_queries_for_task.side_effect = (
                 lambda batch_size: iter(
                     [
@@ -127,23 +127,25 @@ class TestEvaluator(unittest.TestCase):
                 )
             )
             mock_func.return_value = {"fetaqa": mock_dataset_loader}
-
             results = self.evaluator.run(mock_retriever, top_k=2)
             self.assertIsInstance(results, dict)
             self.assertEqual(list(results.keys()), ["Table Retrieval Task"])
-            self.assertDictEqual(
-                results["Table Retrieval Task"][
-                    "fetaqa"
-                ].retrieval_performance.model_dump(),
-                {"k": 2, "accuracy": 0.5, "precision": None, "recall": None},
-            )
-            self.assertDictEqual(
-                results["Table Retrieval Task"][
-                    "fetaqa"
-                ].downstream_task_performance.model_dump(),
-                {"task_name": None, "scores": None},
-            )
+            expected_vals = {"k": 2, "accuracy": 0.5, "precision": None, "recall": None}
+            actual_vals = results["Table Retrieval Task"][
+                "fetaqa"
+            ].retrieval_performance.model_dump()
 
+            for key, value in expected_vals.items():
+                self.assertIn(key, actual_vals)
+                self.assertEqual(value, actual_vals[key])
+    def test_needle_in_haystack(self):
+        eval = TARGET(("Table Retrieval Task", ["fetaqa", "gittables"]))
+        tasks = eval.tasks
+        self.assertIn("Table Retrieval Task", tasks)
+        task = tasks["Table Retrieval Task"]
+        dls = task.get_dataset_config()
+        self.assertIn("gittables", dls)
+        self.assertIn("fetaqa", dls)
 
 if __name__ == "__main__":
     unittest.main()

@@ -259,13 +259,14 @@ class TARGET:
                 and config.split == self.dataloaders[dataset_name].split
             ):
                 continue
+            if isinstance(config, NeedleInHaystackDatasetConfigDataModel):
+                eval_dataloaders[dataset_name] = NeedleInHaystackDataLoader(
+                    **config.model_dump()
+                )
+                continue
             config.split = split
             if isinstance(config, Text2SQLDatasetConfigDataModel):
                 eval_dataloaders[dataset_name] = Text2SQLDatasetLoader(
-                    **config.model_dump()
-                )
-            elif isinstance(config, NeedleInHaystackDatasetConfigDataModel):
-                eval_dataloaders[dataset_name] = NeedleInHaystackDataLoader(
                     **config.model_dump()
                 )
             elif isinstance(config, HFDatasetConfigDataModel):
@@ -458,9 +459,7 @@ class TARGET:
         self,
         split: Literal["test", "train", "validation"] = "test",
     ):
-        self.dataloaders = self.dataloaders.update(
-            self.create_dataloaders(self.dataset_info, split)
-        )
+        self.dataloaders.update(self.create_dataloaders(self.dataset_info, split))
 
     def _create_persistence_file(
         self,
@@ -527,7 +526,7 @@ class TARGET:
             task_dataloaders, nih_dataloaders = self._load_datasets_for_task(task)
             nih_dataloaders = list(nih_dataloaders.values())
             # call embed corpus on the retriever to embed/preprocess the tables
-
+            print(task_dataloaders, nih_dataloaders)
             for dataset_name, task_dataloader in task_dataloaders.items():
                 if dataset_name not in loaded_datasets:
                     task_dataloader_with_nih = [task_dataloader] + nih_dataloaders

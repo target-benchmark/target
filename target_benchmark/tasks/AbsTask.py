@@ -111,8 +111,8 @@ class AbsTask(ABC):
         pass
 
     @classmethod
-    def get_available_datasets(cls) -> List[str]:
-        return list(cls.append_nih_datasets(cls._get_default_dataset_config()).keys())
+    def get_available_datasets(cls) -> Dict[str, DatasetConfigDataModel]:
+        return cls.append_nih_datasets(cls._get_default_dataset_config())
 
     def get_task_name(self):
         """
