@@ -96,11 +96,13 @@ def main():
 
     evals = [
         # ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
-        ("fetaqa_gittables", TARGET(("Table Retrieval Task", ["fetaqa", "gittables"])), "test"),
+        # ("fetaqa_gittables", TARGET(("Table Retrieval Task", ["fetaqa", "gittables"])), "test"),
         # ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
         # ("ottqa_gittables", TARGET(("Table Retrieval Task", ["ottqa", "gittables"])), "validation"),
         # ("tabfact", TARGET(("Table Retrieval Task", "tabfact")), "test"),
+        # ("tabfact_gittables", TARGET(("Table Retrieval Task", ["tabfact", "gittables"])), "test"),
         # ("spider", TARGET(("Table Retrieval Task", "spider-test")), "test"),
+        ("spider_gittables", TARGET(("Table Retrieval Task", ["spider-test", "gittables"])), "test"),
         # ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
     ]
     for dataset_name, target_eval, split in evals:

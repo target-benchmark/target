@@ -119,11 +119,12 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                 # Setting to evaluate influence of table name in embedding
 
                 tup = (db_id, table_id)
+
                 converted_corpus[str(tup)] = convert_table_representation(
                     db_id,
                     table_id,
                     table,
-                    context["section_title"] if "section_title" in context else "",
+                    context["section_title"] if context and "section_title" in context else "",
                     self.withtitle,
                 )
         return converted_corpus
