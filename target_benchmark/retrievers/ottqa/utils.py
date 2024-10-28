@@ -206,7 +206,7 @@ def get_filename(
     dataset_name: str,
 ) -> str:
     basename = "index"
-    basename += "-%s-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s" % (
+    basename += "-%s-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s.npz" % (
         option,
         str(with_title),
         ngram,
@@ -269,7 +269,7 @@ class TFIDFBuilder:
             "doc_dict": doc_dict,
         }
         retriever.utils.save_sparse_csr(filename, tfidf, metadata)
-        return filename + ".npz"
+        return filename
 
     def store_contents(self, data_path, save_path, preprocess, num_workers=None):
         """Preprocess and store a corpus of documents in sqlite.
