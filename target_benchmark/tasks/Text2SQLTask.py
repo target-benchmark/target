@@ -16,7 +16,7 @@ from target_benchmark.dictionary_keys import (
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
 )
-from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
+from target_benchmark.generators import AbsGenerator, Text2SQLGenerator
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
 from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,
@@ -39,7 +39,7 @@ class Text2SQLTask(AbsTask):
         **kwargs,
     ):
         if task_generator is None:
-            task_generator = Text2SQLGenerater()
+            task_generator = Text2SQLGenerator()
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
