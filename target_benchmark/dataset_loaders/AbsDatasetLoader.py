@@ -122,6 +122,7 @@ class AbsDatasetLoader(ABC):
         self,
         output_format: str = "nested array",
         batch_size: int = 1,
+        num_tables: int = None,
     ) -> Iterable[Dict]:
         """
         convert the corpus table to a specific format in memory.
@@ -146,9 +147,9 @@ class AbsDatasetLoader(ABC):
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
             dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = dict_tables
-        if self.num_tables:
-            self.num_tables = max(self.num_tables, self.get_corpus_size())
-            converted_corpus = get_random_tables(converted_corpus, self.num_tables)
+        count_tables = num_tables or self.num_tables
+        if count_tables:
+            converted_corpus = get_random_tables(converted_corpus, max(0, min(count_tables, self.get_corpus_size())))
         for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
             batch = {}
             # Use list comprehensions to extract each column

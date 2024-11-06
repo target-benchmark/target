@@ -22,7 +22,8 @@ class HFDatasetLoader(AbsDatasetLoader):
             split=split,
             data_directory=data_directory,
             query_type=query_type,
-            num_tables=num_tables**kwargs,
+            num_tables=num_tables,
+            **kwargs,
         )
         """
         Constructor for a generic dataset loader that loads from a huggingface dataset.
