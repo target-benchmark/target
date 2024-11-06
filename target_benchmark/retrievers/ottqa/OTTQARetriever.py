@@ -72,11 +72,20 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
         path_to_out_dir = Path(self.out_dir)
         path_to_out_dir.mkdir(parents=True, exist_ok=True)
 
+        out_path = get_filename(
+            self.out_dir,
+            self.encoding,
+            self.withtitle,
+            self.ngram,
+            self.hash_size,
+            self.tokenizer,
+            dataset_name,
+        )
         file_name = f"{dataset_name}_{self.encoding}_{self.withtitle}.json"
         path_to_persist_file = Path(self.out_dir) / file_name
-        converted_corpus = {}
         # either load or create converted corpus
-        if path_to_persist_file.exists():
+        if Path(out_path).exists():
+            print(f"file_name: {path_to_persist_file}")
             out_path = get_filename(
                 self.out_dir,
                 self.encoding,
@@ -87,10 +96,15 @@ class OTTQARetriever(AbsCustomEmbeddingRetriever):
                 dataset_name,
             )
         else:
-            converted_corpus = self.create_converted_corpus(corpus)
-            with open(path_to_persist_file, "w") as file:
-                # Write the dictionary to a file in JSON format
-                json.dump(converted_corpus, file)
+            converted_corpus = {}
+            if path_to_persist_file.exists():
+                with open(path_to_persist_file, "r") as file:
+                    converted_corpus = json.load(file)
+            if not path_to_persist_file.exists():
+                converted_corpus = self.create_converted_corpus(corpus)
+                with open(path_to_persist_file, "w") as file:
+                    # Write the dictionary to a file in JSON format
+                    json.dump(converted_corpus, file)
             builder = TFIDFBuilder()
             out_path = builder.build_tfidf(
                 self.out_dir,
