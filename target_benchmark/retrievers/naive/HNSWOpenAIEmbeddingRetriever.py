@@ -74,14 +74,44 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         # Query dataset
         retrieved_ids, distances = self.corpus_index.knn_query(
-            np.array(query_embedding),
-            k=top_k,
+            np.array(query_embedding), k=top_k
         )
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each query
         retrieved_full_ids = [self.db_table_ids[id] for id in retrieved_ids[0]]
 
         return retrieved_full_ids
+
+    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
+        """
+        Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
+
+        Parameters:
+            dataset_name (str): the name of the corpus dataset.
+            corpus (Iterable[Dict[str, List]]): an iterable of dicts, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
+        Returns:
+            nothing. the indexed embeddings are stored in a file.
+        """
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+
+        corpus_identifier = self._get_corpus_identifier(dataset_name)
+        # get the paths to the persistence files
+        idx_path, db_table_ids_path = self._construct_persistence_paths(
+            corpus_identifier
+        )
+
+        if idx_path.exists() and db_table_ids_path.exists():
+            return
+
+        embedded_corpus = self._embed_corpus_parallel(corpus)
+        corpus_index = construct_embedding_index(list(embedded_corpus.values()))
+
+        # Store table embedding index and table ids in distinct files
+        with open(idx_path, "wb") as f:
+            pickle.dump(corpus_index, f)
+
+        with open(db_table_ids_path, "wb") as f:
+            pickle.dump(list(embedded_corpus.keys()), f)
 
     @retry(
         reraise=True,
@@ -122,7 +152,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
     def _embed_corpus_parallel(self, corpus: Iterable[Dict]) -> Dict:
         with ThreadPoolExecutor() as executor:
             future_to_tup_id = [
-                executor.submit(self.process_table, db_id, table_id, table)
+                executor.submit(self._process_table, db_id, table_id, table)
                 for corpus_dict in corpus
                 for db_id, table_id, table in zip(
                     corpus_dict[DATABASE_ID_COL_NAME],
@@ -178,34 +208,3 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         if self.num_rows is not None:
             corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
         return corpus_identifier
-
-    def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
-        """
-        Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
-
-        Parameters:
-            dataset_name (str): the name of the corpus dataset.
-            corpus (Iterable[Dict[str, List]]): an iterable of dicts, each being a batch of entries in the corpus dataset, containing database id, table id, the table contents (which the user can assume is in the format of self.expected_corpus_format), and context metadata (in these exact keys).
-        Returns:
-            nothing. the indexed embeddings are stored in a file.
-        """
-        self.out_dir.mkdir(parents=True, exist_ok=True)
-
-        corpus_identifier = self._get_corpus_identifier(dataset_name)
-        # get the paths to the persistence files
-        idx_path, db_table_ids_path = self._construct_persistence_paths(
-            corpus_identifier
-        )
-
-        if idx_path.exists() and db_table_ids_path.exists():
-            return
-
-        embedded_corpus = self._embed_corpus_parallel(corpus)
-        corpus_index = construct_embedding_index(list(embedded_corpus.values()))
-
-        # Store table embedding index and table ids in distinct files
-        with open(idx_path, "wb") as f:
-            pickle.dump(corpus_index, f)
-
-        with open(db_table_ids_path, "wb") as f:
-            pickle.dump(list(embedded_corpus.keys()), f)
