@@ -31,7 +31,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
-        out_dir: str = default_out_dir,
+        out_dir: str = None,
         embedding_model_id: str = "text-embedding-3-small",
         expected_corpus_format: str = "nested array",
         num_rows: Union[int, None] = None,
@@ -43,12 +43,19 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
         )
-        self.out_dir = out_dir
+        if not out_dir:
+            self.out_dir = default_out_dir
+        else:
+            self.out_dir = out_dir
         self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
         # TODO: need to get this dynamically according to model id
         self.embedding_model_encoding = tiktoken.get_encoding("cl100k_base")
         self.num_rows = num_rows
+
+    @classmethod
+    def get_default_out_dir(cls):
+        return default_out_dir
 
     def retrieve(
         self,
@@ -112,9 +119,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         if self.num_rows is not None:
             self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
 
-        if os.path.exists(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")
-        ):
+        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
             return
 
         embedded_corpus = {}
@@ -129,16 +134,12 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 while num_rows_to_include >= 0:
                     table_str = markdown_table_str(table, num_rows=num_rows_to_include)
                     num_tokens = len(self.embedding_model_encoding.encode(table_str))
-                    if (
-                        num_tokens < 8192
-                    ):  # this is not great, need to remove hardcode in future
+                    if num_tokens < 8192:  # this is not great, need to remove hardcode in future
                         break
                     num_rows_to_include -= 10
 
                 if num_rows_to_include != self.num_rows:
-                    print(
-                        f"truncated input due to context length constraints, included {num_rows_to_include} rows"
-                    )
+                    print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
                 embedded_corpus[tup_id] = self.embed_query(table_str)
 
         corpus_index = construct_embedding_index(list(embedded_corpus.values()))
