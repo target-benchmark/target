@@ -11,6 +11,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
         self,
         dataset_name: str,
         dataset_path: str,
+        num_tables: int = None,
         datafile_ext: str = None,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
@@ -36,7 +37,7 @@ class GenericDatasetLoader(AbsDatasetLoader):
             split=split,
             data_directory=data_directory,
             query_type=query_type,
-            **kwargs,
+            num_tables=num_tables**kwargs,
         )
         self.dataset_path = Path(dataset_path)
         self.corpus_path = self.dataset_path / "corpus"
@@ -47,14 +48,10 @@ class GenericDatasetLoader(AbsDatasetLoader):
         if not self.corpus:
             self.corpus = DatasetDict()
         if self.split not in self.corpus:
-            self.corpus[self.split] = load_dataset(
-                path=str(self.corpus_path), split=self.split
-            )
+            self.corpus[self.split] = load_dataset(path=str(self.corpus_path), split=self.split)
 
     def _load_queries(self) -> None:
         if not self.queries:
             self.queries = DatasetDict()
         if self.split not in self.queries:
-            self.queries[self.split] = load_dataset(
-                path=str(self.queries_path), split=self.split
-            )
+            self.queries[self.split] = load_dataset(path=str(self.queries_path), split=self.split)

@@ -9,9 +9,8 @@ class DatasetConfigDataModel(BaseModel):
     Target's dataset configs are written in `TargetDatasetConfig.py`.
     """
 
-    dataset_name: str = Field(
-        description="Name of the dataset. This must be filled out."
-    )
+    dataset_name: str = Field(description="Name of the dataset. This must be filled out.")
+    num_tables: Optional[int] = Field(default=None, description="Number of tables of the dataset to include in embedding.")
     split: Literal["test", "train", "validation"] = Field(
         default="test",
         description="Split to include. Defaults to only the test split.",
@@ -20,13 +19,11 @@ class DatasetConfigDataModel(BaseModel):
         default=None,
         description="directory for where to persist the data to. defaults to None.",
     )
-    query_type: Optional[
-        Literal["Fact Verification", "Text to SQL", "Table Question Answering", "Other"]
-    ] = Field(default=None, description="Type of query in this dataset.")
-
-    aux: Optional[Dict] = Field(
-        default=None, description="Any additional information related to the dataset."
+    query_type: Optional[Literal["Fact Verification", "Text to SQL", "Table Question Answering", "Other"]] = Field(
+        default=None, description="Type of query in this dataset."
     )
+
+    aux: Optional[Dict] = Field(default=None, description="Any additional information related to the dataset.")
 
 
 class GenericDatasetConfigDataModel(DatasetConfigDataModel):
@@ -35,9 +32,7 @@ class GenericDatasetConfigDataModel(DatasetConfigDataModel):
     """
 
     dataset_path: str = Field(description="Path to the local dataset directory.")
-    datafile_ext: str = (
-        Field(default=None, description="File type of the dataset. csv, tsv, etc."),
-    )
+    datafile_ext: str = (Field(default=None, description="File type of the dataset. csv, tsv, etc."),)
 
 
 class HFDatasetConfigDataModel(DatasetConfigDataModel):
