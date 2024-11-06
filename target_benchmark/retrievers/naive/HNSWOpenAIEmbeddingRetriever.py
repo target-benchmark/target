@@ -2,7 +2,7 @@ import os
 import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, Iterable, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 import tiktoken
@@ -130,10 +130,12 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             raise e
 
     def _process_table(
-        self, db_id: str, table_id: str, table: str
+        self, db_id: str, table_id: str, table: List[List[str]]
     ) -> Tuple[Tuple[str, str], str]:
         tup_id = (db_id, table_id)
-        num_rows_to_include = self.num_rows
+        num_rows_to_include = len(table)
+        if self.num_rows:
+            num_rows_to_include = self.num_rows
         while num_rows_to_include >= 0:
             table_str = markdown_table_str(table, num_rows=num_rows_to_include)
             num_tokens = len(self.embedding_model_encoding.encode(table_str))
@@ -143,7 +145,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 break
             num_rows_to_include -= 10
 
-        if num_rows_to_include != self.num_rows:
+        if self.num_rows and num_rows_to_include != self.num_rows:
             print(
                 f"truncated input due to context length constraints, included {num_rows_to_include} rows"
             )
