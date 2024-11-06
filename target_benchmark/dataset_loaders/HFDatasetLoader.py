@@ -11,6 +11,7 @@ class HFDatasetLoader(AbsDatasetLoader):
         dataset_name: str,
         hf_corpus_dataset_path: str,
         hf_queries_dataset_path: str,
+        num_tables: int = None,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         query_type: str = "",
@@ -21,7 +22,7 @@ class HFDatasetLoader(AbsDatasetLoader):
             split=split,
             data_directory=data_directory,
             query_type=query_type,
-            **kwargs
+            num_tables=num_tables**kwargs,
         )
         """
         Constructor for a generic dataset loader that loads from a huggingface dataset.
@@ -35,12 +36,8 @@ class HFDatasetLoader(AbsDatasetLoader):
 
     def _load_corpus(self) -> None:
         if not self.corpus:
-            self.corpus = load_dataset(
-                path=self.hf_corpus_dataset_path, split=self.split
-            )
+            self.corpus = load_dataset(path=self.hf_corpus_dataset_path, split=self.split)
 
     def _load_queries(self) -> None:
         if not self.queries:
-            self.queries = load_dataset(
-                path=self.hf_queries_dataset_path, split=self.split
-            )
+            self.queries = load_dataset(path=self.hf_queries_dataset_path, split=self.split)

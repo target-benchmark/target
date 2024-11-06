@@ -1,7 +1,8 @@
 import csv
 import json
+import random
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Any, Dict, List, Literal
 
 import pandas as pd
 
@@ -9,6 +10,12 @@ from target_benchmark.dataset_loaders.DatasetLoaderEnums import (
     InMemoryDataFormat,
     PersistenceDataFormat,
     QueryType,
+)
+from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
 )
 
 
@@ -24,6 +31,13 @@ def set_query_type(string_rep: str) -> QueryType:
         return QueryType.NIH
     else:
         return QueryType.OTHER
+
+
+def get_random_tables(converted_corpus: Dict[str, Any], num_tables: int) -> Dict:
+    indices = random.sample(range(len(converted_corpus[TABLE_COL_NAME])), num_tables)
+    for col_name in [TABLE_COL_NAME, DATABASE_ID_COL_NAME, TABLE_ID_COL_NAME, CONTEXT_COL_NAME]:
+        converted_corpus[col_name] = [converted_corpus[col_name][i] for i in indices]
+    return converted_corpus
 
 
 def set_persistence_data_format(string_rep: str) -> PersistenceDataFormat:
@@ -81,9 +95,7 @@ def enforce_split_literal(string_rep: str):
     splits = ("test", "train", "validation")
     if string_rep in splits:
         return string_rep
-    raise ValueError(
-        f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation"
-    )
+    raise ValueError(f"Split name {string_rep} is not a valid split name! Please use one of test, train, or validation")
 
 
 def str_representation_to_pandas_df(array_repr: str) -> pd.DataFrame:
@@ -159,11 +171,7 @@ def convert_nested_list_to(
         return array_of_arrays_to_df(nested_list)
 
 
-def get_dummy_table_of_format(
-    expected_format: Literal[
-        "array", "nested array", "pandas", "dataframe"
-    ] = "nested array"
-):
+def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe"] = "nested array"):
     dummy_table = [["header"], ["content"]]
     expected_format = expected_format.lower()
     if "array" in expected_format:

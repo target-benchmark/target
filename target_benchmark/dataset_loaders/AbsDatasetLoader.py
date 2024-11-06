@@ -10,6 +10,7 @@ from target_benchmark.dataset_loaders.utils import (
     array_of_arrays_to_df,
     array_of_arrays_to_dict,
     enforce_split_literal,
+    get_random_tables,
     set_in_memory_data_format,
     set_query_type,
     write_table_to_path,
@@ -32,6 +33,7 @@ class AbsDatasetLoader(ABC):
     def __init__(
         self,
         dataset_name: str,
+        num_tables: int = None,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         query_type: str = None,
@@ -57,6 +59,7 @@ class AbsDatasetLoader(ABC):
         """
 
         self.dataset_name: str = dataset_name
+        self.num_tables: int = num_tables
         self.split = enforce_split_literal(split)
         if data_directory and Path(data_directory).suffix:
             raise ValueError(f"this path {data_directory} looks like a path to a file.")
@@ -79,9 +82,7 @@ class AbsDatasetLoader(ABC):
     def _load_queries(self) -> None:
         pass
 
-    def persist_corpus_to(
-        self, format: Literal["csv", "json"], path: str = None
-    ) -> None:
+    def persist_corpus_to(self, format: Literal["csv", "json"], path: str = None) -> None:
         """
         Saves the tables in the corpus to a specified location and format.
 
@@ -102,9 +103,7 @@ class AbsDatasetLoader(ABC):
 
         path_to_write_to = Path(path)
         if path_to_write_to.suffix:
-            raise ValueError(
-                f"this path {path_to_write_to} looks like a path to a file."
-            )
+            raise ValueError(f"this path {path_to_write_to} looks like a path to a file.")
         if not path_to_write_to.exists():
             path_to_write_to.mkdir(parents=True, exist_ok=True)
 
@@ -145,23 +144,18 @@ class AbsDatasetLoader(ABC):
             df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = df_tables
         elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            dict_tables = list(
-                map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME])
-            )
+            dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = dict_tables
+        if self.num_tables:
+            self.num_tables = max(self.num_tables, self.get_corpus_size())
+            converted_corpus = get_random_tables(converted_corpus, self.num_tables)
         for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
             batch = {}
             # Use list comprehensions to extract each column
             batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
-            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][
-                i : i + batch_size
-            ]
-            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][
-                i : i + batch_size
-            ]
-            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][
-                i : i + batch_size
-            ]
+            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
+            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
             yield batch
 
     def get_table_id_to_table(
