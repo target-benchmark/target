@@ -1,6 +1,7 @@
 import os
 import pickle
-from typing import Dict, Iterable, Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, Iterable, Tuple, Union
 
 import numpy as np
 import tiktoken
@@ -32,7 +33,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
     def __init__(
         self,
-        out_dir: str = default_out_dir,
+        out_dir: str = None,
         embedding_model_id: str = "text-embedding-3-small",
         expected_corpus_format: str = "nested array",
         num_rows: Union[int, None] = None,
@@ -44,12 +45,19 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
         )
-        self.out_dir = out_dir
+        if not out_dir:
+            self.out_dir = default_out_dir
+        else:
+            self.out_dir = out_dir
         self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
         # TODO: need to get this dynamically according to model id
         self.embedding_model_encoding = tiktoken.get_encoding("cl100k_base")
         self.num_rows = num_rows
+
+    @classmethod
+    def get_default_out_dir(cls):
+        return default_out_dir
 
     def retrieve(
         self,
@@ -101,6 +109,46 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             print(type(query), len(query))
             raise e
 
+    def _process_table(
+        self, db_id: str, table_id: str, table: str
+    ) -> Tuple[Tuple[str, str], str]:
+        tup_id = (db_id, table_id)
+        num_rows_to_include = self.num_rows
+        while num_rows_to_include >= 0:
+            table_str = markdown_table_str(table, num_rows=num_rows_to_include)
+            num_tokens = len(self.embedding_model_encoding.encode(table_str))
+            if (
+                num_tokens < 8192
+            ):  # this is not great, need to remove hardcode in future
+                break
+            num_rows_to_include -= 10
+
+        if num_rows_to_include != self.num_rows:
+            print(
+                f"truncated input due to context length constraints, included {num_rows_to_include} rows"
+            )
+        return tup_id, self.embed_query(table_str)
+
+    def _embed_corpus_parallel(self, corpus: Iterable[Dict]) -> Dict:
+        with ThreadPoolExecutor() as executor:
+            future_to_tup_id = [
+                executor.submit(self.process_table, db_id, table_id, table)
+                for corpus_dict in corpus
+                for db_id, table_id, table in zip(
+                    corpus_dict[DATABASE_ID_COL_NAME],
+                    corpus_dict[TABLE_ID_COL_NAME],
+                    corpus_dict[TABLE_COL_NAME],
+                )
+            ]
+            embedded_corpus = {}
+            for future in tqdm.tqdm(
+                as_completed(future_to_tup_id), total=len(future_to_tup_id)
+            ):
+                tup_id, embedded_table = future.result()
+                embedded_corpus[tup_id] = embedded_table
+
+        return embedded_corpus
+
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
         Function to embed the given corpus. This will be called in the evaluation pipeline before any retrieval.
@@ -123,30 +171,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         ):
             return
 
-        embedded_corpus = {}
-        for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(
-                corpus_dict[DATABASE_ID_COL_NAME],
-                corpus_dict[TABLE_ID_COL_NAME],
-                corpus_dict[TABLE_COL_NAME],
-            ):
-                tup_id = (db_id, table_id)
-                num_rows_to_include = self.num_rows
-                while num_rows_to_include >= 0:
-                    table_str = markdown_table_str(table, num_rows=num_rows_to_include)
-                    num_tokens = len(self.embedding_model_encoding.encode(table_str))
-                    if (
-                        num_tokens < 8192
-                    ):  # this is not great, need to remove hardcode in future
-                        break
-                    num_rows_to_include -= 10
-
-                if num_rows_to_include != self.num_rows:
-                    print(
-                        f"truncated input due to context length constraints, included {num_rows_to_include} rows"
-                    )
-                embedded_corpus[tup_id] = self.embed_query(table_str)
-
+        embedded_corpus = self._embed_corpus_parallel(corpus)
         corpus_index = construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
