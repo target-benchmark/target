@@ -149,7 +149,6 @@ class AbsDatasetLoader(ABC):
             converted_corpus[TABLE_COL_NAME] = dict_tables
         count_tables = num_tables or self.num_tables
         if count_tables is not None:
-            print(f"count tables: {count_tables}")
             converted_corpus = get_random_tables(converted_corpus, max(0, min(count_tables, self.get_corpus_size())))
         for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
             batch = {}

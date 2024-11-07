@@ -29,8 +29,6 @@ class TestNIHTask(unittest.TestCase):
 
     def setUp(self):
         self.retriever = DummyRetriever()
-        self.eval_1k = self._create_target_evaluation(1000)
-        self.eval_negative = self._create_target_evaluation(-1)
 
     def _create_target_evaluation(self, num_tables):
         gittables_config = DEFAULT_GITTABLES_DATASET_CONFIG.model_copy()
@@ -67,6 +65,15 @@ class TestNIHTask(unittest.TestCase):
         self.assertEqual(500, num_corps_1k - num_corps_500)
         self.assertEqual(500, num_corps_500 - num_corps_0)
 
+    def test_added_all_gittables(self):
+        eval_0 = self._create_target_evaluation(0)
+        _ = eval_0.run(retriever=self.retriever)
+        num_corps_0 = self.retriever.reset()
+
+        eval_full = self._create_target_evaluation(None)
+        _ = eval_full.run(retriever=self.retriever)
+        num_corps_full = self.retriever.reset()
+        self.assertEqual(int(5e4), num_corps_full - num_corps_0)
 
 if __name__ == "__main__":
     unittest.main()
