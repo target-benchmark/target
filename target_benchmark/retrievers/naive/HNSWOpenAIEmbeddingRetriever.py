@@ -1,12 +1,15 @@
 import os
 import pickle
-from typing import Dict, Iterable, Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 import tiktoken
 import tqdm
 from dotenv import load_dotenv
 from openai import BadRequestError, OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
@@ -44,18 +47,20 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             api_key=os.getenv("OPENAI_API_KEY"),
         )
         if not out_dir:
-            self.out_dir = default_out_dir
+            self.out_dir = Path(default_out_dir)
         else:
-            self.out_dir = out_dir
+            self.out_dir = Path(out_dir)
         self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
         # TODO: need to get this dynamically according to model id
         self.embedding_model_encoding = tiktoken.get_encoding("cl100k_base")
         self.num_rows = num_rows
+        self.corpus_index = None
+        self.db_table_ids = None
 
     @classmethod
-    def get_default_out_dir(cls):
-        return default_out_dir
+    def get_default_out_dir(cls) -> str:
+        return str(default_out_dir)
 
     def retrieve(
         self,
@@ -64,43 +69,16 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         top_k: int,
         **kwargs,
     ):
-        # TODO: add split to file!
-        with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
-            "rb",
-        ) as f:
-            corpus_index = pickle.load(f)
-
-        with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
-            "rb",
-        ) as f:
-            # stored separately as hnsw only takes int indices
-            db_table_ids = pickle.load(f)
-
+        self._load_hnsw(self._get_corpus_identifier(dataset_name))
         query_embedding = self.embed_query(query)
 
         # Query dataset
-        retrieved_ids, distances = corpus_index.knn_query(
-            np.array(query_embedding),
-            k=top_k,
-        )
+        retrieved_ids, distances = self.corpus_index.knn_query(np.array(query_embedding), k=top_k)
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each query
-        retrieved_full_ids = [db_table_ids[id] for id in retrieved_ids[0]]
+        retrieved_full_ids = [self.db_table_ids[id] for id in retrieved_ids[0]]
 
         return retrieved_full_ids
-
-    def embed_query(self, query: str):
-        try:
-            response = self.client.embeddings.create(
-                model=self.embedding_model_id,
-                input=query,
-            )
-            return response.data[0].embedding
-        except BadRequestError as e:
-            print(type(query), len(query))
-            raise e
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
         """
@@ -112,47 +90,105 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         Returns:
             nothing. the indexed embeddings are stored in a file.
         """
-        if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir, exist_ok=True)
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
-        self.corpus_identifier = f"{dataset_name}_numrows_all"
-        if self.num_rows is not None:
-            self.corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
+        corpus_identifier = self._get_corpus_identifier(dataset_name)
+        # get the paths to the persistence files
+        idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
 
-        if os.path.exists(os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl")):
+        if idx_path.exists() and db_table_ids_path.exists():
             return
 
-        embedded_corpus = {}
-        for corpus_dict in tqdm.tqdm(corpus):
-            for db_id, table_id, table in zip(
-                corpus_dict[DATABASE_ID_COL_NAME],
-                corpus_dict[TABLE_ID_COL_NAME],
-                corpus_dict[TABLE_COL_NAME],
-            ):
-                tup_id = (db_id, table_id)
-                num_rows_to_include = self.num_rows
-                while num_rows_to_include >= 0:
-                    table_str = markdown_table_str(table, num_rows=num_rows_to_include)
-                    num_tokens = len(self.embedding_model_encoding.encode(table_str))
-                    if num_tokens < 8192:  # this is not great, need to remove hardcode in future
-                        break
-                    num_rows_to_include -= 10
-
-                if num_rows_to_include != self.num_rows:
-                    print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
-                embedded_corpus[tup_id] = self.embed_query(table_str)
-
+        embedded_corpus = self._embed_corpus_parallel(corpus)
         corpus_index = construct_embedding_index(list(embedded_corpus.values()))
 
         # Store table embedding index and table ids in distinct files
-        with open(
-            os.path.join(self.out_dir, f"corpus_index_{self.corpus_identifier}.pkl"),
-            "wb",
-        ) as f:
+        with open(idx_path, "wb") as f:
             pickle.dump(corpus_index, f)
 
-        with open(
-            os.path.join(self.out_dir, f"db_table_ids_{self.corpus_identifier}.pkl"),
-            "wb",
-        ) as f:
+        with open(db_table_ids_path, "wb") as f:
             pickle.dump(list(embedded_corpus.keys()), f)
+
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=32),
+    )
+    def embed_query(self, query: str):
+        try:
+            response = self.client.embeddings.create(
+                model=self.embedding_model_id,
+                input=query,
+            )
+            return response.data[0].embedding
+        except BadRequestError as e:
+            print(type(query), len(query))
+            raise e
+
+    def _process_table(self, db_id: str, table_id: str, table: List[List[str]]) -> Tuple[Tuple[str, str], str]:
+        tup_id = (db_id, table_id)
+        num_rows_to_include = len(table)
+        if self.num_rows:
+            num_rows_to_include = self.num_rows
+        while num_rows_to_include >= 0:
+            table_str = markdown_table_str(table, num_rows=num_rows_to_include)
+            num_tokens = len(self.embedding_model_encoding.encode(table_str))
+            if num_tokens < 8192:  # this is not great, need to remove hardcode in future
+                break
+            num_rows_to_include -= 10
+
+        if self.num_rows and num_rows_to_include != self.num_rows:
+            print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
+        return tup_id, self.embed_query(table_str)
+
+    def _embed_corpus_parallel(self, corpus: Iterable[Dict]) -> Dict:
+        with ThreadPoolExecutor() as executor:
+            future_to_tup_id = [
+                executor.submit(self._process_table, db_id, table_id, table)
+                for corpus_dict in corpus
+                for db_id, table_id, table in zip(
+                    corpus_dict[DATABASE_ID_COL_NAME],
+                    corpus_dict[TABLE_ID_COL_NAME],
+                    corpus_dict[TABLE_COL_NAME],
+                )
+            ]
+            embedded_corpus = {}
+            for future in tqdm.tqdm(as_completed(future_to_tup_id), total=len(future_to_tup_id)):
+                tup_id, embedded_table = future.result()
+                embedded_corpus[tup_id] = embedded_table
+
+        return embedded_corpus
+
+    def _construct_persistence_paths(self, corpus_identifier: str) -> Tuple[Path, Path]:
+        idx_path = self.out_dir / f"corpus_index_{corpus_identifier}.pkl"
+        db_table_ids_path = self.out_dir / f"db_table_ids_{corpus_identifier}.pkl"
+        return idx_path, db_table_ids_path
+
+    def _load_hnsw(self, corpus_identifier: str):
+        # no need to reload if passed in id is the same as current id
+        # and the index and mappings loaded
+        if corpus_identifier == self.corpus_identifier and self.corpus_index and self.db_table_ids:
+            return
+
+        # get the paths to the persistence files
+        idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
+
+        # throw error if files don't exist
+        if not idx_path.exists() or not db_table_ids_path.exists():
+            raise RuntimeError("cannot find the relevant index files.")
+
+        # load files
+        with open(idx_path, "rb") as f:
+            self.corpus_index = pickle.load(f)
+
+        with open(db_table_ids_path, "rb") as f:
+            # stored separately as hnsw only takes int indices
+            self.db_table_ids = pickle.load(f)
+        # update the corpus identifier
+        self.corpus_identifier = corpus_identifier
+
+    def _get_corpus_identifier(self, dataset_name: str) -> str:
+        corpus_identifier = f"{dataset_name}_numrows_all"
+        if self.num_rows is not None:
+            corpus_identifier = f"{dataset_name}_numrows_{self.num_rows}"
+        return corpus_identifier

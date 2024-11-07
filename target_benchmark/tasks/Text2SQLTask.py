@@ -13,7 +13,7 @@ from target_benchmark.dictionary_keys import (
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
 )
-from target_benchmark.generators import AbsGenerator, Text2SQLGenerater
+from target_benchmark.generators import AbsGenerator, Text2SQLGenerator
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
 from target_benchmark.generators.GeneratorsDataModels import (
     DownstreamGeneratedResultDataModel,
@@ -36,7 +36,7 @@ class Text2SQLTask(AbsTask):
         **kwargs,
     ):
         if task_generator is None:
-            task_generator = Text2SQLGenerater()
+            task_generator = Text2SQLGenerator()
         super().__init__(
             task_name=self.get_default_task_name(),
             datasets_config=datasets_config,
@@ -49,9 +49,7 @@ class Text2SQLTask(AbsTask):
 
         for metric in metrics:
             if metric not in Text2SQLTask.AVAILABLE_METRICS:
-                raise ValueError(
-                    f"the metric {metric} is not one of the available metrics!"
-                )
+                raise ValueError(f"the metric {metric} is not one of the available metrics!")
         self.include_ves = False
         if "execution_ves" in metrics:
             self.include_ves = True
@@ -73,9 +71,7 @@ class Text2SQLTask(AbsTask):
         return str(Text2SQLTask.AVAILABLE_METRICS)
 
     def setup_database_dirs(self, dataloaders: Dict[str, Text2SQLDatasetLoader]):
-        self.database_dirs = {
-            name: loader.path_to_database_dir for name, loader in dataloaders.items()
-        }
+        self.database_dirs = {name: loader.path_to_database_dir for name, loader in dataloaders.items()}
 
     @classmethod
     def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
@@ -90,14 +86,10 @@ class Text2SQLTask(AbsTask):
 
     def _get_schema(self, dataset_name: str, database_id: str):
         if dataset_name not in self.database_dirs:
-            raise ValueError(
-                f"dataset {dataset_name} does not have a database directory setup."
-            )
+            raise ValueError(f"dataset {dataset_name} does not have a database directory setup.")
         if database_id == "":
             return NO_CONTEXT_TABLE_PROMPT
-        db_path = Path(
-            self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite"
-        )
+        db_path = Path(self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite")
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         cur.execute("SELECT name, sql FROM sqlite_schema WHERE type='table'")
@@ -129,10 +121,7 @@ class Text2SQLTask(AbsTask):
             retrieval_results,
         ):
             generated_sql = self.task_generator.generate(
-                table_str="\n".join(
-                    self._get_schema(self.current_dataset, id[0])
-                    for id in result.retrieval_results
-                ),
+                table_str="\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results),
                 query=query_str,
             )
             downstream_task_results.append(
@@ -161,17 +150,13 @@ class Text2SQLTask(AbsTask):
 
         for downstream_answer in downstream_results:
             self.pred_sql.append(downstream_answer.generated_results)
-        self.ref_sql.extend(
-            list(zip(query_batch[ANSWER_COL_NAME], query_batch[DATABASE_ID_COL_NAME]))
-        )
+        self.ref_sql.extend(list(zip(query_batch[ANSWER_COL_NAME], query_batch[DATABASE_ID_COL_NAME])))
         if DIFFICULTY_COL_NAME in query_batch:
             self.difficulties.extend(query_batch[DIFFICULTY_COL_NAME])
         else:
             self.difficulties.extend(["Default"] * len(downstream_results))
 
-    def _calculate_downstream_task_performance(
-        self, **kwargs
-    ) -> Text2SQLTaskPerformanceDataModel:
+    def _calculate_downstream_task_performance(self, **kwargs) -> Text2SQLTaskPerformanceDataModel:
         """
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
@@ -179,9 +164,7 @@ class Text2SQLTask(AbsTask):
         if DATASET_NAME in kwargs:
             self.current_dataset = kwargs[DATASET_NAME]
         if self.current_dataset not in self.database_dirs:
-            raise ValueError(
-                f"{self.current_dataset} does not have path to database files."
-            )
+            raise ValueError(f"{self.current_dataset} does not have path to database files.")
         db_path = self.database_dirs[self.current_dataset]
         result = Text2SQLTaskPerformanceDataModel(
             scores=evaluate_sql_execution(

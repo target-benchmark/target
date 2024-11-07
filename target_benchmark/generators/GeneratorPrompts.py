@@ -1,3 +1,7 @@
+## Language Models ##
+DEFAULT_LM = "gpt-4o-mini-2024-07-18"
+
+
 ## ALL PURPOSE ##
 DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant."
 

@@ -1,6 +1,6 @@
 import unittest
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
-from target_benchmark.generators.Text2SQLGenerator import Text2SQLGenerater
+from target_benchmark.generators.Text2SQLGenerator import Text2SQLGenerator
 
 
 class TestEvaluator(unittest.TestCase):
@@ -47,7 +47,7 @@ PRIMARY KEY ("People_ID")
 )
 """
         query = "what is the name of the most recently recorded perpetrator?"
-        generator = Text2SQLGenerater()
+        generator = Text2SQLGenerator()
         print(generator.generate(table_str, query))
 
 
