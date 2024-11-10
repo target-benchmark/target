@@ -454,7 +454,7 @@ class TARGET:
         self,
         retriever: AbsRetrieverBase,
         split: Literal["test", "train", "validation"] = "test",
-        batch_size: int = 1,
+        batch_size: int = 64,
         top_k: int = 5,
         retrieval_results_file: Union[str, None] = None,
         downstream_results_file: Union[str, None] = None,
@@ -500,46 +500,47 @@ class TARGET:
             # call embed corpus on the retriever to embed/preprocess the tables
 
             for dataset_name in dataset_names:
-                if dataset_name not in loaded_datasets:
-                    size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
-                    process_duration, wall_clock_duration, embedding_size = (
-                        -1.0,
-                        -1.0,
-                        -1.0,
+                if dataset_name in loaded_datasets:
+                    continue
+                size_of_corpus = self.dataloaders[dataset_name].get_corpus_size()
+                process_duration, wall_clock_duration, embedding_size = (
+                    -1.0,
+                    -1.0,
+                    -1.0,
+                )
+                if standardized:
+                    (
+                        process_duration,
+                        wall_clock_duration,
+                        embedding_size,
+                    ) = self.embed_with_standardized_embeddings(
+                        retriever, dataset_name, client
                     )
-                    if standardized:
-                        (
-                            process_duration,
-                            wall_clock_duration,
-                            embedding_size,
-                        ) = self.embed_with_standardized_embeddings(
-                            retriever, dataset_name, client
-                        )
-                    else:
-                        (
-                            process_duration,
-                            wall_clock_duration,
-                            embedding_size,
-                        ) = self.embed_with_custom_embeddings(
-                            retriever, dataset_name, batch_size
-                        )
-                    loaded_datasets.add(dataset_name)
+                else:
+                    (
+                        process_duration,
+                        wall_clock_duration,
+                        embedding_size,
+                    ) = self.embed_with_custom_embeddings(
+                        retriever, dataset_name, batch_size
+                    )
+                loaded_datasets.add(dataset_name)
 
-                    # create embedding statistics data object to record latency & size of embedding
-                    embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        embedding_creation_duration_process=round(process_duration, 5),
-                        avg_embedding_creation_duration_process=round(
-                            process_duration / size_of_corpus, 5
-                        ),
-                        embedding_creation_duration_wall_clock=round(
-                            wall_clock_duration, 5
-                        ),
-                        avg_embedding_creation_duration_wall_clock=round(
-                            wall_clock_duration / size_of_corpus, 5
-                        ),
-                        embedding_size=round(embedding_size, 5),
-                        avg_embedding_size=round(embedding_size / size_of_corpus, 5),
-                    )
+                # create embedding statistics data object to record latency & size of embedding
+                embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
+                    embedding_creation_duration_process=round(process_duration, 5),
+                    avg_embedding_creation_duration_process=round(
+                        process_duration / size_of_corpus, 5
+                    ),
+                    embedding_creation_duration_wall_clock=round(
+                        wall_clock_duration, 5
+                    ),
+                    avg_embedding_creation_duration_wall_clock=round(
+                        wall_clock_duration / size_of_corpus, 5
+                    ),
+                    embedding_size=round(embedding_size, 5),
+                    avg_embedding_size=round(embedding_size / size_of_corpus, 5),
+                )
 
             self.logger.info("Finished embedding all new corpus!")
 

@@ -7,11 +7,7 @@ from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_FETAQA_DATASET_CONFIG,
     DEFAULT_OTTQA_DATASET_CONFIG,
 )
-from target_benchmark.dictionary_keys import (
-    ANSWER_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
-)
+from target_benchmark.dictionary_keys import ANSWER_COL_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorPrompts import (
@@ -87,6 +83,16 @@ class QuestionAnsweringTask(AbsTask):
             DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
         }
 
+    def _preprocess_table(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+    ) -> str:
+        return build_table_content_string(
+            result.retrieval_results,
+            table_id_to_table,
+        )
+
     def _get_downstream_task_results(
         self,
         query_batch: Dict[str, List],
@@ -98,24 +104,33 @@ class QuestionAnsweringTask(AbsTask):
         currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        return [
-            DownstreamGeneratedResultDataModel(
-                dataset_name=dataset_name,
-                query_id=query_id,
-                generated_results=self.task_generator.generate(
-                    table_str=build_table_content_string(
-                        result.retrieval_results,
-                        table_id_to_table,
-                    ),
-                    query=query_str,
-                ),
-            )
-            for query_id, query_str, result in zip(
-                query_batch[QUERY_ID_COL_NAME],
-                query_batch[QUERY_COL_NAME],
-                retrieval_results,
-            )
-        ]
+        return super()._parallelize(
+            self._preprocess_table,
+            super()._identity_preprocess_query,
+            super()._identity_postprocess_generation,
+            query_batch,
+            retrieval_results,
+            dataset_name,
+            table_id_to_table,
+        )
+        # return [
+        #     DownstreamGeneratedResultDataModel(
+        #         dataset_name=dataset_name,
+        #         query_id=query_id,
+        #         generated_results=self.task_generator.generate(
+        #             table_str=build_table_content_string(
+        #                 result.retrieval_results,
+        #                 table_id_to_table,
+        #             ),
+        #             query=query_str,
+        #         ),
+        #     )
+        #     for query_id, query_str, result in zip(
+        #         query_batch[QUERY_ID_COL_NAME],
+        #         query_batch[QUERY_COL_NAME],
+        #         retrieval_results,
+        #     )
+        # ]
 
     def _update_downstream_task_metrics(
         self,

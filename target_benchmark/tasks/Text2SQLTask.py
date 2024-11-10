@@ -114,6 +114,16 @@ class Text2SQLTask(AbsTask):
             schema_str += f"Table Name: {table[0]}\n Schema:\n{table[1]}\n"
         return schema_str
 
+    def _preprocess_table(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+    ):
+        return "\n".join(
+            self._get_schema(self.current_dataset, id[0])
+            for id in result.retrieval_results
+        )
+
     def _get_downstream_task_results(
         self,
         query_batch: Dict[str, List],

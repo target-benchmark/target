@@ -1,8 +1,9 @@
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import Logger
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
 
 from pydantic import BaseModel
 from tqdm import tqdm
@@ -22,6 +23,8 @@ from target_benchmark.dictionary_keys import (
     GENERIC_DATASET_CONFIG_FIELD,
     HF_DATASET_CONFIG_CORPUS_FIELD,
     HF_DATASET_CONFIG_QUERIES_FIELD,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
     QUERY_TYPE,
     TABLE_ID_COL_NAME,
 )
@@ -474,6 +477,54 @@ class AbsTask(ABC):
         self.true_positive = 0
         self.total_queries_processed = 0
         return performace
+
+    def _identity_preprocess_query(self, query_str: str):
+        return query_str
+
+    def _identity_postprocess_generation(self, generation: Dict[str, str]):
+        return generation["content"]
+
+    def _parallelize(
+        self,
+        preprocess_table_str: Callable,
+        preprocess_query: Callable,
+        postprocess_generation: Callable,
+        query_batch: Dict[str, List],
+        retrieval_results: List[RetrievalResultDataModel],
+        dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+    ) -> List[DownstreamGeneratedResultDataModel]:
+        with ThreadPoolExecutor() as executor:
+            future_to_query_id = {
+                executor.submit(
+                    self.task_generator.generate,
+                    preprocess_table_str(
+                        result,
+                        table_id_to_table,
+                    ),
+                    preprocess_query(query_str),
+                ): query_id
+                for query_id, query_str, result in zip(
+                    query_batch[QUERY_ID_COL_NAME],
+                    query_batch[QUERY_COL_NAME],
+                    retrieval_results,
+                )
+            }
+
+            downstream_task_results = []
+            for future in tqdm.tqdm(
+                as_completed(future_to_query_id), total=len(future_to_query_id)
+            ):
+                query_id = future_to_query_id[future]
+                generated_results = postprocess_generation(future.result())
+                downstream_task_results.append(
+                    DownstreamGeneratedResultDataModel(
+                        dataset_name=dataset_name,
+                        query_id=query_id,
+                        generated_results=generated_results,
+                    ),
+                )
+        return downstream_task_results
 
     @abstractmethod
     def _get_downstream_task_results(
