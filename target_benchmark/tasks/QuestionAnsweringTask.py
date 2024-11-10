@@ -104,10 +104,10 @@ class QuestionAnsweringTask(AbsTask):
         currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        return super()._parallelize(
+        return self._parallelize(
             self._preprocess_table,
-            super()._identity_preprocess_query,
-            super()._identity_postprocess_generation,
+            self._identity_preprocess_query,
+            self._identity_postprocess_generation,
             query_batch,
             retrieval_results,
             dataset_name,
