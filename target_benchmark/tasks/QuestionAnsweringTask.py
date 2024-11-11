@@ -4,8 +4,7 @@ import evaluate
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_FETAQA_DATASET_CONFIG,
-    DEFAULT_OTTQA_DATASET_CONFIG,
+    QUESTION_ANSWERING_DATASETS,
 )
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
@@ -78,14 +77,13 @@ class QuestionAnsweringTask(AbsTask):
     @classmethod
     def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:
         """
-        Returns the default dataset config for the class. MUST be implemented by any inherited task class.
+        Returns the default dataset config for question answering.
+        Includes the following datasets:
+            FeTaQA
+            OTTQA
+            TODO: more to come
         """
-        # TODO: add more things here. this is for testing. carl note 4/24
-        return {
-            # this is for testing!!
-            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
-            DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
-        }
+        return dict(QUESTION_ANSWERING_DATASETS)
 
     def _get_downstream_task_results(
         self,
@@ -147,7 +145,6 @@ class QuestionAnsweringTask(AbsTask):
         """
         Calculate downstream task metrics for the question answering task.
         """
-        print(f"num answers: {len(self.pred_answers)}")
         scores = {}
         for metric_name, evaluator in self.evals.items():
             calculated_result = None

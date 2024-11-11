@@ -73,9 +73,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         query_embedding = self.embed_query(query)
 
         # Query dataset
-        retrieved_ids, distances = self.corpus_index.knn_query(
-            np.array(query_embedding), k=top_k
-        )
+        retrieved_ids, distances = self.corpus_index.knn_query(np.array(query_embedding), k=top_k)
 
         # Get original table_ids (table names) from the retrieved integer identifiers for each query
         retrieved_full_ids = [self.db_table_ids[id] for id in retrieved_ids[0]]
@@ -96,9 +94,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
 
         corpus_identifier = self._get_corpus_identifier(dataset_name)
         # get the paths to the persistence files
-        idx_path, db_table_ids_path = self._construct_persistence_paths(
-            corpus_identifier
-        )
+        idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
 
         if idx_path.exists() and db_table_ids_path.exists():
             return
@@ -129,9 +125,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
             print(type(query), len(query))
             raise e
 
-    def _process_table(
-        self, db_id: str, table_id: str, table: List[List[str]]
-    ) -> Tuple[Tuple[str, str], str]:
+    def _process_table(self, db_id: str, table_id: str, table: List[List[str]]) -> Tuple[Tuple[str, str], str]:
         tup_id = (db_id, table_id)
         num_rows_to_include = len(table)
         if self.num_rows:
@@ -139,16 +133,12 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         while num_rows_to_include >= 0:
             table_str = markdown_table_str(table, num_rows=num_rows_to_include)
             num_tokens = len(self.embedding_model_encoding.encode(table_str))
-            if (
-                num_tokens < 8192
-            ):  # this is not great, need to remove hardcode in future
+            if num_tokens < 8192:  # this is not great, need to remove hardcode in future
                 break
             num_rows_to_include -= 10
 
         if self.num_rows and num_rows_to_include != self.num_rows:
-            print(
-                f"truncated input due to context length constraints, included {num_rows_to_include} rows"
-            )
+            print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
         return tup_id, self.embed_query(table_str)
 
     def _embed_corpus_parallel(self, corpus: Iterable[Dict]) -> Dict:
@@ -163,9 +153,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
                 )
             ]
             embedded_corpus = {}
-            for future in tqdm.tqdm(
-                as_completed(future_to_tup_id), total=len(future_to_tup_id)
-            ):
+            for future in tqdm.tqdm(as_completed(future_to_tup_id), total=len(future_to_tup_id)):
                 tup_id, embedded_table = future.result()
                 embedded_corpus[tup_id] = embedded_table
 
@@ -179,17 +167,11 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
     def _load_hnsw(self, corpus_identifier: str):
         # no need to reload if passed in id is the same as current id
         # and the index and mappings loaded
-        if (
-            corpus_identifier == self.corpus_identifier
-            and self.corpus_index
-            and self.db_table_ids
-        ):
+        if corpus_identifier == self.corpus_identifier and self.corpus_index and self.db_table_ids:
             return
 
         # get the paths to the persistence files
-        idx_path, db_table_ids_path = self._construct_persistence_paths(
-            corpus_identifier
-        )
+        idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
 
         # throw error if files don't exist
         if not idx_path.exists() or not db_table_ids_path.exists():

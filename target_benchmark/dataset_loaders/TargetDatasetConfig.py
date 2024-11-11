@@ -1,5 +1,6 @@
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     HFDatasetConfigDataModel,
+    NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
 
@@ -65,6 +66,12 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     query_type="Text to SQL",
 )
 
+DEFAULT_GITTABLES_DATASET_CONFIG = NeedleInHaystackDatasetConfigDataModel(
+    dataset_name="gittables",
+    hf_corpus_dataset_path="target-benchmark/gittables-corpus",
+    split="train",
+)
+
 # TESTING ONLY
 DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="dummy-dataset",
@@ -72,3 +79,23 @@ DEFAULT_DUMMY_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_queries_dataset_path="jixy2012/mock-hf-queries-dataset",
     query_type="Table Question Answering",
 )
+
+
+NEEDLE_IN_HAYSTACK_DATASETS = {
+    DEFAULT_GITTABLES_DATASET_CONFIG.dataset_name: DEFAULT_GITTABLES_DATASET_CONFIG,
+}
+
+FACT_VER_DATASETS = {
+    DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
+}
+
+TEXT_2_SQL_DATASETS = {
+    DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
+}
+
+QUESTION_ANSWERING_DATASETS = {
+    # this is for testing!!
+    DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
+    DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
+}
