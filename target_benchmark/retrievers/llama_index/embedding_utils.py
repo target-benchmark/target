@@ -7,7 +7,7 @@ import pandas as pd
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Engine, MetaData, String, Table, inspect
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 
 class TableInfo(BaseModel):
@@ -57,10 +57,7 @@ class DuplicateTableNameError(Exception):
 
 @retry(
     reraise=True,
-    retry=(
-        retry_if_exception(json.JSONDecodeError)
-        | retry_if_exception(DuplicateTableNameError),
-    ),
+    retry=retry_if_exception_type(exception_types=(json.JSONDecodeError, DuplicateTableNameError)),
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=32),
 )
