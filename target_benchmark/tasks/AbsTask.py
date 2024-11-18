@@ -49,6 +49,9 @@ from target_benchmark.tasks.TasksDataModels import (
     TaskResultsDataModel,
 )
 from target_benchmark.tasks.utils import (
+    default_postprocess_generation,
+    default_preprocess_query,
+    default_preprocess_table,
     find_resume_indices,
     load_data_model_from_persistence_file,
     validate_dataset_configs,
@@ -231,11 +234,7 @@ class AbsTask(ABC):
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                (
-                    retrieval_results,
-                    process_duration,
-                    wall_clock_duration,
-                ) = self._get_retrieval_results(
+                retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     dataset_name,
@@ -461,32 +460,28 @@ class AbsTask(ABC):
         self.total_queries_processed = 0
         return performace
 
-    def _identity_preprocess_query(self, query_str: str) -> str:
-        return query_str
-
-    def _identity_postprocess_generation(self, generation: Dict[str, str]) -> str:
-        return generation["content"]
-
     def _parallelize(
         self,
-        preprocess_table_str: Callable[[RetrievalResultDataModel, Dict], str],
-        preprocess_query: Callable[[str], str],
-        postprocess_generation: Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]],
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
         table_id_to_table: Dict[Tuple[str, str], List[List]],
+        preprocess_table: Callable[[RetrievalResultDataModel, Dict], str] = default_preprocess_table,
+        preprocess_query: Callable[[str], str] = default_preprocess_query,
+        postprocess_generation: Callable[
+            [Dict[str, str]], Union[str, Tuple[str, str], List[str]]
+        ] = default_postprocess_generation,
     ) -> List[DownstreamGeneratedResultDataModel]:
         """
 
         Executes downstream task answer generation in parallel in order to speed up evals over downstream tasks. This function has the following workflow:
         - start a ThreadPoolExecutor
         - create a generation task to be submitted to the executor for parrallel thread execution
-        - for each table, you can use `preprocess_query` and `preprocess_table_str` to determin how to modify the raw retrieval results before passing them into generators
+        - for each table, you can use `preprocess_query` and `preprocess_table` to determin how to modify the raw retrieval results before passing them into generators
         - for each generated result, you can define a `postprocess_generation` to ensure that the generator returned results are updated correctly before being used to construct `DownstreamGeneratedResultDataModel`s
 
         Parameters:
-            preprocess_table_str (Callable[[RetrievalResultDataModel, Dict], str]):
+            preprocess_table (Callable[[RetrievalResultDataModel, Dict], str]):
                 A callable to preprocess a table's raw string representation before passing it into the generator.
             preprocess_query (Callable[[str], str]):
                 A callable to preprocess a query string before passing it into the generator.
@@ -510,7 +505,7 @@ class AbsTask(ABC):
             future_to_query_id = {
                 executor.submit(
                     self.task_generator.generate,
-                    preprocess_table_str(
+                    preprocess_table(
                         result,
                         table_id_to_table,
                     ),

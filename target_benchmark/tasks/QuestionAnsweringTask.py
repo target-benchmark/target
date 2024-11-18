@@ -19,7 +19,6 @@ from target_benchmark.generators.GeneratorsDataModels import (
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import TableQATaskPerformanceDataModel
-from target_benchmark.tasks.utils import build_table_content_string
 
 
 class QuestionAnsweringTask(AbsTask):
@@ -75,16 +74,6 @@ class QuestionAnsweringTask(AbsTask):
         """
         return dict(QUESTION_ANSWERING_DATASETS)
 
-    def _preprocess_table(
-        self,
-        result: RetrievalResultDataModel,
-        table_id_to_table: Dict[Tuple[str, str], List[List]],
-    ) -> str:
-        return build_table_content_string(
-            result.retrieval_results,
-            table_id_to_table,
-        )
-
     def _get_downstream_task_results(
         self,
         query_batch: Dict[str, List],
@@ -97,9 +86,6 @@ class QuestionAnsweringTask(AbsTask):
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
         return self._parallelize(
-            self._preprocess_table,
-            self._identity_preprocess_query,
-            self._identity_postprocess_generation,
             query_batch,
             retrieval_results,
             dataset_name,

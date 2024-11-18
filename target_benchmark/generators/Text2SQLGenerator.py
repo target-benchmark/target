@@ -31,9 +31,7 @@ class Text2SQLGenerator(DefaultGenerator):
             ),
         ]
 
-        self.output_parser = StructuredOutputParser.from_response_schemas(
-            response_schemas
-        )
+        self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
         self.chat_template = ChatPromptTemplate(
             messages=[
@@ -41,9 +39,7 @@ class Text2SQLGenerator(DefaultGenerator):
                 HumanMessagePromptTemplate.from_template(user_message),
             ],
             input_variables=["table_str", "query_str"],
-            partial_variables={
-                "format_instructions": self.output_parser.get_format_instructions()
-            },
+            partial_variables={"format_instructions": self.output_parser.get_format_instructions()},
         )
         self.chain = self.chat_template | self.language_model | self.output_parser
 

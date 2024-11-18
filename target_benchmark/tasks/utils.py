@@ -19,7 +19,54 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
 )
 from target_benchmark.dictionary_keys import DATASET_NAME
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.retrievers.utils import markdown_table_str
+
+
+def default_preprocess_query(query_str: str) -> str:
+    """
+
+    Returns the same query string. default value of the `AbsTask._parallelize` function's `preprocess_query` parameter.
+
+    Parameters:
+        query_str (str): the query to preprocess
+    Returns:
+        the same query string unchanged.
+
+    """
+    return query_str
+
+
+def default_postprocess_generation(generation: Dict[str, str]) -> str:
+    """
+
+    Returns content of the generator's response. default value of the `AbsTask._parallelize` function's `postprocess_generation` parameter.
+
+    Parameters:
+        generation (dict): generator response
+    Returns:
+        the content from the response
+
+    """
+    return generation["content"]
+
+
+def default_preprocess_table(
+    result: RetrievalResultDataModel,
+    table_id_to_table: Dict[Tuple[str, str], List[List]],
+) -> str:
+    """
+
+    Returns the markdown string of table. default value of the `AbsTask._parallelize` function's `preprocess_table` parameter.
+
+    Parameters:
+        result (RetrievalResultDataModel): retrieval result with the (table_id, db_id) identifiers
+        table_id_to_table (dict): mapping of table id to table nested lists
+    Returns:
+        formatted table content string of all (top k) retrieved tables.
+
+    """
+    return build_table_content_string(result.retrieval_results, table_id_to_table)
 
 
 def build_table_content_string(
@@ -85,24 +132,16 @@ def iterated_execute_sql(
     iterate_num: int,
     include_ves: bool = False,
 ) -> float:
-    assert (
-        len(predicted_sql_and_db) == 2
-    ), f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
-    assert (
-        len(ground_truth_sql_and_db) == 2
-    ), f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
+    assert len(predicted_sql_and_db) == 2, f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
+    assert len(ground_truth_sql_and_db) == 2, f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
     # given a predicted sql, ground truth sql,
     # and the respective db paths of each, get efficiency results.
-    pred_conn = sqlite3.connect(
-        os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite")
-    )
+    pred_conn = sqlite3.connect(os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite"))
     pred_cursor = pred_conn.cursor()
 
-    gt_conn = sqlite3.connect(
-        os.path.join(db_root_path, ground_truth_db, f"{ground_truth_db}.sqlite")
-    )
+    gt_conn = sqlite3.connect(os.path.join(db_root_path, ground_truth_db, f"{ground_truth_db}.sqlite"))
     gt_cursor = gt_conn.cursor()
 
     diff_list = []
@@ -269,9 +308,7 @@ def evaluate_sql_execution(
     return compute_performance_by_diff(exec_result, difficulties, include_ves)
 
 
-def validate_dataset_configs(
-    constructed_config: Dict[str, DatasetConfigDataModel]
-) -> bool:
+def validate_dataset_configs(constructed_config: Dict[str, DatasetConfigDataModel]) -> bool:
     """
     Validate that the dataset configs are constructured correctly.
     Current rules (more to be added potentially):
