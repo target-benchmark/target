@@ -494,6 +494,14 @@ class AbsTask(ABC):
         dataset_name: str,
         table_id_to_table: Dict[Tuple[str, str], List[List]],
     ) -> List[DownstreamGeneratedResultDataModel]:
+        """
+
+        Executes downstream task answer generation in parallel in order to speed up evals over downstream tasks. This function has the following workflow:
+        - start a ThreadPoolExecutor
+        - create a generation task to be submitted to the executor for parrallel thread execution
+        - for each table, you can
+
+        """
         with ThreadPoolExecutor() as executor:
             future_to_query_id = {
                 executor.submit(
