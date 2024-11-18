@@ -11,40 +11,16 @@ from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
-    """
-    The abstrack super class of target dataset loaders.
-    This class contains implementations of utility functions shared by subclasses,
-    but the loading functions are left as abstract so the subclasses will need to implement them separately.
-    """
-
     def __init__(
         self,
         dataset_name: str,
         hf_corpus_dataset_path: str,
         hf_queries_dataset_path: str,
+        num_tables: int = None,
         split: Literal["test", "train", "validation"] = "test",
         data_directory: str = None,
         **kwargs,
     ):
-        """
-        Constructor for the abstract data loader class.
-
-        Parameters:
-            dataset_name (str): a string for the name of the dataset. required
-
-            split (Literal["test", "train", "validation"], optional): split of the data you want to load. defaults to test, since some models may use the train split of existing datasets for training, we opt to use test for our evaluation purposes.
-
-            data_directory (str, optional): a directory where data files are stored. you don't have to provide one if you don't need to persist the file after loading it.
-
-            query_type (str, optional): the type of queries that the dataset focuses on, for example fact verification, table QA, text to sql, etc. defaults to None.
-
-        Instance Variables:
-            aside from instance variables of the same name & purposes as the parameters, there's also:
-
-            self.corpus: a huggingface Dataset object containing the corpus dataset, remains None until load corpus is complete.
-            self.queries: a huggingface Dataset object containing the queries dataset, remains None until load queries is complete.
-        """
-
         if "spider" in dataset_name:
             dataset_name = "spider"
         elif "bird" in dataset_name:
@@ -58,6 +34,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             dataset_name=dataset_name,
             hf_corpus_dataset_path=hf_corpus_dataset_path,
             hf_queries_dataset_path=hf_queries_dataset_path,
+            num_tables=num_tables,
             split=split,
             data_directory=data_directory,
             query_type="Text to SQL",
@@ -67,20 +44,14 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         self.path_to_database_dir: str = None
 
     def _load_corpus(self) -> None:
-        path_to_data_dir = snapshot_download(
-            repo_id=self.hf_corpus_dataset_path, repo_type="dataset"
-        )
+        path_to_data_dir = snapshot_download(repo_id=self.hf_corpus_dataset_path, repo_type="dataset")
         time.sleep(0.5)
-        path_to_context = Path(
-            path_to_data_dir, f"{self.dataset_name}-corpus-{self.split}.json"
-        )
+        path_to_context = Path(path_to_data_dir, f"{self.dataset_name}-corpus-{self.split}.json")
         self.path_to_database_dir = Path(path_to_data_dir, f"{self.split}_database")
         with open(path_to_context, "r") as file:
             self.corpus = json.load(file)
 
-    def persist_corpus_to(
-        self, format: Literal["csv", "json"], path: str = None
-    ) -> None:
+    def persist_corpus_to(self, format: Literal["csv", "json"], path: str = None) -> None:
         """
         Saves the tables in the corpus to a specified location and format.
 
@@ -101,9 +72,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
 
         path_to_write_to = Path(path)
         if path_to_write_to.suffix:
-            raise ValueError(
-                f"this path {path_to_write_to} looks like a path to a file."
-            )
+            raise ValueError(f"this path {path_to_write_to} looks like a path to a file.")
         if not path_to_write_to.exists():
             path_to_write_to.mkdir(parents=True, exist_ok=True)
 

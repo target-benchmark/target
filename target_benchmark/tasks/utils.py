@@ -13,6 +13,10 @@ from func_timeout import FunctionTimedOut, func_timeout
 from pydantic import BaseModel
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
+from target_benchmark.dataset_loaders.LoadersDataModels import (
+    DatasetConfigDataModel,
+    NeedleInHaystackDatasetConfigDataModel,
+)
 from target_benchmark.dictionary_keys import DATASET_NAME
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
 from target_benchmark.retrievers.utils import markdown_table_str
@@ -263,3 +267,26 @@ def evaluate_sql_execution(
     )
     exec_result = sort_results(exec_result)
     return compute_performance_by_diff(exec_result, difficulties, include_ves)
+
+
+def validate_dataset_configs(
+    constructed_config: Dict[str, DatasetConfigDataModel]
+) -> bool:
+    """
+    Validate that the dataset configs are constructured correctly.
+    Current rules (more to be added potentially):
+    - cannot be empty
+    - cannot be only needle in haystack datasets
+    Returns:
+        True if dataset configs are correctly constructed.
+        Otherwise throw assertion error
+    """
+    num_non_nih = 0
+    num_total = 0
+    for dataset_name, config in constructed_config.items():
+        if not isinstance(config, NeedleInHaystackDatasetConfigDataModel):
+            num_non_nih += 1
+        num_total += 1
+    assert num_total != 0, "No datasets configurated!"
+    assert num_non_nih != 0, "Cannot have only Needle in Haystack datasets!"
+    return True

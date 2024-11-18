@@ -196,7 +196,29 @@ def convert_table_representation(
     }
 
 
+def get_filename(
+    out_dir: str,
+    option: str,
+    with_title: bool,
+    ngram: int,
+    hash_size: int,
+    tokenizer: str,
+    dataset_name: str,
+) -> str:
+    basename = "index"
+    basename += "-%s-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s.npz" % (
+        option,
+        str(with_title),
+        ngram,
+        hash_size,
+        tokenizer,
+        dataset_name,
+    )
+    return os.path.join(out_dir, basename)
+
+
 default_hash_size = int(math.pow(2, 24))
+default_tokenizer = "simple"
 
 
 class TFIDFBuilder:
@@ -219,7 +241,8 @@ class TFIDFBuilder:
         option: str = "tfidf",
         ngram: int = 2,
         hash_size: int = default_hash_size,
-        tokenizer: str = "simple",
+        tokenizer: str = default_tokenizer,
+        with_title: bool = True,
     ):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
@@ -236,15 +259,7 @@ class TFIDFBuilder:
 
         freqs = self.get_doc_freqs(count_matrix)
 
-        basename = "index"
-        basename += "-%s-ngram=%d-hash=%d-tokenizer=%s-dataset=%s" % (
-            option,
-            ngram,
-            hash_size,
-            tokenizer,
-            dataset_name,
-        )
-        filename = os.path.join(out_dir, basename)
+        filename = get_filename(out_dir, option, with_title, ngram, hash_size, tokenizer, dataset_name)
 
         metadata = {
             "doc_freqs": freqs,
@@ -254,7 +269,7 @@ class TFIDFBuilder:
             "doc_dict": doc_dict,
         }
         retriever.utils.save_sparse_csr(filename, tfidf, metadata)
-        return filename + ".npz"
+        return filename
 
     def store_contents(self, data_path, save_path, preprocess, num_workers=None):
         """Preprocess and store a corpus of documents in sqlite.
@@ -317,9 +332,7 @@ class TFIDFBuilder:
             row, col, data = [], [], []
             step = max(int(len(doc_ids) / 10), 1)
             batches = [doc_ids[i : i + step] for i in range(0, len(doc_ids), step)]
-            _count = partial(
-                count, ngram, hash_size, tok_class, db_class, db_opts, DOC2IDX
-            )
+            _count = partial(count, ngram, hash_size, tok_class, db_class, db_opts, DOC2IDX)
             for i, batch in enumerate(batches):
                 for b_row, b_col, b_data in pool.imap_unordered(_count, batch):
                     row.extend(b_row)
@@ -328,9 +341,7 @@ class TFIDFBuilder:
             pool.close()
             pool.join()
 
-        count_matrix = sp.csr_matrix(
-            (data, (row, col)), shape=(hash_size, len(doc_ids))
-        )
+        count_matrix = sp.csr_matrix((data, (row, col)), shape=(hash_size, len(doc_ids)))
         count_matrix.sum_duplicates()
         return count_matrix, (DOC2IDX, doc_ids)
 
@@ -429,14 +440,10 @@ def count(ngram, hash_size, tok_class, db_class, db_opts, DOC2IDX, doc_id):
     PROCESS_TOK, PROCESS_DB = init(tok_class, db_class, db_opts)
     row, col, data = [], [], []
     # Tokenize
-    tokens = tokenize_text(
-        retriever.utils.normalize(fetch_text(doc_id, PROCESS_DB)), PROCESS_TOK
-    )
+    tokens = tokenize_text(retriever.utils.normalize(fetch_text(doc_id, PROCESS_DB)), PROCESS_TOK)
 
     # Get ngrams from tokens, with stopword/punctuation filtering.
-    ngrams = tokens.ngrams(
-        n=ngram, uncased=True, filter_fn=retriever.utils.filter_ngram
-    )
+    ngrams = tokens.ngrams(n=ngram, uncased=True, filter_fn=retriever.utils.filter_ngram)
 
     # Hash ngrams and count occurences
     counts = Counter([retriever.utils.hash(gram, hash_size) for gram in ngrams])

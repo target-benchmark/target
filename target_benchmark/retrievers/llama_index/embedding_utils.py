@@ -36,8 +36,6 @@ Table:
 
 Summary: """
 
-client = OpenAI()
-
 
 def get_table_info_with_index(
     table_info_dir: str, db_id: str, table_name: str
@@ -67,6 +65,7 @@ class DuplicateTableNameError(Exception):
     wait=wait_exponential(multiplier=1, min=4, max=32),
 )
 def get_table_info_from_lm(df_str: str, names_tried: set, existing_names: Dict):
+    client = OpenAI()
     table_info_completion = client.beta.chat.completions.parse(
         model="gpt-4o-mini-2024-07-18",
         messages=[

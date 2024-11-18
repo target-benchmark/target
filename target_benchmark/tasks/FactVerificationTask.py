@@ -3,9 +3,7 @@ from typing import Dict, List, Tuple
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
-from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_TABFACT_DATASET_CONFIG,
-)
+from target_benchmark.dataset_loaders.TargetDatasetConfig import FACT_VER_DATASETS
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     QUERY_COL_NAME,
@@ -70,9 +68,7 @@ class FactVerificationTask(AbsTask):
             TabFact
             TODO: more to come
         """
-        return {
-            DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
-        }
+        return dict(FACT_VER_DATASETS)
 
     def _get_downstream_task_results(
         self,

@@ -2,12 +2,9 @@ from typing import Dict, List, Tuple, Union
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
-    DEFAULT_FETAQA_DATASET_CONFIG,
-    DEFAULT_INFAGENTDA_DATASET_CONFIG,
-    DEFAULT_OTTQA_DATASET_CONFIG,
-    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
-    DEFAULT_TABFACT_DATASET_CONFIG,
+    FACT_VER_DATASETS,
+    QUESTION_ANSWERING_DATASETS,
+    TEXT_2_SQL_DATASETS,
 )
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorsDataModels import (
@@ -50,15 +47,10 @@ class TableRetrievalTask(AbsTask):
         """
         Returns the default dataset config for the class. MUST be implemented by any inherited task class.
         """
-        # TODO: add more things here. this is for testing. carl note 4/10
-        return {
-            DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
-            DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
-            DEFAULT_TABFACT_DATASET_CONFIG.dataset_name: DEFAULT_TABFACT_DATASET_CONFIG,
-            DEFAULT_INFAGENTDA_DATASET_CONFIG.dataset_name: DEFAULT_INFAGENTDA_DATASET_CONFIG,
-            DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
-            DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
-        }
+        config = dict(QUESTION_ANSWERING_DATASETS)
+        config.update(dict(FACT_VER_DATASETS))
+        config.update(dict(TEXT_2_SQL_DATASETS))
+        return config
 
     def _get_downstream_task_results(
         self,

@@ -14,15 +14,17 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     GenericDatasetConfigDataModel,
     HFDatasetConfigDataModel,
+    NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
+)
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    NEEDLE_IN_HAYSTACK_DATASETS,
 )
 from target_benchmark.dictionary_keys import (
     CLIENT_KEY_NAME,
     DATABASE_ID_COL_NAME,
     DATASET_NAME,
-    GENERIC_DATASET_CONFIG_FIELD,
     HF_DATASET_CONFIG_CORPUS_FIELD,
-    HF_DATASET_CONFIG_QUERIES_FIELD,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
     QUERY_TYPE,
@@ -49,6 +51,7 @@ from target_benchmark.tasks.TasksDataModels import (
 from target_benchmark.tasks.utils import (
     find_resume_indices,
     load_data_model_from_persistence_file,
+    validate_dataset_configs,
 )
 
 
@@ -56,9 +59,7 @@ class AbsTask(ABC):
     def __init__(
         self,
         task_name: str = None,
-        datasets_config: Union[
-            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
-        ] = None,
+        datasets_config: Union[Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None] = None,
         task_generator: AbsGenerator = None,
         **kwargs,
     ):
@@ -84,13 +85,9 @@ class AbsTask(ABC):
             self.task_name = self.get_default_task_name()
         else:
             self.task_name: str = task_name
-        self.dataset_config: Dict[
-            str, DatasetConfigDataModel
-        ] = self._construct_dataset_config(datasets_config)
+        self.dataset_config: Dict[str, DatasetConfigDataModel] = self._construct_dataset_config(datasets_config)
 
-        self.task_generator = (
-            task_generator if task_generator is not None else DefaultGenerator()
-        )
+        self.task_generator = task_generator if task_generator is not None else DefaultGenerator()
         self.true_positive = 0
         self.total_queries_processed = 0
 
@@ -110,6 +107,10 @@ class AbsTask(ABC):
         """
         pass
 
+    @classmethod
+    def get_available_datasets(cls) -> Dict[str, DatasetConfigDataModel]:
+        return cls.append_nih_datasets(cls._get_default_dataset_config())
+
     def get_task_name(self):
         """
         Returns the name of the task. NOTE: not the same as `get_default_task_name`. this name can be customized upon creation of the task.
@@ -118,9 +119,7 @@ class AbsTask(ABC):
 
     def _construct_dataset_config(
         self,
-        datasets_config: Union[
-            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
-        ] = None,
+        datasets_config: Union[Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None] = None,
     ) -> Dict[str, DatasetConfigDataModel]:
         """
         builds the dataset config according to the user inputted dataset config (if any) and the default for the class.
@@ -135,29 +134,27 @@ class AbsTask(ABC):
             return self._get_default_dataset_config()
         constructed_config = {}
         for key, value in datasets_config.items():
+            assert key not in constructed_config, f"duplicate dataset name {key}!"
             if isinstance(value, Dict):
-                assert (
-                    HF_DATASET_CONFIG_CORPUS_FIELD in value
-                    and HF_DATASET_CONFIG_QUERIES_FIELD in value
-                ) or GENERIC_DATASET_CONFIG_FIELD in value, f"user inputted data config for {key} is missing fields! (current config: {value}) you need {HF_DATASET_CONFIG_CORPUS_FIELD} and {HF_DATASET_CONFIG_QUERIES_FIELD} for loading from huggingface or {GENERIC_DATASET_CONFIG_FIELD} for loading a local dataset."
-                assert key not in constructed_config, f"duplicate dataset name {key}!"
+                # TODO: Needle in haystack config creation
                 if key not in value:
                     value[DATASET_NAME] = key
                 if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
                     constructed_config[key] = Text2SQLDatasetConfigDataModel(**value)
-                if HF_DATASET_CONFIG_CORPUS_FIELD in value:
+                elif value[QUERY_TYPE] == QueryType.NIH.value:
+                    constructed_config[key] = NeedleInHaystackDatasetConfigDataModel(**value)
+                elif HF_DATASET_CONFIG_CORPUS_FIELD in value:
                     constructed_config[key] = HFDatasetConfigDataModel(**value)
                 else:
                     constructed_config[key] = GenericDatasetConfigDataModel(**value)
             elif isinstance(value, DatasetConfigDataModel):
-                assert key not in constructed_config, f"duplicate dataset name {key}!"
                 constructed_config[key] = value
             else:
                 wrong_type = type(value)
                 raise ValueError(
                     f"passed in config {value} is of type {wrong_type}, not one of type dictionary or `DatasetConfigDataModel`."
                 )
-
+        validate_dataset_configs(constructed_config)
         return constructed_config
 
     def get_dataset_config(self) -> Dict[str, DatasetConfigDataModel]:
@@ -176,6 +173,18 @@ class AbsTask(ABC):
         Returns the default dataset config for the task. MUST be implemented by any inherited task class. For example, text-2-sql task would probably have SPIDER and BIRD as default datasets, thus the configs for these datasets should be included in this function when implementing the text-2-sql task class.
         """
         pass
+
+    @classmethod
+    def append_nih_datasets(cls, configs: Dict[str, DatasetConfigDataModel]) -> Dict[str, DatasetConfigDataModel]:
+        """
+        Appends needle in haystack dataset configs to the passed in configs.
+        Needle in Haystack includes the following datasets:
+            gittables
+            TODO: more to come
+        """
+        updated_configs = dict(NEEDLE_IN_HAYSTACK_DATASETS)
+        updated_configs.update(dict(configs))
+        return updated_configs
 
     def task_run(
         self,
@@ -203,8 +212,8 @@ class AbsTask(ABC):
             A dictionary with the results of the retrieval task. Maps dataset name to a task result data model object. The task result data model object records both the retrieval performance and the downstream generation results.
         """
         assert (
-            self.dataset_config.keys() <= dataset_loaders.keys()
-        ), f"task's dataset config is not a subset of the dataset loaders passed in! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
+            dataset_loaders.keys() <= self.dataset_config.keys()
+        ), f"the dataset loaders passed in is not a subset of task's dataset config! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
 
         assert isinstance(retriever, CustomEmbRetr) or isinstance(
             retriever, StandardizedEmbRetr
@@ -220,9 +229,7 @@ class AbsTask(ABC):
             total_process_duration = 0
             total_wall_clock_duration = 0
             total_num_queries = dataset_loader.get_queries_size()
-            progress_bar = tqdm(
-                total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}..."
-            )
+            progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
                 (
                     retrieval_results,
@@ -250,9 +257,7 @@ class AbsTask(ABC):
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
                 if self.total_queries_processed % 200 == 0:
-                    logger.info(
-                        f"number of queries processed: {self.total_queries_processed}"
-                    )
+                    logger.info(f"number of queries processed: {self.total_queries_processed}")
                 progress_bar.update(batch_size)
             progress_bar.update(total_num_queries - progress_bar.n)
             progress_bar.close()
@@ -267,9 +272,7 @@ class AbsTask(ABC):
                 total_wall_clock_duration / num_queries,
             )
             # downstream performance, depends on what task is being run.
-            downstream_task_performance = self._calculate_downstream_task_performance(
-                **kwargs
-            )
+            downstream_task_performance = self._calculate_downstream_task_performance(**kwargs)
 
             task_results[dataset_name] = TaskResultsDataModel(
                 retrieval_performance=retrieval_performance,
@@ -290,17 +293,11 @@ class AbsTask(ABC):
         idx = 0
 
         # get the persisted retrieval results
-        retrieval_results = load_data_model_from_persistence_file(
-            path_to_retrieval_results, RetrievalResultDataModel
-        )
+        retrieval_results = load_data_model_from_persistence_file(path_to_retrieval_results, RetrievalResultDataModel)
         if not retrieval_results:
-            raise ValueError(
-                "File empty or could not parse any RetrievalResultDataModel objects!"
-            )
+            raise ValueError("File empty or could not parse any RetrievalResultDataModel objects!")
         # if previously partial downstream results are obtained, find start indices
-        resume_indices = find_resume_indices(
-            dataset_loaders, path_to_downstream_results
-        )
+        resume_indices = find_resume_indices(dataset_loaders, path_to_downstream_results)
         print(f"resume indicies: {resume_indices}")
         # load all downstream results in file
         all_prev_downstream_results = load_data_model_from_persistence_file(
@@ -329,9 +326,7 @@ class AbsTask(ABC):
                     # just update metrics using the existing index
                     self._update_downstream_task_metrics(
                         query_batch,
-                        prev_downstream_results[dataset_name][
-                            current_index : current_index + batch_size
-                        ],
+                        prev_downstream_results[dataset_name][current_index : current_index + batch_size],
                     )
                     idx += 1
                     continue
@@ -343,9 +338,7 @@ class AbsTask(ABC):
                     self._write_results(downstream_results, path_to_downstream_results)
                 self._update_downstream_task_metrics(query_batch, downstream_results)
                 idx += 1
-            performance = self._calculate_downstream_task_performance(
-                dataset_name=dataset_name, **kwargs
-            )
+            performance = self._calculate_downstream_task_performance(dataset_name=dataset_name, **kwargs)
             task_results[dataset_name] = performance
             logger.info(f"finished running downstream eval on {dataset_name}")
 
@@ -375,9 +368,7 @@ class AbsTask(ABC):
         start_wall_clock_time = time.time()
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
-                raise KeyError(
-                    f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever"
-                )
+                raise KeyError(f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever")
             retrieval_results = retriever.retrieve_batch(
                 queries=query_batch,
                 dataset_name=dataset_name,
@@ -385,9 +376,7 @@ class AbsTask(ABC):
                 client=kwargs.get(CLIENT_KEY_NAME),
             )
         elif isinstance(retriever, CustomEmbRetr):
-            retrieval_results = retriever.retrieve_batch(
-                queries=query_batch, dataset_name=dataset_name, top_k=top_k
-            )
+            retrieval_results = retriever.retrieve_batch(queries=query_batch, dataset_name=dataset_name, top_k=top_k)
         else:
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
@@ -430,9 +419,7 @@ class AbsTask(ABC):
             table_id = query_batch[TABLE_ID_COL_NAME][idx]
             retrieval_result = new_retrieval_results[idx]
             if table_id == "N/A" or not table_id:
-                if str(db_id) in [
-                    result[0] for result in retrieval_result.retrieval_results
-                ]:
+                if str(db_id) in [result[0] for result in retrieval_result.retrieval_results]:
                     self.true_positive += 1
             else:
                 if (str(db_id), str(table_id)) in retrieval_result.retrieval_results:
@@ -464,12 +451,8 @@ class AbsTask(ABC):
                 recall=self.true_positive / self.total_queries_processed,
                 retrieval_duration_process=round(total_retrieval_duration_process, 5),
                 avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
-                retrieval_duration_wall_clock=round(
-                    total_retrieval_duration_wall_clock, 5
-                ),
-                avg_retrieval_duration_wall_clock=round(
-                    avg_retrieval_duration_wall_clock, 5
-                ),
+                retrieval_duration_wall_clock=round(total_retrieval_duration_wall_clock, 5),
+                avg_retrieval_duration_wall_clock=round(avg_retrieval_duration_wall_clock, 5),
             )
         else:
             raise ValueError("haven't processed any queries!")
@@ -520,9 +503,7 @@ class AbsTask(ABC):
             }
 
             downstream_task_results = []
-            for future in tqdm.tqdm(
-                as_completed(future_to_query_id), total=len(future_to_query_id)
-            ):
+            for future in tqdm.tqdm(as_completed(future_to_query_id), total=len(future_to_query_id)):
                 query_id = future_to_query_id[future]
                 generated_results = postprocess_generation(future.result())
                 downstream_task_results.append(
@@ -571,9 +552,7 @@ class AbsTask(ABC):
         pass
 
     @abstractmethod
-    def _calculate_downstream_task_performance(
-        self, **kwargs
-    ) -> DownstreamTaskPerformanceDataModel:
+    def _calculate_downstream_task_performance(self, **kwargs) -> DownstreamTaskPerformanceDataModel:
         """
         All downstreams tasks should fill out this method.
         Uses whatever values that's been tracked & updated for the downstream task and calculate the metrics.
