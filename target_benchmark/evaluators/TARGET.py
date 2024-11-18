@@ -491,6 +491,8 @@ class TARGET:
             nih_dataloaders = list(nih_dataloaders.values())
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name, task_dataloader in task_dataloaders.items():
+                # update embedding name to include id for nih datasets
+                # dataset_name = construct_dataset_name_for_eval(task_dataloader, nih_dataloaders)
                 if dataset_name not in loaded_datasets:
                     task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
                     size_of_corpus = self._calculate_corpus_size(task_dataloader_with_nih)
@@ -522,6 +524,7 @@ class TARGET:
 
             path_to_retrieval_results = self._create_persistence_file(retrieval_results_file)
             path_to_downstream_results = self._create_persistence_file(downstream_results_file)
+
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
