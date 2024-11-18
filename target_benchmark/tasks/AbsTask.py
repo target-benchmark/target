@@ -461,17 +461,17 @@ class AbsTask(ABC):
         self.total_queries_processed = 0
         return performace
 
-    def _identity_preprocess_query(self, query_str: str):
+    def _identity_preprocess_query(self, query_str: str) -> str:
         return query_str
 
-    def _identity_postprocess_generation(self, generation: Dict[str, str]):
+    def _identity_postprocess_generation(self, generation: Dict[str, str]) -> str:
         return generation["content"]
 
     def _parallelize(
         self,
-        preprocess_table_str: Callable,
-        preprocess_query: Callable,
-        postprocess_generation: Callable,
+        preprocess_table_str: Callable[[RetrievalResultDataModel, Dict], str],
+        preprocess_query: Callable[[str], str],
+        postprocess_generation: Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]],
         query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
@@ -482,8 +482,29 @@ class AbsTask(ABC):
         Executes downstream task answer generation in parallel in order to speed up evals over downstream tasks. This function has the following workflow:
         - start a ThreadPoolExecutor
         - create a generation task to be submitted to the executor for parrallel thread execution
-        - for each table, you can
+        - for each table, you can use `preprocess_query` and `preprocess_table_str` to determin how to modify the raw retrieval results before passing them into generators
+        - for each generated result, you can define a `postprocess_generation` to ensure that the generator returned results are updated correctly before being used to construct `DownstreamGeneratedResultDataModel`s
 
+        Parameters:
+            preprocess_table_str (Callable[[RetrievalResultDataModel, Dict], str]):
+                A callable to preprocess a table's raw string representation before passing it into the generator.
+            preprocess_query (Callable[[str], str]):
+                A callable to preprocess a query string before passing it into the generator.
+            postprocess_generation (Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]]):
+                A callable to postprocess the generator's raw output into the desired format.
+            query_batch (Dict[str, List]):
+                A dictionary containing batched query data, including query IDs and query strings.
+            retrieval_results (List[RetrievalResultDataModel]):
+                A list of retrieval results containing information about tables retrieved for each query.
+            dataset_name (str):
+                The name of the dataset being processed.
+            table_id_to_table (Dict[Tuple[str, str], List[List]]):
+                A mapping from table IDs to their corresponding table data.
+
+        Returns:
+            List[DownstreamGeneratedResultDataModel]:
+                A list of downstream task results, where each result contains the dataset name, query ID,
+                and the postprocessed generator outputs.
         """
         with ThreadPoolExecutor() as executor:
             future_to_query_id = {
