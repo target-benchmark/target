@@ -35,7 +35,7 @@ class RetrievalPerformanceDataModel(BaseModel):
     accuracy: float = Field(description="the accuracy of the retrieval")
     precision: float = Field(default=None, description="the precision of the retrieval")
     recall: float = Field(default=None, description="the recall of the retrieval")
-
+    capped_recall: float = Field(default=None, description="Capped recall@k for multi-table retrieval setting.")
     retrieval_duration_process: float = Field(
         ...,
         description="total time took to complete all retrievals in seconds, measured by process time.",
@@ -52,7 +52,6 @@ class RetrievalPerformanceDataModel(BaseModel):
         ...,
         description="avg time too for each retrieval in seconds, measured by wall clock time.",
     )
-
 
 class DownstreamTaskPerformanceDataModel(BaseModel):
     task_name: str = Field(default=None, description="name of the downstream task")
