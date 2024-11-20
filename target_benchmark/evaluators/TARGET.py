@@ -304,7 +304,13 @@ class TARGET:
                     loader, Text2SQLDatasetLoader
                 ), f"data loader for dataset {name} is not a text to sql dataset."
             task.setup_database_dirs(task_dataloaders)
-        return task_dataloaders, nih_dataloaders
+
+        task_dataloaders_updated_name = {}
+        nih_dataloaders_lst = list(nih_dataloaders.values())
+        # update dataset identifier to include id for nih datasets
+        for dataloader in task_dataloaders.values():
+            task_dataloaders_updated_name[construct_dataset_name_for_eval(dataloader, nih_dataloaders_lst)] = dataloader
+        return task_dataloaders_updated_name, nih_dataloaders
 
     def setup_logger(self, persist_log: bool = True, log_file_path: str = None) -> logging.Logger:
         """
@@ -495,8 +501,6 @@ class TARGET:
             nih_dataloaders = list(nih_dataloaders.values())
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name, task_dataloader in task_dataloaders.items():
-                # update embedding name to include id for nih datasets
-                dataset_name = construct_dataset_name_for_eval(task_dataloader, nih_dataloaders)
                 if dataset_name not in loaded_datasets:
                     task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
                     size_of_corpus = self._calculate_corpus_size(task_dataloader_with_nih)
