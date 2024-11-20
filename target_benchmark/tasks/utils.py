@@ -284,5 +284,5 @@ def validate_dataset_configs(constructed_config: Dict[str, DatasetConfigDataMode
         num_total += 1
     assert num_total != 0, "No datasets configurated!"
     assert num_non_nih != 0, "Cannot have only Needle in Haystack datasets!"
-    assert num_text2sql and num_non_nih >= num_total, "Cannot have T2SQL & NIH!"
+    assert not num_text2sql or (num_text2sql and num_non_nih >= num_total), "Cannot have T2SQL & NIH!"
     return True
