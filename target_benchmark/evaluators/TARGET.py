@@ -32,7 +32,11 @@ from target_benchmark.dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
-from target_benchmark.evaluators.utils import corpus_gen, find_tasks
+from target_benchmark.evaluators.utils import (
+    construct_dataset_name_for_eval,
+    corpus_gen,
+    find_tasks,
+)
 from target_benchmark.retrievers import (
     AbsCustomEmbeddingRetriever,
     AbsRetrieverBase,
@@ -492,7 +496,7 @@ class TARGET:
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name, task_dataloader in task_dataloaders.items():
                 # update embedding name to include id for nih datasets
-                # dataset_name = construct_dataset_name_for_eval(task_dataloader, nih_dataloaders)
+                dataset_name = construct_dataset_name_for_eval(task_dataloader, nih_dataloaders)
                 if dataset_name not in loaded_datasets:
                     task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
                     size_of_corpus = self._calculate_corpus_size(task_dataloader_with_nih)

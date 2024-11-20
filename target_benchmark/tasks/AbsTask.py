@@ -228,11 +228,7 @@ class AbsTask(ABC):
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                (
-                    retrieval_results,
-                    process_duration,
-                    wall_clock_duration,
-                ) = self._get_retrieval_results(
+                retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     dataset_name,
