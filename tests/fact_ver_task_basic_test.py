@@ -39,6 +39,7 @@ class TestTableRetriever(unittest.TestCase):
             (0, "Table4"): [["fact"], ["Minecraft is such a fun game."]],
             (0, "Table5"): [["fact"], ["Today's temperature is 22.1 celsius."]],
         }
+        self.mock_dataset_loader.get_queries_size.return_value = 2
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 {
@@ -67,7 +68,7 @@ class TestTableRetriever(unittest.TestCase):
     def test_fact_ver_task_run(self):
         results = self.fact_ver.task_run(
             retriever=self.mock_retriever,
-            dataset_loaders={"tab-fact": self.mock_dataset_loader},
+            dataset_loaders={"tabfact": self.mock_dataset_loader},
             logger=logger,
             batch_size=1,
             top_k=2,
@@ -83,15 +84,15 @@ class TestTableRetriever(unittest.TestCase):
                 "table_id": ["Table1", "Table5"],
                 "database_id": [0, 0],
             },
-            dataset_name="tab-fact",
+            dataset_name="tabfact",
             top_k=2,
         )
         self.assertDictEqual(
-            results["tab-fact"].retrieval_performance.model_dump(),
+            results["tabfact"].retrieval_performance.model_dump(),
             {"k": 2, "accuracy": 1.0, "precision": None, "recall": None},
         )
         self.assertDictEqual(
-            results["tab-fact"].downstream_task_performance.model_dump(),
+            results["tabfact"].downstream_task_performance.model_dump(),
             {
                 "task_name": "Fact Verification Task",
                 "scores": {"accuracy": 1.0, "f1": 1.0, "precision": 1.0, "recall": 1.0},

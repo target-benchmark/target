@@ -122,7 +122,7 @@ class TestEvaluator(unittest.TestCase):
             results = self.evaluator.run(mock_retriever, top_k=2)
             self.assertIsInstance(results, dict)
             self.assertEqual(list(results.keys()), ["Table Retrieval Task"])
-            expected_vals = {"k": 2, "accuracy": 0.5, "precision": None, "recall": None}
+            expected_vals = {"k": 2, "accuracy": 0.5, "precision": None, "recall": 0.5}
             actual_vals = results["Table Retrieval Task"]["fetaqa"].retrieval_performance.model_dump()
 
             for key, value in expected_vals.items():

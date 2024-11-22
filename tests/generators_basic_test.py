@@ -19,7 +19,8 @@ class TestEvaluator(unittest.TestCase):
         """
         query = "What's the salary of Carol Lee?"
         answer = self.dg.generate(table_str=table_str, query=query)
-        print(answer)
+        self.assertIn("content", answer)
+        self.assertIn("75,000", answer["content"])
 
     def test_text2sql_generator(self):
         table_str = """Table Name: perpetrator
@@ -49,7 +50,10 @@ PRIMARY KEY ("People_ID")
 """
         query = "what is the name of the most recently recorded perpetrator?"
         generator = Text2SQLGenerator()
-        print(generator.generate(table_str, query))
+        answer = generator.generate(table_str, query)
+        self.assertIn("chain_of_thought_reasoning", answer)
+        self.assertIn("sql_query", answer)
+        self.assertIn("database_id", answer)
 
 
 if __name__ == "__main__":
