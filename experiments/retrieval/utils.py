@@ -73,6 +73,7 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
     if retriever_name == "llamaindex":
         return LlamaIndexRetriever()
     elif "hnsw_openai" in retriever_name:
+        out_dir = None
         if out_dir_appendix:
             out_dir = Path(HNSWOpenAIEmbeddingRetriever.get_default_out_dir()) / out_dir_appendix
         return HNSWOpenAIEmbeddingRetriever(num_rows=num_rows, out_dir=out_dir)

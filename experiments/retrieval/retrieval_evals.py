@@ -18,11 +18,11 @@ def main():
     retriever = initialize_retriever(retriever_name, num_rows)
 
     evals = [
-        ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
-        ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
-        ("tabfact", TARGET(("Table Retrieval Task", "tabfact")), "test"),
+        # ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
+        # ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
+        # ("tabfact", TARGET(("Table Retrieval Task", "tabfact")), "test"),
         ("spider", TARGET(("Table Retrieval Task", "spider-test")), "test"),
-        ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
+        # ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
     ]
     for dataset_name, target_eval, split in evals:
         results = run_eval_for_top_ks(retriever, retriever_name, top_ks, target_eval, dataset_name, split, persist)

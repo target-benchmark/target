@@ -420,12 +420,15 @@ class AbsTask(ABC):
             if not isinstance(gold_table_id, list):
                 # Treat all datasets (even single-table settings) as a list
                 gold_table_id = [gold_table_id]
-            normalized_gold_tables = set((gold_db_id, t) for t in gold_table_id)  # E.g. {('soccer_3', 'club'), ('soccer_3', 'players')}
-            self.num_overlap = len(normalized_gold_tables.intersection(set(retrieval_result.retrieval_results)))
+            normalized_gold_tables = set(
+                (gold_db_id, t) for t in gold_table_id
+            )  # E.g. {('soccer_3', 'club'), ('soccer_3', 'players')}
+            self.num_overlap += len(normalized_gold_tables.intersection(set(retrieval_result.retrieval_results)))
             self.total_tables += len(normalized_gold_tables)
             # Cap denominator at len(retrieval_result.retrieval_results) (aka `k`)
             self.total_tables_capped += min(len(normalized_gold_tables), len(retrieval_result.retrieval_results))
             self.total_queries_processed += 1
+
     def _calculate_table_retrieval_performance(
         self,
         top_k: int,
