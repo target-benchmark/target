@@ -24,6 +24,9 @@ from target_benchmark.retrievers.utils import (
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 default_out_dir = os.path.join(file_dir, "retrieval_files", "openai")
+default_embedding_model_id = "text-embedding-3-small"
+default_max_tokens = 8192
+default_tokenizer_id = "cl100k_base"
 
 
 class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
@@ -35,7 +38,8 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
     def __init__(
         self,
         out_dir: str = None,
-        embedding_model_id: str = "text-embedding-3-small",
+        embedding_model_id: str = default_embedding_model_id,
+        tokenizer_id: str = default_tokenizer_id,
         expected_corpus_format: str = "nested array",
         num_rows: Union[int, None] = None,
     ):
@@ -53,7 +57,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         self.corpus_identifier = ""
         self.embedding_model_id = embedding_model_id
         # TODO: need to get this dynamically according to model id
-        self.embedding_model_encoding = tiktoken.get_encoding("cl100k_base")
+        self.embedding_model_encoding = tiktoken.get_encoding(default_tokenizer_id)
         self.num_rows = num_rows
         self.corpus_index = None
         self.db_table_ids = None
@@ -97,6 +101,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
 
         if idx_path.exists() and db_table_ids_path.exists():
+            print("using previously constructed index")
             return
 
         embedded_corpus = self._embed_corpus_parallel(corpus)
@@ -114,13 +119,13 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=32),
     )
-    def embed_query(self, query: str):
+    def embed_query(self, query: str) -> np.ndarray:
         try:
             response = self.client.embeddings.create(
                 model=self.embedding_model_id,
                 input=query,
             )
-            return response.data[0].embedding
+            return np.array(response.data[0].embedding)
         except BadRequestError as e:
             print(type(query), len(query))
             raise e
@@ -133,13 +138,29 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         while num_rows_to_include >= 0:
             table_str = markdown_table_str(table, num_rows=num_rows_to_include)
             num_tokens = len(self.embedding_model_encoding.encode(table_str))
-            if num_tokens < 8192:  # this is not great, need to remove hardcode in future
+            if num_tokens < default_max_tokens:  # this is not great, need to remove hardcode in future
                 break
             num_rows_to_include -= 10
 
         if self.num_rows and num_rows_to_include != self.num_rows:
             print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
-        return tup_id, self.embed_query(table_str)
+        return tup_id, self._chunking_text(table_str)
+
+    def _chunking_text(self, text: str, max_tokens: int = default_max_tokens, overlap: int = 0):
+        """
+
+        break text into chunks if exceeding the limit of embedding model
+
+        """
+        tokens = self.embedding_model_encoding.encode(text)
+        if len(tokens) > max_tokens:
+            chunk_embs = []
+            for i in range(0, len(tokens), max_tokens - overlap):
+                chunk = tokens[i : i + max_tokens]
+                chunk_embs.append(self.embed_query(self.embedding_model_encoding.decode(chunk)))
+            return np.average(np.stack(chunk_embs, axis=0), axis=0)
+        else:
+            return self.embed_query(text)
 
     def _embed_corpus_parallel(self, corpus: Iterable[Dict]) -> Dict:
         with ThreadPoolExecutor() as executor:

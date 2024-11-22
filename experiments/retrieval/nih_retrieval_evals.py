@@ -21,7 +21,7 @@ def main():
     top_ks = args.top_ks
     num_nih_tables = args.num_nih_tables
 
-    retriever = initialize_retriever(retriever_name, num_rows, "nih")
+    retriever = initialize_retriever(retriever_name, num_rows, f"nih/{num_nih_tables}")
     gittables_config = DEFAULT_GITTABLES_DATASET_CONFIG.model_copy()
     gittables_config.num_tables = num_nih_tables
     table_retrieval_task = TableRetrievalTask(
