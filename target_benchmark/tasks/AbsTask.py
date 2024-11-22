@@ -134,6 +134,7 @@ class AbsTask(ABC):
             assert key not in constructed_config, f"duplicate dataset name {key}!"
             if isinstance(value, Dict):
                 # TODO: Needle in haystack config creation
+                assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
                 if key not in value:
                     value[DATASET_NAME] = key
                 if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
@@ -415,6 +416,7 @@ class AbsTask(ABC):
             db_id = query_batch[DATABASE_ID_COL_NAME][idx]
             table_id = query_batch[TABLE_ID_COL_NAME][idx]
             retrieval_result = new_retrieval_results[idx]
+            print(db_id, table_id, retrieval_result)
             if table_id == "N/A" or not table_id:
                 if str(db_id) in [result[0] for result in retrieval_result.retrieval_results]:
                     self.true_positive += 1

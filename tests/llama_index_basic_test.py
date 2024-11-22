@@ -22,6 +22,7 @@ class TestLlamaIndexBasics(unittest.TestCase):
         llama = LlamaIndexRetriever()
 
         res = self.evaluator.run(llama)
+        self.assertIn("Table Retrieval Task", res)
         print(res)
 
 

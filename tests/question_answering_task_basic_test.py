@@ -44,6 +44,7 @@ class TestTableRetriever(unittest.TestCase):
             (0, "Table4"): [["fourth random table"], ["fourth item"]],
             (0, "Table5"): [["fifth random table"], ["fifth item"]],
         }
+        self.mock_dataset_loader.get_queries_size.return_value = 2
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 {

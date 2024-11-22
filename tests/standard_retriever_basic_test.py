@@ -52,6 +52,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         )
 
         self.mock_dataset_loader = MagicMock()
+        self.mock_dataset_loader.get_queries_size.return_value = 2
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 {

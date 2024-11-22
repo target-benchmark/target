@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_FETAQA_DATASET_CONFIG,
-    DEFAULT_WIKITQ_DATASET_CONFIG,
 )
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
@@ -32,15 +31,16 @@ class TestTableRetriever(unittest.TestCase):
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=1,
-                retrieval_results=[(0, "Table1"), (0, "Table2")],
+                retrieval_results=[("0", "Table1"), ("0", "Table2")],
             ),
             RetrievalResultDataModel(
                 dataset_name="fetaqa",
                 query_id=2,
-                retrieval_results=[(0, "Table3"), (0, "Table4")],
+                retrieval_results=[("0", "Table3"), ("0", "Table4")],
             ),
         ]
         self.mock_dataset_loader = MagicMock()
+        self.mock_dataset_loader.get_queries_size.return_value = 2
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 {
@@ -88,10 +88,17 @@ class TestTableRetriever(unittest.TestCase):
         self.assertIsInstance(fetaqa_results, TaskResultsDataModel)
         self.assertIsInstance(retr_perf, RetrievalPerformanceDataModel)
         self.assertIsInstance(downs_perf, DownstreamTaskPerformanceDataModel)
-        self.assertEqual(
-            retr_perf.model_dump(),
-            {"k": 2, "accuracy": 0.5, "precision": None, "recall": None},
-        )
+        performance_dict = retr_perf.model_dump()
+        self.assertIn("k", performance_dict)
+        self.assertEqual(2, performance_dict["k"])
+        self.assertIn("avg_retrieval_duration_wall_clock", performance_dict)
+        self.assertIn("avg_retrieval_duration_process", performance_dict)
+        self.assertIn("retrieval_duration_wall_clock", performance_dict)
+        self.assertIn("retrieval_duration_process", performance_dict)
+        self.assertIn("accuracy", performance_dict)
+        self.assertEqual(0.5, performance_dict["accuracy"])
+        self.assertIn("recall", performance_dict)
+        self.assertEqual(0.5, performance_dict["recall"])
         self.assertEqual(downs_perf.model_dump(), {"task_name": None, "scores": None})
         self.assertEqual(self.retr_task.true_positive, 0)
         self.assertEqual(self.retr_task.total_queries_processed, 0)
@@ -99,19 +106,15 @@ class TestTableRetriever(unittest.TestCase):
     def test_custom_dataset_config(self):
         new_task = TableRetrievalTask(
             datasets_config={
-                "wikitq": {
-                    "dataset_name": "wikitq",
-                    "hf_corpus_dataset_path": "target-benchmark/wikitq-corpus",
-                    "hf_queries_dataset_path": "target-benchmark/wikitq-queries",
+                "fetaqa": {
+                    "dataset_name": "fetaqa",
+                    "hf_corpus_dataset_path": "target-benchmark/fetaqa-corpus",
+                    "hf_queries_dataset_path": "target-benchmark/fetaqa-queries",
                     "query_type": "Table Question Answering",
                 }
             }
         )
         constructed_task = new_task.get_dataset_config()
-        self.assertEqual(
-            constructed_task["wikitq"].model_dump(),
-            DEFAULT_WIKITQ_DATASET_CONFIG.model_dump(),
-        )
         self.assertEqual(
             constructed_task["fetaqa"].model_dump(),
             DEFAULT_FETAQA_DATASET_CONFIG.model_dump(),
