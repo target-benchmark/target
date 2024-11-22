@@ -1,6 +1,7 @@
-from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from target_benchmark.evaluators.TARGET import TARGET
 import unittest
+
+from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 
 
 class TestEndToEnd(unittest.TestCase):
@@ -15,6 +16,7 @@ class TestEndToEnd(unittest.TestCase):
         eval = TARGET(("Table Retrieval Task", ["fetaqa", "gittables"]))
         res = eval.run(self.ottqa_retriever, top_k=20, split="test")
         print(res)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,5 @@
 import unittest
+
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.Text2SQLGenerator import Text2SQLGenerator
 

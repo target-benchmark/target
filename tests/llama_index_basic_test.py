@@ -1,12 +1,13 @@
 import unittest
 
 from target_benchmark.evaluators.TARGET import TARGET
-
-from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
+from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import (
+    LlamaIndexRetriever,
+)
 from target_benchmark.tasks import TableRetrievalTask
 
 
-class TestHyseBasics(unittest.TestCase):
+class TestLlamaIndexBasics(unittest.TestCase):
     def setUp(self):
         self.fetaqa_dummy_config = {
             "dataset_name": "fetaqa",
@@ -17,10 +18,10 @@ class TestHyseBasics(unittest.TestCase):
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
         self.evaluator = TARGET(downstream_tasks=self.trt)
 
-    def test_run_hyse_on_dummy(self):
-        hyse = HySERetriever()
+    def test_run_llama_on_dummy(self):
+        llama = LlamaIndexRetriever()
 
-        res = self.evaluator.run(hyse)
+        res = self.evaluator.run(llama)
         print(res)
 
 

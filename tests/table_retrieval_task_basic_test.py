@@ -1,28 +1,29 @@
+import logging
 import unittest
 from unittest.mock import MagicMock
-from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
-from target_benchmark.tasks.TasksDataModels import *
+
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
-    DEFAULT_WIKITQ_DATASET_CONFIG,
     DEFAULT_FETAQA_DATASET_CONFIG,
+    DEFAULT_WIKITQ_DATASET_CONFIG,
 )
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-
-import logging
+from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
+from target_benchmark.tasks.TasksDataModels import (
+    DownstreamTaskPerformanceDataModel,
+    RetrievalPerformanceDataModel,
+    TaskResultsDataModel,
+)
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 # Get a logger
 logger = logging.getLogger(__name__)
 
 
 class TestTableRetriever(unittest.TestCase):
-
     def setUp(self):
         self.retr_task = TableRetrievalTask()
         self.mock_retriever = MagicMock()
@@ -40,23 +41,20 @@ class TestTableRetriever(unittest.TestCase):
             ),
         ]
         self.mock_dataset_loader = MagicMock()
-        self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda batch_size: iter(
-                [
-                    {
-                        "query_id": [1, 2],
-                        "query": ["Test query", "Test query 2"],
-                        "answer": ["Test answer", "Test answer 2"],
-                        "table_id": ["Table1", "Table5"],
-                        "database_id": [0, 0],
-                    }
-                ],
-            )
+        self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
+            [
+                {
+                    "query_id": [1, 2],
+                    "query": ["Test query", "Test query 2"],
+                    "answer": ["Test answer", "Test answer 2"],
+                    "table_id": ["Table1", "Table5"],
+                    "database_id": [0, 0],
+                }
+            ],
         )
 
     def test_basic_task_run(self):
-
-        results = self.retr_task.task_run(
+        self.retr_task.task_run(
             retriever=self.mock_retriever,
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,
@@ -99,7 +97,6 @@ class TestTableRetriever(unittest.TestCase):
         self.assertEqual(self.retr_task.total_queries_processed, 0)
 
     def test_custom_dataset_config(self):
-
         new_task = TableRetrievalTask(
             datasets_config={
                 "wikitq": {
@@ -121,7 +118,6 @@ class TestTableRetriever(unittest.TestCase):
         )
 
     def test_incomplete_and_wrong_dataset_config(self):
-
         hf_missing_corpus = {
             "wikitq": {
                 "dataset_name": "wikitq",
@@ -140,11 +136,9 @@ class TestTableRetriever(unittest.TestCase):
             }
         }
         with self.assertRaises(AssertionError):
-            new_task = TableRetrievalTask(datasets_config=hf_missing_corpus)
-            another_new_task = TableRetrievalTask(datasets_config=hf_missing_queries)
-            third_new_task = TableRetrievalTask(
-                datasets_config=generic_missing_dataset_path
-            )
+            TableRetrievalTask(datasets_config=hf_missing_corpus)
+            TableRetrievalTask(datasets_config=hf_missing_queries)
+            TableRetrievalTask(datasets_config=generic_missing_dataset_path)
 
 
 if __name__ == "__main__":
