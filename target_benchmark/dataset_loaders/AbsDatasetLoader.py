@@ -176,7 +176,7 @@ class AbsDatasetLoader(ABC):
     def get_queries_for_task(self, start_idx: int = 0, batch_size: int = 64) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
-        for batch in self.queries.iter(batch_size):
+        for batch in self.queries.select(range(start_idx, self.get_queries_size())).iter(batch_size):
             yield batch
 
     def get_dataset_name(self) -> str:
