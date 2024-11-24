@@ -21,7 +21,7 @@ class DummyRetriever(AbsCustomEmbeddingRetriever):
 
     def embed_corpus(self, dataset_name, corpus) -> None:
         self.num_tables = 0
-        for entry in corpus:
+        for _ in corpus:
             self.num_tables += 1
 
     def reset(self) -> int:
