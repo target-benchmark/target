@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from target_benchmark.dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
-from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
