@@ -43,6 +43,7 @@ def load_data_model_from_persistence_file(
     with open(path_to_persistence, "r") as file:
         for line in file.readlines():
             loaded_models.append(datamodel.model_validate_json(line))
+    loaded_models.sort(lambda x: x.query_id)
     return loaded_models
 
 
@@ -85,24 +86,16 @@ def iterated_execute_sql(
     iterate_num: int,
     include_ves: bool = False,
 ) -> float:
-    assert (
-        len(predicted_sql_and_db) == 2
-    ), f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
-    assert (
-        len(ground_truth_sql_and_db) == 2
-    ), f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
+    assert len(predicted_sql_and_db) == 2, f"malformatted predicted sql db pairs: {predicted_sql_and_db}"
+    assert len(ground_truth_sql_and_db) == 2, f"malformatted ground truth sql db pairs: {ground_truth_sql_and_db}"
     predicted_sql, predicted_db = predicted_sql_and_db
     ground_truth, ground_truth_db = ground_truth_sql_and_db
     # given a predicted sql, ground truth sql,
     # and the respective db paths of each, get efficiency results.
-    pred_conn = sqlite3.connect(
-        os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite")
-    )
+    pred_conn = sqlite3.connect(os.path.join(db_root_path, predicted_db, f"{predicted_db}.sqlite"))
     pred_cursor = pred_conn.cursor()
 
-    gt_conn = sqlite3.connect(
-        os.path.join(db_root_path, ground_truth_db, f"{ground_truth_db}.sqlite")
-    )
+    gt_conn = sqlite3.connect(os.path.join(db_root_path, ground_truth_db, f"{ground_truth_db}.sqlite"))
     gt_cursor = gt_conn.cursor()
 
     diff_list = []
@@ -269,9 +262,7 @@ def evaluate_sql_execution(
     return compute_performance_by_diff(exec_result, difficulties, include_ves)
 
 
-def validate_dataset_configs(
-    constructed_config: Dict[str, DatasetConfigDataModel]
-) -> bool:
+def validate_dataset_configs(constructed_config: Dict[str, DatasetConfigDataModel]) -> bool:
     """
     Validate that the dataset configs are constructured correctly.
     Current rules (more to be added potentially):

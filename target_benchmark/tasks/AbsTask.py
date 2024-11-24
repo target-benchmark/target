@@ -230,11 +230,7 @@ class AbsTask(ABC):
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                (
-                    retrieval_results,
-                    process_duration,
-                    wall_clock_duration,
-                ) = self._get_retrieval_results(
+                retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     dataset_name,
@@ -244,14 +240,12 @@ class AbsTask(ABC):
                 total_process_duration += process_duration
                 total_wall_clock_duration += wall_clock_duration
                 self._update_retrieval_metrics(query_batch, retrieval_results)
-                if path_to_retrieval_results:
-                    self._write_results(retrieval_results, path_to_retrieval_results)
+                self._write_results(retrieval_results, path_to_retrieval_results)
 
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieval_results, dataset_name, table_id_to_table
                 )
-                if path_to_downstream_results:
-                    self._write_results(downstream_results, path_to_downstream_results)
+                self._write_results(downstream_results, path_to_downstream_results)
 
                 self._update_downstream_task_metrics(query_batch, downstream_results)
 
@@ -289,7 +283,6 @@ class AbsTask(ABC):
         **kwargs,
     ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
         task_results = {}
-        idx = 0
 
         # get the persisted retrieval results
         retrieval_results = load_data_model_from_persistence_file(path_to_retrieval_results, RetrievalResultDataModel)
@@ -312,6 +305,7 @@ class AbsTask(ABC):
                 prev_downstream_results[current_dataset_name].append(result)
         # TODO: support batching
         batch_size = 1
+        idx = 0
         for dataset_name, dataset_loader in dataset_loaders.items():
             table_id_to_table = dataset_loader.get_table_id_to_table()
             resume_index = resume_indices[dataset_name]
@@ -327,7 +321,7 @@ class AbsTask(ABC):
                         query_batch,
                         prev_downstream_results[dataset_name][current_index : current_index + batch_size],
                     )
-                    idx += 1
+                    idx += batch_size
                     continue
                 retrieved_table = retrieval_results[idx : idx + batch_size]
                 downstream_results = self._get_downstream_task_results(
@@ -389,8 +383,10 @@ class AbsTask(ABC):
     def _write_results(
         self,
         results: List[BaseModel],
-        path_to_persistence: Path,
+        path_to_persistence: Union[Path, None],
     ):
+        if not path_to_persistence:
+            return
         if not path_to_persistence.exists():
             path_to_persistence.touch()
         with open(path_to_persistence, "a") as file:
