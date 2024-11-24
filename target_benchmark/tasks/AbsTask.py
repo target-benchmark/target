@@ -85,8 +85,10 @@ class AbsTask(ABC):
         self.dataset_config: Dict[str, DatasetConfigDataModel] = self._construct_dataset_config(datasets_config)
 
         self.task_generator = task_generator if task_generator is not None else DefaultGenerator()
-        self.true_positive = 0
         self.total_queries_processed = 0
+        self.num_overlap = 0
+        self.total_tables = 0
+        self.total_tables_capped = 0
 
     @classmethod
     @abstractmethod
@@ -413,16 +415,19 @@ class AbsTask(ABC):
         """
         num_queries = len(new_retrieval_results)
         for idx in range(num_queries):
-            db_id = query_batch[DATABASE_ID_COL_NAME][idx]
-            table_id = query_batch[TABLE_ID_COL_NAME][idx]
+            gold_db_id: str = query_batch[DATABASE_ID_COL_NAME][idx]
+            gold_table_id: Union[str, List[str]] = query_batch[TABLE_ID_COL_NAME][idx]
             retrieval_result = new_retrieval_results[idx]
-            print(db_id, table_id, retrieval_result)
-            if table_id == "N/A" or not table_id:
-                if str(db_id) in [result[0] for result in retrieval_result.retrieval_results]:
-                    self.true_positive += 1
-            else:
-                if (str(db_id), str(table_id)) in retrieval_result.retrieval_results:
-                    self.true_positive += 1
+            if not isinstance(gold_table_id, list):
+                # Treat all datasets (even single-table settings) as a list
+                gold_table_id = [gold_table_id]
+            normalized_gold_tables = set(
+                (gold_db_id, t) for t in gold_table_id
+            )  # E.g. {('soccer_3', 'club'), ('soccer_3', 'players')}
+            self.num_overlap += len(normalized_gold_tables.intersection(set(retrieval_result.retrieval_results)))
+            self.total_tables += len(normalized_gold_tables)
+            # Cap denominator at len(retrieval_result.retrieval_results) (aka `k`)
+            self.total_tables_capped += min(len(normalized_gold_tables), len(retrieval_result.retrieval_results))
             self.total_queries_processed += 1
 
     def _calculate_table_retrieval_performance(
@@ -446,8 +451,10 @@ class AbsTask(ABC):
             # TODO: update recall calculation once text 2 sql in db retrieval is done
             performace = RetrievalPerformanceDataModel(
                 k=top_k,
-                accuracy=self.true_positive / self.total_queries_processed,
-                recall=self.true_positive / self.total_queries_processed,
+                # TODO: what is meant to be captured by accuracy?
+                accuracy=self.num_overlap / self.total_tables,
+                recall=self.num_overlap / self.total_tables,
+                capped_recall=self.num_overlap / self.total_tables_capped,
                 retrieval_duration_process=round(total_retrieval_duration_process, 5),
                 avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
                 retrieval_duration_wall_clock=round(total_retrieval_duration_wall_clock, 5),
@@ -456,8 +463,10 @@ class AbsTask(ABC):
         else:
             raise ValueError("haven't processed any queries!")
 
-        self.true_positive = 0
         self.total_queries_processed = 0
+        self.num_overlap = 0
+        self.total_tables = 0
+        self.total_tables_capped = 0
         return performace
 
     @abstractmethod
