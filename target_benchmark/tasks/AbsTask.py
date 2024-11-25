@@ -222,7 +222,6 @@ class AbsTask(ABC):
             # truncate batch as necessary
             updated_batch = update_query_batch(query_batch, num_prev_res)
             # call retriever to get new results
-            print(f"query batch original size: {len(query_batch[DATABASE_ID_COL_NAME])}, previous res num: {num_prev_res}")
             retrieval_results_new, process_duration, wall_clock_duration = self._get_retrieval_results(
                 retriever,
                 updated_batch,
@@ -467,7 +466,6 @@ class AbsTask(ABC):
         """
         start_process_time = time.process_time()
         start_wall_clock_time = time.time()
-        print(f"query batch size: {len(query_batch[DATABASE_ID_COL_NAME])}")
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever")

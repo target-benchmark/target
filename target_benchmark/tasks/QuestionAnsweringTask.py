@@ -27,16 +27,12 @@ from target_benchmark.tasks.utils import build_table_content_string
 
 
 class QuestionAnsweringTask(AbsTask):
-    AVAILABLE_METRICS = set(
-        ["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"]
-    )
+    AVAILABLE_METRICS = set(["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"])
     DEFAULT_METRICS = set(["bleu", "sacrebleu", "rouge"])
 
     def __init__(
         self,
-        datasets_config: Union[
-            Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None
-        ] = None,
+        datasets_config: Union[Dict[str, Union[Dict[str, str], DatasetConfigDataModel]], None] = None,
         task_generator: AbsGenerator = None,
         lang: str = "en",
         metrics: Union[str, List[str]] = list(DEFAULT_METRICS),
@@ -57,9 +53,7 @@ class QuestionAnsweringTask(AbsTask):
         self.evals = {}
         for metric in metrics:
             if metric not in QuestionAnsweringTask.AVAILABLE_METRICS:
-                raise ValueError(
-                    f"the metric {metric} is not one of the available metrics!"
-                )
+                raise ValueError(f"the metric {metric} is not one of the available metrics!")
             self.evals[metric] = evaluate.load(metric)
 
         self.language = lang
@@ -106,7 +100,7 @@ class QuestionAnsweringTask(AbsTask):
                         table_id_to_table,
                     ),
                     query=query_str,
-                ),
+                )["content"],
             )
             for query_id, query_str, result in zip(
                 query_batch[QUERY_ID_COL_NAME],
@@ -123,15 +117,8 @@ class QuestionAnsweringTask(AbsTask):
         """
         Update any values you keep track of for the downstream tasks.
         """
-        self.pred_answers.extend(
-            [
-                downstream_answer.generated_results
-                for downstream_answer in downstream_results
-            ]
-        )
-        self.ref_answers.extend(
-            [query_answer for query_answer in query_batch[ANSWER_COL_NAME]]
-        )
+        self.pred_answers.extend([downstream_answer.generated_results for downstream_answer in downstream_results])
+        self.ref_answers.extend([query_answer for query_answer in query_batch[ANSWER_COL_NAME]])
         # for downstream_answer, query_answer in zip(downstream_results, query_batch[ANSWER_COL_NAME]):
         #     generated_result = str(downstream_answer.generated_results).lower()
         #     if "not enough information" in generated_result:
@@ -139,9 +126,7 @@ class QuestionAnsweringTask(AbsTask):
         #     self.pred_answers.append(downstream_answer.generated_results)
         #     self.ref_answers.append(query_answer)
 
-    def _calculate_downstream_task_performance(
-        self, **kwargs
-    ) -> TableQATaskPerformanceDataModel:
+    def _calculate_downstream_task_performance(self, **kwargs) -> TableQATaskPerformanceDataModel:
         """
         Calculate downstream task metrics for the question answering task.
         """
@@ -155,9 +140,7 @@ class QuestionAnsweringTask(AbsTask):
                     lang="en",
                 )
             else:
-                calculated_result = evaluator.compute(
-                    predictions=self.pred_answers, references=self.ref_answers
-                )
+                calculated_result = evaluator.compute(predictions=self.pred_answers, references=self.ref_answers)
             scores[metric_name] = calculated_result
 
         result = TableQATaskPerformanceDataModel(scores=scores)

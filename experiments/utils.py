@@ -19,6 +19,8 @@ def parse_arguments():
         action="store_true",
         help="Whether to persist the data. Defaults to False.",
     )
+    parser.add_argument("--retrieval_results_dir", type=str, default=None, help="folder to persist retrieval results.")
+    parser.add_argument("--downstream_results_dir", type=str, default=None, help="folder to persist downstream results.")
     parser.add_argument(
         "--top_ks",
         type=str,
@@ -38,23 +40,19 @@ def run_eval_for_top_ks(
     target: TARGET,
     dataset_name: str,
     split: str,
-    persist: bool = False,
+    retrieval_results_dir: str = None,
+    downstream_results_dir: str = None,
 ):
     results = []
-    persist_path = None
-
+    print(f"dir for retrieval results: {retrieval_results_dir}")
     for top_k in top_ks:
-        if persist:
-            path = Path("./") / retriever_name
-            persist_path = str(path)
-        else:
-            persist_path = None
         performance = target.run(
             retriever=retriever,
             split=split,
             batch_size=100,
             top_k=top_k,
-            retrieval_results_dir=persist_path,
+            retrieval_results_dir=retrieval_results_dir,
+            downstream_results_dir=downstream_results_dir,
         )
         results.append(performance)
         print(performance)
@@ -93,11 +91,13 @@ def test_main(evals: List[Tuple[str, TARGET, str]]):
     args = parse_arguments()
     retriever_name = args.retriever_name
     num_rows = args.num_rows
-    persist = args.persist
     top_ks = args.top_ks
-
+    retrieval_results_dir = args.retrieval_results_dir
+    downstream_results_dir = args.downstream_results_dir
     retriever = initialize_retriever(retriever_name, num_rows)
 
     for dataset_name, target_eval, split in evals:
-        results = run_eval_for_top_ks(retriever, retriever_name, top_ks, target_eval, dataset_name, split, persist)
+        results = run_eval_for_top_ks(
+            retriever, retriever_name, top_ks, target_eval, dataset_name, split, retrieval_results_dir, downstream_results_dir
+        )
         write_performances(results, retriever_name, dataset_name)
