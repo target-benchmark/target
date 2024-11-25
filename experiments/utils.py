@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import List, Tuple
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
@@ -86,3 +87,17 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return OTTQARetriever(encoding="bm25", withtitle=True)
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
+
+
+def test_main(evals: List[Tuple[str, TARGET, str]]):
+    args = parse_arguments()
+    retriever_name = args.retriever_name
+    num_rows = args.num_rows
+    persist = args.persist
+    top_ks = args.top_ks
+
+    retriever = initialize_retriever(retriever_name, num_rows)
+
+    for dataset_name, target_eval, split in evals:
+        results = run_eval_for_top_ks(retriever, retriever_name, top_ks, target_eval, dataset_name, split, persist)
+        write_performances(results, retriever_name, dataset_name)

@@ -257,6 +257,7 @@ class AbsTask(ABC):
         except StopIteration:
             pass
         if len(downstream_results) < len(query_batch[DATABASE_ID_COL_NAME]):
+            print(f"Num prev: {len(downstream_results)}, query batch size: {len(query_batch[DATABASE_ID_COL_NAME])}")
             # if the last batch from the generator is contains fewer entries than batch_size
             # or the generator is empty, need to generate more downstream.
 
@@ -370,7 +371,6 @@ class AbsTask(ABC):
             retrieval_performance = self._calculate_table_retrieval_performance(
                 top_k,
                 total_process_duration,
-                total_wall_clock_duration,
                 total_wall_clock_duration,
                 total_num_retrieved,
             )
