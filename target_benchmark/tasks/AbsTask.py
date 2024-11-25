@@ -2,9 +2,8 @@ import time
 from abc import ABC, abstractmethod
 from logging import Logger
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Generator, List, Tuple, Union
 
-from pydantic import BaseModel
 from tqdm import tqdm
 
 from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
@@ -46,8 +45,12 @@ from target_benchmark.tasks.TasksDataModels import (
     TaskResultsDataModel,
 )
 from target_benchmark.tasks.utils import (
+    append_results,
+    construct_persistence_path,
     find_resume_indices,
+    generate_batches_from_file,
     load_data_model_from_persistence_file,
+    update_query_batch,
     validate_dataset_configs,
 )
 
@@ -185,44 +188,82 @@ class AbsTask(ABC):
         updated_configs.update(dict(configs))
         return updated_configs
 
-    def run_retrieval_batch(
+    def _run_retrieval_batch(
         self,
         retriever: AbsRetrieverBase,
         dataset_name: str,
+        batch_size: int,
         query_batch: Dict[str, List],
-        total_process_duration: float,
-        total_wall_clock_duration: float,
-        top_k: int = 5,
-        path_to_retrieval_results: Union[Path, None] = None,
+        top_k: int,
+        prev_retrieval_results_gen: Generator[List[RetrievalResultDataModel], None, None],
+        path_to_retrieval_results: Union[Path, None],
         **kwargs,
-    ) -> tuple[list[RetrievalResultDataModel], float, float]:
+    ) -> tuple[list[RetrievalResultDataModel], float, float, int]:
         """
         Run the retrieval on a new batch of queries.
         """
-        retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
-            retriever,
-            query_batch,
-            dataset_name,
-            top_k,
-            **kwargs,
-        )
-        total_process_duration += process_duration
-        total_wall_clock_duration += wall_clock_duration
-        self._write_results(retrieval_results, path_to_retrieval_results)
-        self._update_retrieval_metrics(query_batch, retrieval_results)
-        return retrieval_results, total_process_duration, total_wall_clock_duration
+        retrieval_results = []
+        process_duration, wall_clock_duration = 0, 0
+        num_retrieved = 0
+        try:
+            # getting some more results from the previous results generator
+            retrieval_results = next(prev_retrieval_results_gen)
+        except StopIteration:
+            pass
+        num_prev_res = len(retrieval_results)
+        if num_prev_res < batch_size:
+            num_retrieved = batch_size - num_prev_res
 
-    def run_downstream_batch(
+            # if the last batch from the generator is contains fewer entries than batch_size
+            # or the generator is empty, need to do more retrieval with retriever
+
+            # truncate batch as necessary
+            updated_batch = update_query_batch(query_batch, num_prev_res)
+            # call retriever to get new results
+            retrieval_results_new, process_duration, wall_clock_duration = self._get_retrieval_results(
+                retriever,
+                updated_batch,
+                dataset_name,
+                top_k,
+                **kwargs,
+            )
+
+            # write results
+            append_results(retrieval_results_new, path_to_retrieval_results)
+
+            # update full list
+            retrieval_results.extend(retrieval_results_new)
+
+        # update the metrics
+        self._update_retrieval_metrics(query_batch, retrieval_results)
+        return retrieval_results, process_duration, wall_clock_duration, num_retrieved
+
+    def _run_downstream_batch(
         self,
-        query_batch: Dict[str, List],
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
+        batch_size: int,
+        query_batch: Dict[str, List],
         table_id_to_table: Dict[Tuple[str, str], List[List]],
-        path_to_downstream_results: Union[Path, None] = None,
+        prev_retrieval_results_gen: Generator[List[DownstreamGeneratedResultDataModel], None, None],
+        path_to_downstream_results: Union[Path, None],
     ):
-        downstream_results = self._get_downstream_task_results(query_batch, retrieval_results, dataset_name, table_id_to_table)
-        self._write_results(downstream_results, path_to_downstream_results)
+        downstream_results = []
+        try:
+            # try to get more previously persisted results for the generator
+            downstream_results = next(prev_retrieval_results_gen)
+        except StopIteration:
+            pass
+        if len(downstream_results) < batch_size:
+            # if the last batch from the generator is contains fewer entries than batch_size
+            # or the generator is empty, need to generate more downstream.
 
+            updated_batch = update_query_batch(query_batch, len(downstream_results))
+            downstream_results_new = self._get_downstream_task_results(
+                updated_batch, retrieval_results, dataset_name, table_id_to_table
+            )
+            append_results(downstream_results_new, path_to_downstream_results)
+            downstream_results.extend(downstream_results_new)
         self._update_downstream_task_metrics(query_batch, downstream_results)
 
     def task_run(
@@ -232,8 +273,8 @@ class AbsTask(ABC):
         logger: Logger,
         batch_size: int = 64,
         top_k: int = 5,
-        path_to_retrieval_results: Union[Path, None] = None,
-        path_to_downstream_results: Union[Path, None] = None,
+        path_to_retrieval_results_dir: Union[Path, None] = None,
+        path_to_downstream_results_dir: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -263,43 +304,61 @@ class AbsTask(ABC):
         logger.info(f"start task {self.task_name}")
 
         for dataset_name, dataset_loader in dataset_loaders.items():
+            # construct the path to persistence files
+            path_to_retrieval_results = construct_persistence_path(path_to_retrieval_results_dir, dataset_name, top_k)
+            path_to_downstream_results = construct_persistence_path(path_to_downstream_results_dir, dataset_name, top_k)
+
+            # construct generators
+            prev_retrieval_res_gen = generate_batches_from_file(
+                path_to_retrieval_results,
+                batch_size,
+                RetrievalResultDataModel,
+            )
+            prev_downstream_res_gen = generate_batches_from_file(
+                path_to_downstream_results,
+                batch_size,
+                DownstreamGeneratedResultDataModel,
+            )
+
             logger.info(f"running task on dataset {dataset_name}")
+
             table_id_to_table = dataset_loader.get_table_id_to_table()
+            # some retrieval metrics to track
             total_process_duration = 0
             total_wall_clock_duration = 0
+            total_num_retrieved = 0
+
+            # set up progress bar
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                retrieval_results, total_process_duration, total_wall_clock_duration = self.run_retrieval_batch(
+                # run retrieval on batch
+                retrieval_results, process_duration, wall_clock_duration, num_retrieved = self._run_retrieval_batch(
                     retriever,
                     dataset_name,
-                    total_process_duration,
-                    total_wall_clock_duration,
+                    batch_size,
+                    query_batch,
                     top_k,
+                    prev_retrieval_res_gen,
                     path_to_retrieval_results,
                     **kwargs,
                 )
-                # retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
-                #     retriever,
-                #     query_batch,
-                #     dataset_name,
-                #     top_k,
-                #     **kwargs,
-                # )
-                # total_process_duration += process_duration
-                # total_wall_clock_duration += wall_clock_duration
-                # self._update_retrieval_metrics(query_batch, retrieval_results)
-                # self._write_results(retrieval_results, path_to_retrieval_results)
 
-                self.run_downstream_batch(
-                    query_batch, retrieval_results, dataset_name, table_id_to_table, path_to_downstream_results
+                # update time spent
+                total_process_duration += process_duration
+                total_wall_clock_duration += wall_clock_duration
+                total_num_retrieved += num_retrieved
+
+                # run downstream on batch
+                self._run_downstream_batch(
+                    retrieval_results,
+                    dataset_name,
+                    batch_size,
+                    query_batch,
+                    table_id_to_table,
+                    prev_downstream_res_gen,
+                    path_to_downstream_results,
                 )
-                # downstream_results = self._get_downstream_task_results(
-                #     query_batch, retrieval_results, dataset_name, table_id_to_table
-                # )
-                # self._write_results(downstream_results, path_to_downstream_results)
-
-                # self._update_downstream_task_metrics(query_batch, downstream_results)
 
                 if self.total_queries_processed % 200 == 0:
                     logger.info(f"number of queries processed: {self.total_queries_processed}")
@@ -308,13 +367,12 @@ class AbsTask(ABC):
             progress_bar.close()
 
             # retrieval performance, precision, recall, f1, etc.
-            num_queries = dataset_loader.get_queries_size()
             retrieval_performance = self._calculate_table_retrieval_performance(
                 top_k,
                 total_process_duration,
-                total_process_duration / num_queries,
+                total_process_duration / total_num_retrieved,
                 total_wall_clock_duration,
-                total_wall_clock_duration / num_queries,
+                total_wall_clock_duration / total_num_retrieved,
             )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(**kwargs)
@@ -379,8 +437,7 @@ class AbsTask(ABC):
                 downstream_results = self._get_downstream_task_results(
                     query_batch, retrieved_table, dataset_name, table_id_to_table
                 )
-                if path_to_downstream_results:
-                    self._write_results(downstream_results, path_to_downstream_results)
+                append_results(downstream_results, path_to_downstream_results)
                 self._update_downstream_task_metrics(query_batch, downstream_results)
                 idx += 1
             performance = self._calculate_downstream_task_performance(dataset_name=dataset_name, **kwargs)
@@ -431,19 +488,6 @@ class AbsTask(ABC):
         process_duration = end_process_time - start_process_time
         wall_clock_duration = end_wall_clock_time - start_wall_clock_time
         return retrieval_results, process_duration, wall_clock_duration
-
-    def _write_results(
-        self,
-        results: List[BaseModel],
-        path_to_persistence: Union[Path, None],
-    ):
-        if not path_to_persistence:
-            return
-        if not path_to_persistence.exists():
-            path_to_persistence.touch()
-        with open(path_to_persistence, "a") as file:
-            for retrieval_result in results:
-                file.write(retrieval_result.model_dump_json() + "\n")
 
     def _update_retrieval_metrics(
         self,
