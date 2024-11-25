@@ -192,7 +192,6 @@ class AbsTask(ABC):
         self,
         retriever: AbsRetrieverBase,
         dataset_name: str,
-        batch_size: int,
         query_batch: Dict[str, List],
         top_k: int,
         prev_retrieval_results_gen: Generator[List[RetrievalResultDataModel], None, None],
@@ -208,9 +207,13 @@ class AbsTask(ABC):
         try:
             # getting some more results from the previous results generator
             retrieval_results = next(prev_retrieval_results_gen)
+            print("got here")
         except StopIteration:
             pass
+        # count how many loaded queries
         num_prev_res = len(retrieval_results)
+        # count how many entries in the batch
+        batch_size = len(query_batch[DATABASE_ID_COL_NAME])
         if num_prev_res < batch_size:
             num_retrieved = batch_size - num_prev_res
 
@@ -219,6 +222,7 @@ class AbsTask(ABC):
 
             # truncate batch as necessary
             updated_batch = update_query_batch(query_batch, num_prev_res)
+            print(f"batch: {updated_batch}")
             # call retriever to get new results
             retrieval_results_new, process_duration, wall_clock_duration = self._get_retrieval_results(
                 retriever,
@@ -242,19 +246,18 @@ class AbsTask(ABC):
         self,
         retrieval_results: List[RetrievalResultDataModel],
         dataset_name: str,
-        batch_size: int,
         query_batch: Dict[str, List],
         table_id_to_table: Dict[Tuple[str, str], List[List]],
-        prev_retrieval_results_gen: Generator[List[DownstreamGeneratedResultDataModel], None, None],
+        prev_downstream_results_gen: Generator[List[DownstreamGeneratedResultDataModel], None, None],
         path_to_downstream_results: Union[Path, None],
     ):
         downstream_results = []
         try:
             # try to get more previously persisted results for the generator
-            downstream_results = next(prev_retrieval_results_gen)
+            downstream_results = next(prev_downstream_results_gen)
         except StopIteration:
             pass
-        if len(downstream_results) < batch_size:
+        if len(downstream_results) < len(query_batch[DATABASE_ID_COL_NAME]):
             # if the last batch from the generator is contains fewer entries than batch_size
             # or the generator is empty, need to generate more downstream.
 
@@ -309,6 +312,7 @@ class AbsTask(ABC):
             path_to_downstream_results = construct_persistence_path(path_to_downstream_results_dir, dataset_name, top_k)
 
             # construct generators
+            print(f"Batch size: {batch_size}")
             prev_retrieval_res_gen = generate_batches_from_file(
                 path_to_retrieval_results,
                 batch_size,
@@ -331,12 +335,11 @@ class AbsTask(ABC):
             # set up progress bar
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
-            for query_batch in dataset_loader.get_queries_for_task(batch_size):
+            for query_batch in dataset_loader.get_queries_for_task(batch_size=batch_size):
                 # run retrieval on batch
                 retrieval_results, process_duration, wall_clock_duration, num_retrieved = self._run_retrieval_batch(
                     retriever,
                     dataset_name,
-                    batch_size,
                     query_batch,
                     top_k,
                     prev_retrieval_res_gen,
@@ -353,7 +356,6 @@ class AbsTask(ABC):
                 self._run_downstream_batch(
                     retrieval_results,
                     dataset_name,
-                    batch_size,
                     query_batch,
                     table_id_to_table,
                     prev_downstream_res_gen,
@@ -504,8 +506,9 @@ class AbsTask(ABC):
         Returns:
             None
         """
-        num_queries = len(new_retrieval_results)
-        for idx in range(num_queries):
+        print(f"length of results: {len(new_retrieval_results)}")
+        print(f"length of query batch: {len(query_batch[DATABASE_ID_COL_NAME])}")
+        for idx in range(len(new_retrieval_results)):
             gold_db_id: str = query_batch[DATABASE_ID_COL_NAME][idx]
             gold_table_id: Union[str, List[str]] = query_batch[TABLE_ID_COL_NAME][idx]
             retrieval_result = new_retrieval_results[idx]

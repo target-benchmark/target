@@ -44,8 +44,7 @@ def run_eval_for_top_ks(
 
     for top_k in top_ks:
         if persist:
-            path = Path("./") / retriever_name / dataset_name / f"{top_k}.jsonl"
-            path.parent.mkdir(parents=True, exist_ok=True)
+            path = Path("./") / retriever_name
             persist_path = str(path)
         else:
             persist_path = None
@@ -54,7 +53,7 @@ def run_eval_for_top_ks(
             split=split,
             batch_size=100,
             top_k=top_k,
-            retrieval_results_file=persist_path,
+            retrieval_results_dir=persist_path,
         )
         results.append(performance)
         print(performance)

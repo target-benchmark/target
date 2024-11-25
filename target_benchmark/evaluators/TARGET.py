@@ -451,8 +451,8 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 1,
         top_k: int = 5,
-        retrieval_results_file: Union[str, None] = None,
-        downstream_results_file: Union[str, None] = None,
+        retrieval_results_dir: Union[str, None] = None,
+        downstream_results_dir: Union[str, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         # TODO: add resume
@@ -520,8 +520,12 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
-            path_to_retrieval_results = self._create_persistence_file(retrieval_results_file)
-            path_to_downstream_results = self._create_persistence_file(downstream_results_file)
+            path_to_retrieval_results = (
+                Path(retrieval_results_dir) if retrieval_results_dir else None
+            )  # self._create_persistence_file(retrieval_results_file)
+            path_to_downstream_results = (
+                Path(downstream_results_dir) if downstream_results_dir else None
+            )  # self._create_persistence_file(downstream_results_file)
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
@@ -530,8 +534,8 @@ class TARGET:
                 batch_size=batch_size,
                 top_k=top_k,
                 client=client,
-                path_to_retrieval_results=path_to_retrieval_results,
-                path_to_downstream_results=path_to_downstream_results,
+                path_to_retrieval_results_dir=path_to_retrieval_results,
+                path_to_downstream_results_dir=path_to_downstream_results,
                 **kwargs,
             )
 

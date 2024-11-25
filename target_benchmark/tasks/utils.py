@@ -47,7 +47,7 @@ def construct_persistence_path(dir: Union[Path, None], dataset_name: str, top_k:
 def update_query_batch(
     query_batch: Dict[str, List],
     start_idx: int,
-):
+) -> Dict[str, List]:
     updated_batch = {}
     for key in query_batch:
         updated_batch[key] = query_batch[key][start_idx:]

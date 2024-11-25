@@ -173,7 +173,7 @@ class AbsDatasetLoader(ABC):
                 mapping_dict[key] = table
         return mapping_dict
 
-    def get_queries_for_task(self, start_idx: int = 0, batch_size: int = 64) -> Iterable[Dict]:
+    def get_queries_for_task(self, batch_size: int = 64, start_idx: int = 0) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
         for batch in self.queries.select(range(start_idx, self.get_queries_size())).iter(batch_size):
