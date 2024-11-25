@@ -207,7 +207,6 @@ class AbsTask(ABC):
         try:
             # getting some more results from the previous results generator
             retrieval_results = next(prev_retrieval_results_gen)
-            print("got here")
         except StopIteration:
             pass
         # count how many loaded queries
@@ -222,8 +221,8 @@ class AbsTask(ABC):
 
             # truncate batch as necessary
             updated_batch = update_query_batch(query_batch, num_prev_res)
-            print(f"batch: {updated_batch}")
             # call retriever to get new results
+            print(f"query batch original size: {len(query_batch[DATABASE_ID_COL_NAME])}, previous res num: {num_prev_res}")
             retrieval_results_new, process_duration, wall_clock_duration = self._get_retrieval_results(
                 retriever,
                 updated_batch,
@@ -312,7 +311,6 @@ class AbsTask(ABC):
             path_to_downstream_results = construct_persistence_path(path_to_downstream_results_dir, dataset_name, top_k)
 
             # construct generators
-            print(f"Batch size: {batch_size}")
             prev_retrieval_res_gen = generate_batches_from_file(
                 path_to_retrieval_results,
                 batch_size,
@@ -372,9 +370,9 @@ class AbsTask(ABC):
             retrieval_performance = self._calculate_table_retrieval_performance(
                 top_k,
                 total_process_duration,
-                total_process_duration / total_num_retrieved,
                 total_wall_clock_duration,
-                total_wall_clock_duration / total_num_retrieved,
+                total_wall_clock_duration,
+                total_num_retrieved,
             )
             # downstream performance, depends on what task is being run.
             downstream_task_performance = self._calculate_downstream_task_performance(**kwargs)
@@ -402,7 +400,6 @@ class AbsTask(ABC):
             raise ValueError("File empty or could not parse any RetrievalResultDataModel objects!")
         # if previously partial downstream results are obtained, find start indices
         resume_indices = find_resume_indices(dataset_loaders, path_to_downstream_results)
-        print(f"resume indicies: {resume_indices}")
         # load all downstream results in file
         all_prev_downstream_results = load_data_model_from_persistence_file(
             path_to_downstream_results, DownstreamGeneratedResultDataModel
@@ -470,6 +467,7 @@ class AbsTask(ABC):
         """
         start_process_time = time.process_time()
         start_wall_clock_time = time.time()
+        print(f"query batch size: {len(query_batch[DATABASE_ID_COL_NAME])}")
         if isinstance(retriever, StandardizedEmbRetr):
             if CLIENT_KEY_NAME not in kwargs:
                 raise KeyError(f"missing kwarg {CLIENT_KEY_NAME}, required for standardized retriever")
@@ -506,8 +504,6 @@ class AbsTask(ABC):
         Returns:
             None
         """
-        print(f"length of results: {len(new_retrieval_results)}")
-        print(f"length of query batch: {len(query_batch[DATABASE_ID_COL_NAME])}")
         for idx in range(len(new_retrieval_results)):
             gold_db_id: str = query_batch[DATABASE_ID_COL_NAME][idx]
             gold_table_id: Union[str, List[str]] = query_batch[TABLE_ID_COL_NAME][idx]
@@ -528,9 +524,8 @@ class AbsTask(ABC):
         self,
         top_k: int,
         total_retrieval_duration_process: float,
-        avg_retrieval_duration_process: float,
         total_retrieval_duration_wall_clock: float,
-        avg_retrieval_duration_wall_clock: float,
+        total_num_queries: float,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -541,6 +536,17 @@ class AbsTask(ABC):
         Returns:
             a retrieval performance data model that contains the accuracy of the retrieval for a dataset on this task.
         """
+        retrieval_duration_process = round(total_retrieval_duration_process, 5)
+        retrieval_duration_wall_clock = round(total_retrieval_duration_wall_clock, 5)
+        avg_dur_process = 0
+        avg_dur_wall_clock = 0
+        if not total_num_queries:
+            retrieval_duration_process = 0
+            retrieval_duration_wall_clock = 0
+        else:
+            avg_dur_process = round(retrieval_duration_process / total_num_queries, 5)
+            avg_dur_wall_clock = round(retrieval_duration_wall_clock / total_num_queries, 5)
+
         if self.total_queries_processed != 0:
             # TODO: update recall calculation once text 2 sql in db retrieval is done
             performace = RetrievalPerformanceDataModel(
@@ -549,10 +555,10 @@ class AbsTask(ABC):
                 accuracy=self.num_overlap / self.total_tables,
                 recall=self.num_overlap / self.total_tables,
                 capped_recall=self.num_overlap / self.total_tables_capped,
-                retrieval_duration_process=round(total_retrieval_duration_process, 5),
-                avg_retrieval_duration_process=round(avg_retrieval_duration_process, 5),
-                retrieval_duration_wall_clock=round(total_retrieval_duration_wall_clock, 5),
-                avg_retrieval_duration_wall_clock=round(avg_retrieval_duration_wall_clock, 5),
+                retrieval_duration_process=retrieval_duration_process,
+                avg_retrieval_duration_process=avg_dur_process,
+                retrieval_duration_wall_clock=retrieval_duration_wall_clock,
+                avg_retrieval_duration_wall_clock=avg_dur_wall_clock,
             )
         else:
             raise ValueError("haven't processed any queries!")
