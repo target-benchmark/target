@@ -2,11 +2,16 @@ import logging
 import unittest
 from unittest.mock import MagicMock
 
+from target_benchmark.generators import DefaultGenerator
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks import FactVerificationTask
+from target_benchmark.tasks.TasksDataModels import (
+    DownstreamTaskPerformanceDataModel,
+    RetrievalPerformanceDataModel,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -16,7 +21,12 @@ logger = logging.getLogger(__name__)
 
 class TestTableRetriever(unittest.TestCase):
     def setUp(self):
-        self.fact_ver = FactVerificationTask()
+        self.mock_generator = MagicMock()
+        self.mock_generator.__class__ = DefaultGenerator
+        self.mock_generator.generate.return_value = {"content": "True"}
+
+        self.fact_ver = FactVerificationTask(task_generator=self.mock_generator)
+
         self.mock_retriever = MagicMock()
         self.mock_retriever.__class__ = CustomEmbRetr
         self.mock_retriever.retrieve_batch.return_value = [
@@ -87,17 +97,20 @@ class TestTableRetriever(unittest.TestCase):
             dataset_name="tabfact",
             top_k=2,
         )
-        self.assertDictEqual(
-            results["tabfact"].retrieval_performance.model_dump(),
-            {"k": 2, "accuracy": 1.0, "precision": None, "recall": None},
-        )
-        self.assertDictEqual(
-            results["tabfact"].downstream_task_performance.model_dump(),
-            {
-                "task_name": "Fact Verification Task",
-                "scores": {"accuracy": 1.0, "f1": 1.0, "precision": 1.0, "recall": 1.0},
-            },
-        )
+        self.mock_generator.generate.assert_called()
+
+        self.assertTrue(isinstance(results["tabfact"].retrieval_performance, RetrievalPerformanceDataModel))
+        retrieval_results = results["tabfact"].retrieval_performance.model_dump()
+        self.assertEqual(retrieval_results["k"], 2)
+        self.assertEqual(retrieval_results["accuracy"], 1.0)
+        self.assertEqual(retrieval_results["precision"], None)
+        self.assertEqual(retrieval_results["recall"], 1.0)
+        self.assertEqual(retrieval_results["capped_recall"], 1.0)
+
+        self.assertIsInstance(results["tabfact"].downstream_task_performance, DownstreamTaskPerformanceDataModel)
+        downstream_scores = results["tabfact"].downstream_task_performance.model_dump()["scores"]
+        self.assertEqual(downstream_scores["accuracy"], 0.5)
+        self.assertEqual(downstream_scores["recall"], 0.5)
 
 
 if __name__ == "__main__":
