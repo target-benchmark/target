@@ -215,7 +215,6 @@ class AbsTask(ABC):
         batch_size = len(query_batch[DATABASE_ID_COL_NAME])
         if num_prev_res < batch_size:
             num_retrieved = batch_size - num_prev_res
-
             # if the last batch from the generator is contains fewer entries than batch_size
             # or the generator is empty, need to do more retrieval with retriever
 

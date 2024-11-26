@@ -78,15 +78,25 @@ def load_data_model_from_persistence_file(
     return loaded_models
 
 
+def get_num_lines_in_file(path: Path):
+    with open(path, "r") as file:
+        return sum(1 for _ in file)
+
+
 def generate_batches_from_file(
     path_to_persistence: Union[Path, None],
     batch_size: int,
     datamodel: type[BaseModel],
 ) -> Generator[List[BaseModel], None, None]:
     if path_to_persistence:
+        # get total number of lines in a file
+        num_lines = get_num_lines_in_file(path_to_persistence)
         loaded_models = []
         with open(path_to_persistence, "r") as file:
-            for line in file:
+            for i, line in enumerate(file):
+                # check if we've reached the end of the previously written file
+                if i >= num_lines:
+                    break
                 loaded_models.append(datamodel.model_validate_json(line))
                 if len(loaded_models) >= batch_size:
                     yield loaded_models
