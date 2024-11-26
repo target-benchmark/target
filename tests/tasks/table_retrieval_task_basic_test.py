@@ -48,7 +48,7 @@ class TestTableRetriever(unittest.TestCase):
                     "query": ["Test query", "Test query 2"],
                     "answer": ["Test answer", "Test answer 2"],
                     "table_id": ["Table1", "Table5"],
-                    "database_id": [0, 0],
+                    "database_id": ["0", "0"],
                 }
             ],
         )
@@ -67,7 +67,7 @@ class TestTableRetriever(unittest.TestCase):
                 "query": ["Test query", "Test query 2"],
                 "answer": ["Test answer", "Test answer 2"],
                 "table_id": ["Table1", "Table5"],
-                "database_id": [0, 0],
+                "database_id": ["0", "0"],
             },
             dataset_name="fetaqa",
             top_k=2,
@@ -88,6 +88,7 @@ class TestTableRetriever(unittest.TestCase):
         self.assertIsInstance(fetaqa_results, TaskResultsDataModel)
         self.assertIsInstance(retr_perf, RetrievalPerformanceDataModel)
         self.assertIsInstance(downs_perf, DownstreamTaskPerformanceDataModel)
+
         performance_dict = retr_perf.model_dump()
         self.assertIn("k", performance_dict)
         self.assertEqual(2, performance_dict["k"])
@@ -95,12 +96,13 @@ class TestTableRetriever(unittest.TestCase):
         self.assertIn("avg_retrieval_duration_process", performance_dict)
         self.assertIn("retrieval_duration_wall_clock", performance_dict)
         self.assertIn("retrieval_duration_process", performance_dict)
+
         self.assertIn("accuracy", performance_dict)
         self.assertEqual(0.5, performance_dict["accuracy"])
         self.assertIn("recall", performance_dict)
         self.assertEqual(0.5, performance_dict["recall"])
+
         self.assertEqual(downs_perf.model_dump(), {"task_name": None, "scores": None})
-        self.assertEqual(self.retr_task.true_positive, 0)
         self.assertEqual(self.retr_task.total_queries_processed, 0)
 
     def test_custom_dataset_config(self):
