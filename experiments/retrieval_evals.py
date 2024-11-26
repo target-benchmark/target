@@ -6,10 +6,10 @@ from target_benchmark.evaluators import TARGET
 def main():
     evals = [
         # ("fetaqa", TARGET(("Table Retrieval Task", "fetaqa")), "test"),
-        ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
+        # ("ottqa", TARGET(("Table Retrieval Task", "ottqa")), "validation"),
         # ("tabfact", TARGET(("Table Retrieval Task", "tabfact")), "test"),
-        # ("spider", TARGET(("Table Retrieval Task", "spider-test")), "test"),
-        # ("bird", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
+        ("spider-test", TARGET(("Table Retrieval Task", "spider-test")), "test"),
+        # ("bird-validation", TARGET(("Table Retrieval Task", "bird-validation")), "validation"),
     ]
     test_main(evals)
 

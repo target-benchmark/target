@@ -59,12 +59,18 @@ def run_eval_for_top_ks(
     return results
 
 
-def write_performances(results, retriever_name: str, dataset_name: str):
-    path = Path("./") / retriever_name / dataset_name / "performances.jsonl"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as file:
-        for result in results:
-            file.write(str(result) + "\n")
+def write_performances(results, dataset_name: str, retrieval_results_dir: str, downstream_results_dir: str):
+    def write_to_file(dir: str):
+        path = Path(dir) / dataset_name / "performances.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as file:
+            for result in results:
+                file.write(str(result) + "\n")
+
+    if retrieval_results_dir:
+        write_to_file(retrieval_results_dir)
+    if downstream_results_dir:
+        write_to_file(downstream_results_dir)
 
 
 def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appendix=None):
@@ -100,4 +106,4 @@ def test_main(evals: List[Tuple[str, TARGET, str]]):
         results = run_eval_for_top_ks(
             retriever, retriever_name, top_ks, target_eval, dataset_name, split, retrieval_results_dir, downstream_results_dir
         )
-        write_performances(results, retriever_name, dataset_name)
+        write_performances(results, dataset_name, retrieval_results_dir, downstream_results_dir)
