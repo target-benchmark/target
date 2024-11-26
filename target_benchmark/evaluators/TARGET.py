@@ -520,12 +520,9 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
-            path_to_retrieval_results = (
-                Path(retrieval_results_dir) if retrieval_results_dir else None
-            )  # self._create_persistence_file(retrieval_results_file)
-            path_to_downstream_results = (
-                Path(downstream_results_dir) if downstream_results_dir else None
-            )  # self._create_persistence_file(downstream_results_file)
+            path_to_retrieval_results = Path(retrieval_results_dir) if retrieval_results_dir else None
+            path_to_downstream_results = Path(downstream_results_dir) if downstream_results_dir else None
+
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
