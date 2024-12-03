@@ -140,12 +140,9 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus has not been loaded!")
 
         in_memory_format = set_in_memory_data_format(output_format)
-        import time
 
-        start_time = time.time()
         converted_corpus = self._convert_corpus_to_dict()
-        end_time = time.time()
-        print(f"time elapsed: {end_time - start_time}")
+
         if in_memory_format == InMemoryDataFormat.DF:
             df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = df_tables
