@@ -185,6 +185,14 @@ class AbsTask(ABC):
         updated_configs.update(dict(configs))
         return updated_configs
 
+    def _validate_dataset_loaders(self, dataset_loaders: Dict[str, AbsDatasetLoader]):
+        for dataset_loader in dataset_loaders.values():
+            if dataset_loader.dataset_name not in self.dataset_config.keys():
+                raise ValueError(
+                    f"Invalid dataset loader: '{dataset_loader.dataset_name}' is not configured for this task. "
+                    f"Ensure that the names match one of the configured datasets: {list(self.  dataset_config.keys())}."
+                )
+
     def task_run(
         self,
         retriever: AbsRetrieverBase,
@@ -210,9 +218,7 @@ class AbsTask(ABC):
         Returns:
             A dictionary with the results of the retrieval task. Maps dataset name to a task result data model object. The task result data model object records both the retrieval performance and the downstream generation results.
         """
-        assert (
-            dataset_loaders.keys() <= self.dataset_config.keys()
-        ), f"the dataset loaders passed in is not a subset of task's dataset config! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
+        self._validate_dataset_loaders(dataset_loaders)
 
         assert isinstance(retriever, CustomEmbRetr) or isinstance(
             retriever, StandardizedEmbRetr
@@ -230,11 +236,7 @@ class AbsTask(ABC):
             total_num_queries = dataset_loader.get_queries_size()
             progress_bar = tqdm(total=total_num_queries, desc=f"Retrieving Tables for {dataset_name}...")
             for query_batch in dataset_loader.get_queries_for_task(batch_size):
-                (
-                    retrieval_results,
-                    process_duration,
-                    wall_clock_duration,
-                ) = self._get_retrieval_results(
+                retrieval_results, process_duration, wall_clock_duration = self._get_retrieval_results(
                     retriever,
                     query_batch,
                     dataset_name,
