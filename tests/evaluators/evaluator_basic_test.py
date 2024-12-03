@@ -90,7 +90,7 @@ class TestEvaluator(unittest.TestCase):
         )
 
     def test_basic_run_task(self):
-        with patch("target_benchmark.evaluators.TARGET.TARGET.create_dataloaders") as mock_func:
+        with patch("target_benchmark.evaluators.TARGET.create_dataloaders") as mock_func:
             mock_retriever = MagicMock()
             mock_retriever.__class__ = CustomEmbRetr
             mock_retriever.retrieve_batch.return_value = [
