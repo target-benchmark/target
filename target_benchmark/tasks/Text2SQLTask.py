@@ -1,4 +1,5 @@
 import sqlite3
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -84,22 +85,90 @@ class Text2SQLTask(AbsTask):
         """
         return dict(TEXT_2_SQL_DATASETS)
 
-    def _get_schema(self, dataset_name: str, database_id: str):
+    def _get_schema(self, dataset_name: str, db_id: str, table_ids: List[str]) -> str:
+        """Writes the `CREATE TABLE` statements for specified tables to a formatted string.
+
+        Example:
+            Database Name: conference
+            Schema:
+
+            CREATE TABLE "conference" (
+                "Conference_ID" int,
+                "Conference_Name" text,
+                "Year" int,
+                "Location" text,
+                PRIMARY KEY ("Conference_ID")
+            )
+
+            CREATE TABLE institution (
+                "Institution_ID" int,
+                "Institution_Name" text,
+                "Location" text,
+                "Founded" int,
+                PRIMARY KEY ("Institution_ID")
+            )
+
+            CREATE TABLE "staff" (
+                "staff_ID" int,
+                "name" text,
+                "Age" int,
+                "Nationality" text,
+                "Institution_ID" int,
+                PRIMARY KEY ("staff_ID"),
+                FOREIGN KEY (`Institution_ID`) REFERENCES `institution`(`Institution_ID`)
+            )
+
+            ---
+
+            Database Name: video_game
+            Schema:
+
+            CREATE TABLE "player" (
+                "Player_ID" int,
+                "Rank_of_the_year" int,
+                "Player_name" text,
+                "Position" text,
+                "College" text,
+                PRIMARY KEY ("Player_ID")
+            )
+
+            ---
+
+            Database Name: bbc_channels
+            Schema:
+
+            CREATE TABLE "director" (
+                "Director_ID" int,
+                "Name" text,
+                "Age" int,
+                PRIMARY KEY ("Director_ID")
+            )
+
+            ---
+        """
         if dataset_name not in self.database_dirs:
             raise ValueError(f"dataset {dataset_name} does not have a database directory setup.")
-        if database_id == "":
+        if db_id == "":
             return NO_CONTEXT_TABLE_PROMPT
-        db_path = Path(self.database_dirs[dataset_name], database_id, f"{database_id}.sqlite")
+        db_path = Path(self.database_dirs[dataset_name], db_id, f"{db_id}.sqlite")
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
-        cur.execute("SELECT name, sql FROM sqlite_schema WHERE type='table'")
-
         # Fetch and print the schema of each table
-        tables = cur.fetchall()
-        schema_str = f"Database Name: {database_id}\n"
-        for table in tables:
-            schema_str += f"Table Name: {table[0]}\n Schema:\n{table[1]}\n"
-        return schema_str
+        table_schemas = cur.execute(f"SELECT name, sql FROM sqlite_schema WHERE type='table' AND name IN ({','.join('?' * len(table_ids))})", table_ids).fetchall()
+        schema_str = f"\nDatabase Name: {db_id}\nSchema:"
+
+        def normalize_schema(schema: str) -> str:
+            # Make sure our commas only come after newlines - not the inverse
+            schema = re.sub(r'\n,', r',\n', schema)
+            # Remove any indentation after the newlines
+            schema = re.sub(r'\n\s+(?=[^\s])', r'\n', schema)
+            # Make sure we have tabs after each newline - just not the last one (with a r-paren after it)
+            schema = re.sub(r'\n(?=[^\)])', r'\n\t', schema)
+            return schema
+
+        for _, schema in table_schemas:
+            schema_str += f"\n\n{normalize_schema(schema)}"
+        return schema_str + "\n\n---\n"
 
     def _get_downstream_task_results(
         self,
@@ -120,8 +189,22 @@ class Text2SQLTask(AbsTask):
             query_batch[QUERY_COL_NAME],
             retrieval_results,
         ):
+            # First, aggregate together all table_ids coming from the same db_id
+            db_id_to_tables: Dict[str, List[str]] = {}
+            for db_id, table_id in result.retrieval_results:
+                if db_id not in db_id_to_tables:
+                    db_id_to_tables[db_id] = []
+                db_id_to_tables[db_id].append(table_id)
+            # Next, serialize the schema of those tables to a string
+            table_str = ""
+            for db_id, table_ids in db_id_to_tables.items():
+                table_str += self._get_schema(
+                    dataset_name=self.current_dataset,
+                    db_id=db_id,
+                    table_ids=table_ids
+                )
             generated_sql = self.task_generator.generate(
-                table_str="\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results),
+                table_str=table_str,
                 query=query_str,
             )
             downstream_task_results.append(
