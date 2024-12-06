@@ -136,6 +136,7 @@ class AbsTask(ABC):
             assert key not in constructed_config, f"duplicate dataset name {key}!"
             if isinstance(value, Dict):
                 # TODO: Needle in haystack config creation
+                assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
                 if key not in value:
                     value[DATASET_NAME] = key
                 if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:

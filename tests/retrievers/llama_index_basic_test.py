@@ -1,9 +1,10 @@
 import unittest
 
 from target_benchmark.evaluators.TARGET import TARGET
-from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
+from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import (
+    LlamaIndexRetriever,
+)
 from target_benchmark.tasks import TableRetrievalTask
-import os
 
 
 class TestLlamaIndexBasics(unittest.TestCase):
@@ -21,6 +22,7 @@ class TestLlamaIndexBasics(unittest.TestCase):
         llama = LlamaIndexRetriever()
 
         res = self.evaluator.run(llama)
+        self.assertIn("Table Retrieval Task", res)
         print(res)
 
 

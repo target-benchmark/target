@@ -1,16 +1,17 @@
 import unittest
+
+from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
+from target_benchmark.dataset_loaders.TargetDatasetConfig import (
+    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
+    DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+)
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks.Text2SQLTask import Text2SQLTask
-from target_benchmark.dataset_loaders import Text2SQLDatasetLoader
-from target_benchmark.dataset_loaders.TargetDatasetConfig import DEFAULT_SPIDER_TEST_DATASET_CONFIG, DEFAULT_BIRD_VALIDATION_DATASET_CONFIG
 
 
 class T2SDataloadersTest(unittest.TestCase):
-
     def test_with_dataset_loader(self):
-        spider_loader = Text2SQLDatasetLoader(
-            **DEFAULT_SPIDER_TEST_DATASET_CONFIG.model_dump()
-        )
+        spider_loader = Text2SQLDatasetLoader(**DEFAULT_SPIDER_TEST_DATASET_CONFIG.model_dump())
         spider_loader.load()
         table_id_to_table = spider_loader.get_table_id_to_table()
         text2sql_task = Text2SQLTask(metrics=["execution_accuracy", "execution_ves"])
@@ -60,17 +61,13 @@ class T2SDataloadersTest(unittest.TestCase):
             )
         ]
         dataset_name = "spider"
-        results = text2sql_task._get_downstream_task_results(
-            query_batch, retrieval_results, dataset_name, table_id_to_table
-        )
+        results = text2sql_task._get_downstream_task_results(query_batch, retrieval_results, dataset_name, table_id_to_table)
         res_dict = results[0].model_dump()
 
         self.assertEqual(res_dict["dataset_name"], "spider")
         self.assertEqual(res_dict["query_id"], 0)
         text2sql_task._update_downstream_task_metrics(query_batch, results)
-        self.assertListEqual(
-            [("SELECT count(*) FROM club", "soccer_3")], text2sql_task.ref_sql
-        )
+        self.assertListEqual([("SELECT count(*) FROM club", "soccer_3")], text2sql_task.ref_sql)
         self.assertListEqual(["easy"], text2sql_task.difficulties)
         print(text2sql_task._calculate_downstream_task_performance())
 

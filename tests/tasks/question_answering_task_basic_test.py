@@ -1,18 +1,15 @@
+import logging
 import unittest
 from unittest.mock import MagicMock
-from target_benchmark.tasks import QuestionAnsweringTask
-from target_benchmark.tasks.TasksDataModels import *
+
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
-
-import logging
+from target_benchmark.tasks import QuestionAnsweringTask
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 logging.getLogger("bert_score").setLevel(logging.ERROR)
 logging.getLogger("openai").setLevel(logging.ERROR)
@@ -22,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class TestTableRetriever(unittest.TestCase):
-
     def setUp(self):
         self.qa_task = QuestionAnsweringTask()
         self.mock_retriever = MagicMock()
@@ -48,6 +44,7 @@ class TestTableRetriever(unittest.TestCase):
             (0, "Table4"): [["fourth random table"], ["fourth item"]],
             (0, "Table5"): [["fifth random table"], ["fifth item"]],
         }
+        self.mock_dataset_loader.get_queries_size.return_value = 2
         self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
             [
                 {
