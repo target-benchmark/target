@@ -69,7 +69,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertNotEqual(feta_loader.corpus, None)
         self.assertNotEqual(feta_loader.queries, None)
         expected = {
-            "database_id": 1,
+            "database_id": "1",
             "table_id": "event_schedule.csv",
             "table": [
                 ["Event", "Date", "Expected Attendees"],
@@ -82,7 +82,7 @@ class TestEvaluator(unittest.TestCase):
             feta_loader.queries[0],
             {
                 "query_id": 1,
-                "database_id": 2,
+                "database_id": "2",
                 "table_id": "car_maintenance.csv",
                 "query": 'What is the cost for "Oil Change" service?',
                 "answer": "60",
@@ -114,7 +114,7 @@ class TestEvaluator(unittest.TestCase):
                         "query": ["Test query", "Test query 2"],
                         "answer": ["Test answer", "Test answer 2"],
                         "table_id": ["Table1", "Table5"],
-                        "database_id": [0, 0],
+                        "database_id": ["0", "0"],
                     }
                 ],
             )
