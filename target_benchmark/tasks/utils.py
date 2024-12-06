@@ -16,6 +16,7 @@ from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     NeedleInHaystackDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dictionary_keys import DATASET_NAME
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
@@ -326,16 +327,21 @@ def validate_dataset_configs(constructed_config: Dict[str, DatasetConfigDataMode
     Current rules (more to be added potentially):
     - cannot be empty
     - cannot be only needle in haystack datasets
+    - cannot have NIH with text2sql (not tried but probably NIH datasets inserted into sqlite will not end well.)
     Returns:
         True if dataset configs are correctly constructed.
         Otherwise throw assertion error
     """
     num_non_nih = 0
     num_total = 0
+    num_text2sql = 0
     for dataset_name, config in constructed_config.items():
         if not isinstance(config, NeedleInHaystackDatasetConfigDataModel):
             num_non_nih += 1
+        if isinstance(config, Text2SQLDatasetConfigDataModel):
+            num_text2sql += 1
         num_total += 1
     assert num_total != 0, "No datasets configurated!"
     assert num_non_nih != 0, "Cannot have only Needle in Haystack datasets!"
+    assert not num_text2sql or (num_text2sql and num_non_nih >= num_total), "Cannot have T2SQL & NIH!"
     return True

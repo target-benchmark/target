@@ -140,6 +140,7 @@ class AbsTask(ABC):
             if isinstance(value, Dict):
                 # TODO: Needle in haystack config creation
                 assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
+                assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
                 if key not in value:
                     value[DATASET_NAME] = key
                 if value[QUERY_TYPE] == QueryType.TEXT_2_SQL.value:
@@ -292,9 +293,7 @@ class AbsTask(ABC):
         Returns:
             A dictionary with the results of the retrieval task. Maps dataset name to a task result data model object. The task result data model object records both the retrieval performance and the downstream generation results.
         """
-        assert (
-            dataset_loaders.keys() <= self.dataset_config.keys()
-        ), f"the dataset loaders passed in is not a subset of task's dataset config! \ntask dataset config: {self.dataset_config.keys()}\ndataset loaders passed in: {dataset_loaders.keys()}"
+        self._validate_dataset_loaders(dataset_loaders)
 
         assert isinstance(retriever, CustomEmbRetr) or isinstance(
             retriever, StandardizedEmbRetr
