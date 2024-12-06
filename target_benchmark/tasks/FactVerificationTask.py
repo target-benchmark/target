@@ -90,7 +90,7 @@ class FactVerificationTask(AbsTask):
                         table_id_to_table,
                     ),
                     query=query_str,
-                ),
+                )["content"],
             )
             for query_id, query_str, result in zip(
                 query_batch[QUERY_ID_COL_NAME],
@@ -136,18 +136,14 @@ class FactVerificationTask(AbsTask):
             else:
                 self.ref_answers.append(-1)
 
-    def _calculate_downstream_task_performance(
-        self, **kwargs
-    ) -> FactVerificationTaskPerformanceDataModel:
+    def _calculate_downstream_task_performance(self, **kwargs) -> FactVerificationTaskPerformanceDataModel:
         """
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
         assert len(self.ref_answers) == len(self.pred_answers)
         accuracy = accuracy_score(self.ref_answers, self.pred_answers)
-        precision, recall, fbeta, _ = precision_recall_fscore_support(
-            self.ref_answers, self.pred_answers, average="weighted"
-        )
+        precision, recall, fbeta, _ = precision_recall_fscore_support(self.ref_answers, self.pred_answers, average="weighted")
 
         result = FactVerificationTaskPerformanceDataModel(
             scores={
