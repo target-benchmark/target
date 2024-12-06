@@ -528,7 +528,7 @@ class AbsTask(ABC):
         top_k: int,
         total_retrieval_duration_process: float,
         total_retrieval_duration_wall_clock: float,
-        total_num_queries: float,
+        num_queries_retrieved: int,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -543,12 +543,12 @@ class AbsTask(ABC):
         retrieval_duration_wall_clock = round(total_retrieval_duration_wall_clock, 5)
         avg_dur_process = 0
         avg_dur_wall_clock = 0
-        if not total_num_queries:
+        if num_queries_retrieved == 0:
             retrieval_duration_process = 0
             retrieval_duration_wall_clock = 0
         else:
-            avg_dur_process = round(retrieval_duration_process / total_num_queries, 5)
-            avg_dur_wall_clock = round(retrieval_duration_wall_clock / total_num_queries, 5)
+            avg_dur_process = round(retrieval_duration_process / num_queries_retrieved, 5)
+            avg_dur_wall_clock = round(retrieval_duration_wall_clock / num_queries_retrieved, 5)
 
         if self.total_queries_processed != 0:
             # TODO: update recall calculation once text 2 sql in db retrieval is done
