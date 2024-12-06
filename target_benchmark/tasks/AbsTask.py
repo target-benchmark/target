@@ -113,6 +113,14 @@ class AbsTask(ABC):
     def get_available_datasets(cls) -> Dict[str, DatasetConfigDataModel]:
         return cls.append_nih_datasets(cls._get_default_dataset_config())
 
+    def _validate_dataset_loaders(self, dataset_loaders: Dict[str, AbsDatasetLoader]):
+        for dataset_loader in dataset_loaders.values():
+            if dataset_loader.dataset_name not in self.dataset_config.keys():
+                raise ValueError(
+                    f"Invalid dataset loader: '{dataset_loader.dataset_name}' is not configured for this task. "
+                    f"Ensure that the names match one of the configured datasets: {list(self.  dataset_config.keys())}."
+                )
+
     def get_task_name(self):
         """
         Returns the name of the task. NOTE: not the same as `get_default_task_name`. this name can be customized upon creation of the task.
@@ -139,7 +147,6 @@ class AbsTask(ABC):
             assert key not in constructed_config, f"duplicate dataset name {key}!"
             if isinstance(value, Dict):
                 # TODO: Needle in haystack config creation
-                assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
                 assert QUERY_TYPE in value, f"need to specify a query type in the dictionary config with key {QUERY_TYPE}"
                 if key not in value:
                     value[DATASET_NAME] = key
