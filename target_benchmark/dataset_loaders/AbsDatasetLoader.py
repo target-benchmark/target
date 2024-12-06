@@ -140,7 +140,9 @@ class AbsDatasetLoader(ABC):
             raise RuntimeError("Corpus has not been loaded!")
 
         in_memory_format = set_in_memory_data_format(output_format)
+
         converted_corpus = self._convert_corpus_to_dict()
+
         if in_memory_format == InMemoryDataFormat.DF:
             df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
             converted_corpus[TABLE_COL_NAME] = df_tables
@@ -173,10 +175,10 @@ class AbsDatasetLoader(ABC):
                 mapping_dict[key] = table
         return mapping_dict
 
-    def get_queries_for_task(self, batch_size: int = 64) -> Iterable[Dict]:
+    def get_queries_for_task(self, batch_size: int = 64, start_idx: int = 0) -> Iterable[Dict]:
         if not self.queries:
             raise RuntimeError("Queries has not been loaded!")
-        for batch in self.queries.iter(batch_size):
+        for batch in self.queries.select(range(start_idx, self.get_queries_size())).iter(batch_size):
             yield batch
 
     def get_dataset_name(self) -> str:

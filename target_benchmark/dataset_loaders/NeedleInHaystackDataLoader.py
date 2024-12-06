@@ -31,7 +31,7 @@ class NeedleInHaystackDataLoader(HFDatasetLoader):
     def _raise_no_queries_error(self):
         raise NotImplementedError("Needle-in-haystack datasets have no queries!")
 
-    def get_queries_for_task(self, batch_size: int = 64):
+    def get_queries_for_task(self, batch_size: int = 64, start_index: int = 0):
         self._raise_no_queries_error()
 
     def get_queries(self):
