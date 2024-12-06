@@ -269,7 +269,10 @@ class AbsTask(ABC):
 
             updated_batch = update_query_batch(query_batch, len(downstream_results))
             downstream_results_new = self._get_downstream_task_results(
-                updated_batch, retrieval_results, dataset_name, table_id_to_table
+                query_batch=updated_batch,
+                retrieval_results=retrieval_results,
+                dataset_name=dataset_name,
+                table_id_to_table=table_id_to_table,
             )
             append_results(downstream_results_new, path_to_downstream_results)
             downstream_results.extend(downstream_results_new)
@@ -341,12 +344,12 @@ class AbsTask(ABC):
             for query_batch in dataset_loader.get_queries_for_task(batch_size=batch_size):
                 # run retrieval on batch
                 retrieval_results, process_duration, wall_clock_duration, num_retrieved = self._run_retrieval_batch(
-                    retriever,
-                    dataset_name,
-                    query_batch,
-                    top_k,
-                    prev_retrieval_res_gen,
-                    path_to_retrieval_results,
+                    retriever=retriever,
+                    dataset_name=dataset_name,
+                    query_batch=query_batch,
+                    top_k=top_k,
+                    prev_retrieval_results_gen=prev_retrieval_res_gen,
+                    path_to_retrieval_results=path_to_retrieval_results,
                     **kwargs,
                 )
 
@@ -396,6 +399,7 @@ class AbsTask(ABC):
         path_to_downstream_results: Union[Path, None] = None,
         **kwargs,
     ) -> Dict[str, DownstreamTaskPerformanceDataModel]:
+        # TODO: Deprecate. Legacy function. resume functionalities now fully encapsulated within the `task_run` funciton.
         task_results = {}
 
         # get the persisted retrieval results
