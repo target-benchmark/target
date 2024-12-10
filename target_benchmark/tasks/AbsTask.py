@@ -225,7 +225,6 @@ class AbsTask(ABC):
         try:
             # getting some more results from the previous results generator
             retrieval_results = next(prev_retrieval_results_gen)
-            print(len(retrieval_results))
         except StopIteration:
             pass
         # count how many loaded queries
@@ -645,7 +644,7 @@ class AbsTask(ABC):
             }
 
             downstream_task_results = []
-            for future in tqdm.tqdm(as_completed(future_to_query_id), total=len(future_to_query_id)):
+            for future in tqdm(as_completed(future_to_query_id), total=len(future_to_query_id)):
                 query_id = future_to_query_id[future]
                 generated_results = postprocess_generation(future.result(), **kwargs)
                 print(f"query_id: {query_id}, generation: {generated_results}")
