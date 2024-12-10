@@ -33,33 +33,6 @@ class Text2SQLGenerator(DefaultGenerator):
     ):
         super().__init__(system_message=system_message, user_message=user_message)
         self.user_message = user_message
-        # response_schemas = [
-        #     ResponseSchema(
-        #         name="chain_of_thought_reasoning",
-        #         description="Your thought process on how you arrived at the final SQL query.",
-        #     ),
-        #     ResponseSchema(name="sql_query", description="the sql query you write."),
-        #     ResponseSchema(
-        #         name="database_id",
-        #         description="the database id of the database you chose to query from.",
-        #     ),
-        # ]
-
-        # self.output_parser = StructuredOutputParser.from_response_schemas(
-        #     response_schemas
-        # )
-
-        # self.chat_template = ChatPromptTemplate(
-        #     messages=[
-        #         SystemMessage(content=(system_message)),
-        #         HumanMessagePromptTemplate.from_template(user_message),
-        #     ],
-        #     input_variables=["table_str", "query_str"],
-        #     partial_variables={
-        #         "format_instructions": self.output_parser.get_format_instructions()
-        #     },
-        # )
-        # self.chain = self.chat_template | self.language_model | self.output_parser
 
     @retry(
         reraise=True,
@@ -68,12 +41,9 @@ class Text2SQLGenerator(DefaultGenerator):
         wait=wait_exponential(multiplier=1, min=4, max=32),
     )
     def generate(self, table_str: str, query: str) -> Dict:
-        # Note: currently text 2 sql generator takes in a database schema string
-        # in the `table_str` input. In order to modify this, you can change the
-        # `_get_downstream_task_results` method of the text 2 sql task. More
-        # details can be found in the docs.
+        # Note: currently text 2 sql generator takes in a string containting schemas
+        # of the retrieved tables.
 
-        # return self._invoke_chain(table_str, query)
         client = OpenAI()
         table_info_completion = client.beta.chat.completions.parse(
             model="gpt-4o-mini-2024-07-18",
