@@ -190,7 +190,7 @@ class Text2SQLTask(AbsTask):
         return table_str
         # return "\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results)
 
-    def _postprocess_generation(generation: Dict[str, str], **kwargs) -> Tuple[str, str]:
+    def _postprocess_generation(self, generation: Dict[str, str], **kwargs) -> Tuple[str, str]:
         return (
             generation["sql_query"],
             generation["database_id"],
