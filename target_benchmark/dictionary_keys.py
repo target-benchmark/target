@@ -23,7 +23,7 @@ ANSWER_COL_NAME: str = "answer"
 Some custom columns
 """
 DIFFICULTY_COL_NAME: str = "difficulty"
-
+CONTENT_KEY_NAME: str = "content"
 """
 Default names used when inserting into a vector db
 """
