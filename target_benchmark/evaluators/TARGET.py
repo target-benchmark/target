@@ -459,7 +459,7 @@ class TARGET:
         self,
         retriever: AbsRetrieverBase,
         split: Literal["test", "train", "validation"] = "test",
-        batch_size: int = 1,
+        batch_size: int = 64,
         top_k: int = 5,
         retrieval_results_dir: Union[str, None] = None,
         downstream_results_dir: Union[str, None] = None,
@@ -501,32 +501,33 @@ class TARGET:
             nih_dataloaders = list(nih_dataloaders.values())
             # call embed corpus on the retriever to embed/preprocess the tables
             for dataset_name, task_dataloader in task_dataloaders.items():
-                if dataset_name not in loaded_datasets:
-                    task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
-                    size_of_corpus = self._calculate_corpus_size(task_dataloader_with_nih)
-                    process_duration, wall_clock_duration, embedding_size = -1.0, -1.0, -1.0
-                    if standardized:
-                        process_duration, wall_clock_duration, embedding_size = self.embed_with_standardized_embeddings(
-                            retriever, dataset_name, task_dataloader_with_nih, client
-                        )
-                    else:
-                        process_duration, wall_clock_duration, embedding_size = self.embed_with_custom_embeddings(
-                            retriever,
-                            dataset_name,
-                            task_dataloader_with_nih,
-                            batch_size,
-                        )
-                    loaded_datasets.add(dataset_name)
-
-                    # create embedding statistics data object to record latency & size of embedding
-                    embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
-                        embedding_creation_duration_process=round(process_duration, 5),
-                        avg_embedding_creation_duration_process=round(process_duration / size_of_corpus, 5),
-                        embedding_creation_duration_wall_clock=round(wall_clock_duration, 5),
-                        avg_embedding_creation_duration_wall_clock=round(wall_clock_duration / size_of_corpus, 5),
-                        embedding_size=round(embedding_size, 5),
-                        avg_embedding_size=round(embedding_size / size_of_corpus, 5),
+                if dataset_name in loaded_datasets:
+                    continue
+                task_dataloader_with_nih = [task_dataloader] + nih_dataloaders
+                size_of_corpus = self._calculate_corpus_size(task_dataloader_with_nih)
+                process_duration, wall_clock_duration, embedding_size = -1.0, -1.0, -1.0
+                if standardized:
+                    process_duration, wall_clock_duration, embedding_size = self.embed_with_standardized_embeddings(
+                        retriever, dataset_name, task_dataloader_with_nih, client
                     )
+                else:
+                    process_duration, wall_clock_duration, embedding_size = self.embed_with_custom_embeddings(
+                        retriever,
+                        dataset_name,
+                        task_dataloader_with_nih,
+                        batch_size,
+                    )
+                loaded_datasets.add(dataset_name)
+
+                # create embedding statistics data object to record latency & size of embedding
+                embedding_stats[dataset_name] = EmbeddingStatisticsDataModel(
+                    embedding_creation_duration_process=round(process_duration, 5),
+                    avg_embedding_creation_duration_process=round(process_duration / size_of_corpus, 5),
+                    embedding_creation_duration_wall_clock=round(wall_clock_duration, 5),
+                    avg_embedding_creation_duration_wall_clock=round(wall_clock_duration / size_of_corpus, 5),
+                    embedding_size=round(embedding_size, 5),
+                    avg_embedding_size=round(embedding_size / size_of_corpus, 5),
+                )
 
             self.logger.info("Finished embedding all new corpus!")
 

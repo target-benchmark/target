@@ -1,8 +1,9 @@
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import Logger
 from pathlib import Path
-from typing import Dict, Generator, List, Tuple, Union
+from typing import Callable, Dict, Generator, List, Tuple, Union
 
 from tqdm import tqdm
 
@@ -23,6 +24,8 @@ from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
     DATASET_NAME,
     HF_DATASET_CONFIG_CORPUS_FIELD,
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
     QUERY_TYPE,
     TABLE_ID_COL_NAME,
 )
@@ -47,6 +50,9 @@ from target_benchmark.tasks.TasksDataModels import (
 from target_benchmark.tasks.utils import (
     append_results,
     construct_persistence_path,
+    default_postprocess_generation,
+    default_preprocess_query,
+    default_preprocess_table,
     find_resume_indices,
     generate_batches_from_file,
     load_data_model_from_persistence_file,
@@ -576,6 +582,78 @@ class AbsTask(ABC):
         self.total_tables = 0
         self.total_tables_capped = 0
         return performace
+
+    def _parallelize(
+        self,
+        query_batch: Dict[str, List],
+        retrieval_results: List[RetrievalResultDataModel],
+        dataset_name: str,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+        preprocess_table: Callable[[RetrievalResultDataModel, Dict], str] = default_preprocess_table,
+        preprocess_query: Callable[[str], str] = default_preprocess_query,
+        postprocess_generation: Callable[
+            [Dict[str, str]], Union[str, Tuple[str, str], List[str]]
+        ] = default_postprocess_generation,
+    ) -> List[DownstreamGeneratedResultDataModel]:
+        """
+
+        Executes downstream task answer generation in parallel in order to speed up evals over downstream tasks. This function has the following workflow:
+        - start a ThreadPoolExecutor
+        - create a generation task to be submitted to the executor for parrallel thread execution
+        - for each table, you can use `preprocess_query` and `preprocess_table` to determin how to modify the raw retrieval results before passing them into generators
+        - for each generated result, you can define a `postprocess_generation` to ensure that the generator returned results are updated correctly before being used to construct `DownstreamGeneratedResultDataModel`s
+
+        Parameters:
+            preprocess_table (Callable[[RetrievalResultDataModel, Dict], str]):
+                A callable to preprocess a table's raw string representation before passing it into the generator.
+            preprocess_query (Callable[[str], str]):
+                A callable to preprocess a query string before passing it into the generator.
+            postprocess_generation (Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]]):
+                A callable to postprocess the generator's raw output into the desired format.
+            query_batch (Dict[str, List]):
+                A dictionary containing batched query data, including query IDs and query strings.
+            retrieval_results (List[RetrievalResultDataModel]):
+                A list of retrieval results containing information about tables retrieved for each query.
+            dataset_name (str):
+                The name of the dataset being processed.
+            table_id_to_table (Dict[Tuple[str, str], List[List]]):
+                A mapping from table IDs to their corresponding table data.
+
+        Returns:
+            List[DownstreamGeneratedResultDataModel]:
+                A list of downstream task results, where each result contains the dataset name, query ID,
+                and the postprocessed generator outputs.
+        """
+        with ThreadPoolExecutor() as executor:
+            future_to_query_id = {
+                executor.submit(
+                    self.task_generator.generate,
+                    preprocess_table(
+                        result,
+                        table_id_to_table,
+                    ),
+                    preprocess_query(query_str),
+                ): query_id
+                for query_id, query_str, result in zip(
+                    query_batch[QUERY_ID_COL_NAME],
+                    query_batch[QUERY_COL_NAME],
+                    retrieval_results,
+                )
+            }
+
+            downstream_task_results = []
+            for future in tqdm.tqdm(as_completed(future_to_query_id), total=len(future_to_query_id)):
+                query_id = future_to_query_id[future]
+                generated_results = postprocess_generation(future.result())
+                downstream_task_results.append(
+                    DownstreamGeneratedResultDataModel(
+                        dataset_name=dataset_name,
+                        query_id=query_id,
+                        generated_results=generated_results,
+                    ),
+                )
+        downstream_task_results.sort(key=lambda x: x.query_id)
+        return downstream_task_results
 
     @abstractmethod
     def _get_downstream_task_results(
