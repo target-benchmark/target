@@ -647,7 +647,6 @@ class AbsTask(ABC):
             for future in tqdm(as_completed(future_to_query_id), total=len(future_to_query_id)):
                 query_id = future_to_query_id[future]
                 generated_results = postprocess_generation(future.result(), **kwargs)
-                print(f"query_id: {query_id}, generation: {generated_results}")
                 downstream_task_results.append(
                     DownstreamGeneratedResultDataModel(
                         dataset_name=dataset_name,
