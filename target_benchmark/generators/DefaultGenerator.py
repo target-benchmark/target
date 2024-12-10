@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 from langchain_openai import ChatOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from target_benchmark.dictionary_keys import CONTENT_KEY_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.GeneratorPrompts import (
     DEFAULT_LM,
@@ -38,4 +39,4 @@ class DefaultGenerator(AbsGenerator):
         return self.chain.invoke({"table_str": table_str, "query_str": query})
 
     def generate(self, table_str: str, query: str) -> Dict:
-        return {"content": self._invoke_chain(table_str, query).content}
+        return {CONTENT_KEY_NAME: self._invoke_chain(table_str, query).content}

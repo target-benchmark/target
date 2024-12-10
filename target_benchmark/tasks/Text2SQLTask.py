@@ -1,5 +1,5 @@
-import sqlite3
 import re
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -154,21 +154,30 @@ class Text2SQLTask(AbsTask):
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         # Fetch and print the schema of each table
-        table_schemas = cur.execute(f"SELECT name, sql FROM sqlite_schema WHERE type='table' AND name IN ({','.join('?' * len(table_ids))})", table_ids).fetchall()
+        table_schemas = cur.execute(
+            f"SELECT name, sql FROM sqlite_schema WHERE type='table' AND name IN ({','.join('?' * len(table_ids))})", table_ids
+        ).fetchall()
         schema_str = f"\nDatabase Name: {db_id}\nSchema:"
 
         def normalize_schema(schema: str) -> str:
             # Make sure our commas only come after newlines - not the inverse
-            schema = re.sub(r'\n,', r',\n', schema)
+            schema = re.sub(r"\n,", r",\n", schema)
             # Remove any indentation after the newlines
-            schema = re.sub(r'\n\s+(?=[^\s])', r'\n', schema)
+            schema = re.sub(r"\n\s+(?=[^\s])", r"\n", schema)
             # Make sure we have tabs after each newline - just not the last one (with a r-paren after it)
-            schema = re.sub(r'\n(?=[^\)])', r'\n\t', schema)
+            schema = re.sub(r"\n(?=[^\)])", r"\n\t", schema)
             return schema
 
         for _, schema in table_schemas:
             schema_str += f"\n\n{normalize_schema(schema)}"
         return schema_str + "\n\n---\n"
+
+    def _preprocess_table(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+    ):
+        return "\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results)
 
     def _get_downstream_task_results(
         self,
@@ -198,11 +207,7 @@ class Text2SQLTask(AbsTask):
             # Next, serialize the schema of those tables to a string
             table_str = ""
             for db_id, table_ids in db_id_to_tables.items():
-                table_str += self._get_schema(
-                    dataset_name=self.current_dataset,
-                    db_id=db_id,
-                    table_ids=table_ids
-                )
+                table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
             generated_sql = self.task_generator.generate(
                 table_str=table_str,
                 query=query_str,
