@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Generator, List, Tuple, Union
+from typing import Any, Dict, Generator, List, Protocol, Tuple, Union
 
 import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
@@ -24,7 +24,27 @@ from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultData
 from target_benchmark.retrievers.utils import markdown_table_str
 
 
-def default_preprocess_query(query_str: str) -> str:
+class PreprocessTableCallable(Protocol):
+    def __call__(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+        **kwargs: Any,
+    ) -> str:
+        ...
+
+
+class PreprocessQueryCallable(Protocol):
+    def __call__(self, query_str: str, **kwargs) -> str:
+        ...
+
+
+class PostprocessGenerationCallable(Protocol):
+    def __call__(self, generation: Dict[str, str], **kwargs) -> Union[str, Tuple[str, str], List[str]]:
+        ...
+
+
+def default_preprocess_query(query_str: str, **kwargs) -> str:
     """
 
     Returns the same query string. default value of the `AbsTask._parallelize` function's `preprocess_query` parameter.
@@ -38,7 +58,7 @@ def default_preprocess_query(query_str: str) -> str:
     return query_str
 
 
-def default_postprocess_generation(generation: Dict[str, str]) -> str:
+def default_postprocess_generation(generation: Dict[str, str], **kwargs) -> str:
     """
 
     Returns content of the generator's response. default value of the `AbsTask._parallelize` function's `postprocess_generation` parameter.
@@ -53,8 +73,7 @@ def default_postprocess_generation(generation: Dict[str, str]) -> str:
 
 
 def default_preprocess_table(
-    result: RetrievalResultDataModel,
-    table_id_to_table: Dict[Tuple[str, str], List[List]],
+    result: RetrievalResultDataModel, table_id_to_table: Dict[Tuple[str, str], List[List]], **kwargs
 ) -> str:
     """
 

@@ -11,8 +11,6 @@ from target_benchmark.dictionary_keys import (
     DATABASE_ID_COL_NAME,
     DATASET_NAME,
     DIFFICULTY_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
 )
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerator
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
@@ -176,8 +174,27 @@ class Text2SQLTask(AbsTask):
         self,
         result: RetrievalResultDataModel,
         table_id_to_table: Dict[Tuple[str, str], List[List]],
+        **kwargs,
     ):
-        return "\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results)
+        # First, aggregate together all table_ids coming from the same db_id
+        db_id_to_tables: Dict[str, List[str]] = {}
+        for db_id, table_id in result.retrieval_results:
+            if db_id not in db_id_to_tables:
+                db_id_to_tables[db_id] = []
+            db_id_to_tables[db_id].append(table_id)
+        # Next, serialize the schema of those tables to a string
+        table_str = ""
+        for db_id, table_ids in db_id_to_tables.items():
+            table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
+        print(table_str)
+        return table_str
+        # return "\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results)
+
+    def _postprocess_generation(generation: Dict[str, str], **kwargs) -> Tuple[str, str]:
+        return (
+            generation["sql_query"],
+            generation["database_id"],
+        )
 
     def _get_downstream_task_results(
         self,
@@ -191,39 +208,46 @@ class Text2SQLTask(AbsTask):
         """
         if not self.current_dataset:
             self.current_dataset = dataset_name
+        return self._parallelize(
+            query_batch=query_batch,
+            retrieval_results=retrieval_results,
+            dataset_name=dataset_name,
+            table_id_to_table=table_id_to_table,
+            preprocess_table=self._preprocess_table,
+            postprocess_generation=self._postprocess_generation,
+        )
+        # downstream_task_results = []
+        # for query_id, query_str, result in zip(
+        #     query_batch[QUERY_ID_COL_NAME],
+        #     query_batch[QUERY_COL_NAME],
+        #     retrieval_results,
+        # ):
+        #     # First, aggregate together all table_ids coming from the same db_id
+        #     db_id_to_tables: Dict[str, List[str]] = {}
+        #     for db_id, table_id in result.retrieval_results:
+        #         if db_id not in db_id_to_tables:
+        #             db_id_to_tables[db_id] = []
+        #         db_id_to_tables[db_id].append(table_id)
+        #     # Next, serialize the schema of those tables to a string
+        #     table_str = ""
+        #     for db_id, table_ids in db_id_to_tables.items():
+        #         table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
+        #     generated_sql = self.task_generator.generate(
+        #         table_str=table_str,
+        #         query=query_str,
+        #     )
+        #     downstream_task_results.append(
+        #         DownstreamGeneratedResultDataModel(
+        #             dataset_name=dataset_name,
+        #             query_id=query_id,
+        #             generated_results=(
+        #                 generated_sql["sql_query"],
+        #                 generated_sql["database_id"],
+        #             ),
+        #         ),
+        #     )
 
-        downstream_task_results = []
-        for query_id, query_str, result in zip(
-            query_batch[QUERY_ID_COL_NAME],
-            query_batch[QUERY_COL_NAME],
-            retrieval_results,
-        ):
-            # First, aggregate together all table_ids coming from the same db_id
-            db_id_to_tables: Dict[str, List[str]] = {}
-            for db_id, table_id in result.retrieval_results:
-                if db_id not in db_id_to_tables:
-                    db_id_to_tables[db_id] = []
-                db_id_to_tables[db_id].append(table_id)
-            # Next, serialize the schema of those tables to a string
-            table_str = ""
-            for db_id, table_ids in db_id_to_tables.items():
-                table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
-            generated_sql = self.task_generator.generate(
-                table_str=table_str,
-                query=query_str,
-            )
-            downstream_task_results.append(
-                DownstreamGeneratedResultDataModel(
-                    dataset_name=dataset_name,
-                    query_id=query_id,
-                    generated_results=(
-                        generated_sql["sql_query"],
-                        generated_sql["database_id"],
-                    ),
-                ),
-            )
-
-        return downstream_task_results
+        # return downstream_task_results
 
     def _update_downstream_task_metrics(
         self,
