@@ -651,6 +651,7 @@ class AbsTask(ABC):
                         generated_results=generated_results,
                     ),
                 )
+        downstream_task_results.sort(key=lambda x: x.query_id)
         return downstream_task_results
 
     @abstractmethod
