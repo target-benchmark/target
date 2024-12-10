@@ -114,11 +114,11 @@ class AbsTask(ABC):
         return cls.append_nih_datasets(cls._get_default_dataset_config())
 
     def _validate_dataset_loaders(self, dataset_loaders: Dict[str, AbsDatasetLoader]):
-        for dataset_loader in dataset_loaders.values():
-            if dataset_loader.dataset_name not in self.dataset_config.keys():
+        for dataset_name in dataset_loaders.keys():
+            if dataset_name not in self.dataset_config.keys():
                 raise ValueError(
-                    f"Invalid dataset loader: '{dataset_loader.dataset_name}' is not configured for this task. "
-                    f"Ensure that the names match one of the configured datasets: {list(self.  dataset_config.keys())}."
+                    f"Invalid dataset loader: '{dataset_name}' is not configured for this task. "
+                    f"Ensure that the names match one of the configured datasets: {list(self.dataset_config.keys())}."
                 )
 
     def get_task_name(self):
@@ -216,6 +216,7 @@ class AbsTask(ABC):
         try:
             # getting some more results from the previous results generator
             retrieval_results = next(prev_retrieval_results_gen)
+            print(len(retrieval_results))
         except StopIteration:
             pass
         # count how many loaded queries
