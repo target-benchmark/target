@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import List, Tuple
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
@@ -18,6 +19,8 @@ def parse_arguments():
         action="store_true",
         help="Whether to persist the data. Defaults to False.",
     )
+    parser.add_argument("--retrieval_results_dir", type=str, default=None, help="folder to persist retrieval results.")
+    parser.add_argument("--downstream_results_dir", type=str, default=None, help="folder to persist downstream results.")
     parser.add_argument(
         "--top_ks",
         type=str,
@@ -37,42 +40,44 @@ def run_eval_for_top_ks(
     target: TARGET,
     dataset_name: str,
     split: str,
-    persist: bool = False,
+    retrieval_results_dir: str = None,
+    downstream_results_dir: str = None,
 ):
     results = []
-    persist_path = None
-
+    print(f"dir for retrieval results: {retrieval_results_dir}")
     for top_k in top_ks:
-        if persist:
-            path = Path("./") / retriever_name / dataset_name / f"{top_k}.jsonl"
-            path.parent.mkdir(parents=True, exist_ok=True)
-            persist_path = str(path)
-        else:
-            persist_path = None
         performance = target.run(
             retriever=retriever,
             split=split,
             batch_size=100,
             top_k=top_k,
-            retrieval_results_file=persist_path,
+            retrieval_results_dir=retrieval_results_dir,
+            downstream_results_dir=downstream_results_dir,
         )
         results.append(performance)
         print(performance)
     return results
 
 
-def write_performances(results, retriever_name: str, dataset_name: str):
-    path = Path("./") / retriever_name / dataset_name / "performances.jsonl"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as file:
-        for result in results:
-            file.write(str(result) + "\n")
+def write_performances(results, dataset_name: str, retrieval_results_dir: str, downstream_results_dir: str):
+    def write_to_file(dir: str):
+        path = Path(dir) / dataset_name / "performances.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as file:
+            for result in results:
+                file.write(str(result) + "\n")
+
+    if retrieval_results_dir:
+        write_to_file(retrieval_results_dir)
+    if downstream_results_dir:
+        write_to_file(downstream_results_dir)
 
 
 def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appendix=None):
     if retriever_name == "llamaindex":
         return LlamaIndexRetriever()
     elif "hnsw_openai" in retriever_name:
+        out_dir = None
         if out_dir_appendix:
             out_dir = Path(HNSWOpenAIEmbeddingRetriever.get_default_out_dir()) / out_dir_appendix
         return HNSWOpenAIEmbeddingRetriever(num_rows=num_rows, out_dir=out_dir)
@@ -86,3 +91,19 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return OTTQARetriever(encoding="bm25", withtitle=True)
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
+
+
+def test_main(evals: List[Tuple[str, TARGET, str]]):
+    args = parse_arguments()
+    retriever_name = args.retriever_name
+    num_rows = args.num_rows
+    top_ks = args.top_ks
+    retrieval_results_dir = args.retrieval_results_dir
+    downstream_results_dir = args.downstream_results_dir
+    retriever = initialize_retriever(retriever_name, num_rows)
+
+    for dataset_name, target_eval, split in evals:
+        results = run_eval_for_top_ks(
+            retriever, retriever_name, top_ks, target_eval, dataset_name, split, retrieval_results_dir, downstream_results_dir
+        )
+        write_performances(results, dataset_name, retrieval_results_dir, downstream_results_dir)

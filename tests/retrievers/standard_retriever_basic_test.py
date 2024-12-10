@@ -1,32 +1,30 @@
+import logging
 import unittest
 from unittest.mock import MagicMock
-from target_benchmark.dictionary_keys import METADATA_TABLE_ID_KEY_NAME, METADATA_DB_ID_KEY_NAME
-from evaluators import TARGET
-from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
-from target_benchmark.tasks.TasksDataModels import *
-from target_benchmark.retrievers import OpenAIEmbedder
+
 from qdrant_client import QdrantClient, models
 
-import logging
+from target_benchmark.dictionary_keys import (
+    METADATA_DB_ID_KEY_NAME,
+    METADATA_TABLE_ID_KEY_NAME,
+)
+from target_benchmark.evaluators import TARGET
+from target_benchmark.retrievers import OpenAIEmbedder
+from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 # Get a logger
 logger = logging.getLogger(__name__)
 
 
 class TestTaskRunWithStdRetriever(unittest.TestCase):
-
     def setUp(self):
         self.client = QdrantClient(":memory:")
         self.dataset_name = "fetaqa"
         self.client.create_collection(
             collection_name=self.dataset_name,
-            vectors_config=models.VectorParams(
-                size=1536, distance=models.Distance.COSINE
-            ),
+            vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE),
         )
         self.test_dataset = {
             "Table1": [["some random table"], ["some item"]],
@@ -46,9 +44,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
                 {"database_id": 1, "table_id": table_id, "table": table, "context": {}},
             )
             vectors.append(list(table_embedding))
-            metadata.append(
-                {METADATA_TABLE_ID_KEY_NAME: table_id, METADATA_DB_ID_KEY_NAME: 1}
-            )
+            metadata.append({METADATA_TABLE_ID_KEY_NAME: table_id, METADATA_DB_ID_KEY_NAME: 1})
         self.client.upload_collection(
             collection_name=self.dataset_name,
             vectors=vectors,
@@ -56,23 +52,21 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
         )
 
         self.mock_dataset_loader = MagicMock()
-        self.mock_dataset_loader.get_queries_for_task.side_effect = (
-            lambda batch_size: iter(
-                [
-                    {
-                        "query_id": [1, 2],
-                        "query": ["Test query", "Test query 2"],
-                        "answer": ["Test answer", "Test answer 2"],
-                        "table_id": ["Table1", "Table5"],
-                        "database_id": [0, 0],
-                    }
-                ],
-            )
+        self.mock_dataset_loader.get_queries_size.return_value = 2
+        self.mock_dataset_loader.get_queries_for_task.side_effect = lambda batch_size: iter(
+            [
+                {
+                    "query_id": [1, 2],
+                    "query": ["Test query", "Test query 2"],
+                    "answer": ["Test answer", "Test answer 2"],
+                    "table_id": ["Table1", "Table5"],
+                    "database_id": [0, 0],
+                }
+            ],
         )
 
     def test_basic_task_run(self):
-
-        results = self.retr_task.task_run(
+        self.retr_task.task_run(
             retriever=self.retriever,
             dataset_loaders={"fetaqa": self.mock_dataset_loader},
             logger=logger,

@@ -1,15 +1,18 @@
-import unittest
 import os
+import unittest
 from pathlib import Path
-from target_benchmark.retrievers import HNSWOpenAIEmbeddingRetriever
+
 from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
     DATABASE_ID_COL_NAME,
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
-    CONTEXT_COL_NAME,
 )
+from target_benchmark.retrievers import HNSWOpenAIEmbeddingRetriever
+
 # Import the HNSWOpenAIEmbeddingRetriever from the module where it is defined
 # from your_module import HNSWOpenAIEmbeddingRetriever, DATABASE_ID_COL_NAME, TABLE_ID_COL_NAME, TABLE_COL_NAME
+
 
 class TestHNSWOpenAIEmbeddingRetriever(unittest.TestCase):
     def setUp(self):
@@ -24,7 +27,7 @@ class TestHNSWOpenAIEmbeddingRetriever(unittest.TestCase):
                 TABLE_ID_COL_NAME: ["table1", "table2"],
                 TABLE_COL_NAME: [
                     [["row1_col1", "row1_col2"], ["row2_col1", "row2_col2"]],
-                    [["row1_col1", "row1_col2"], ["row2_col1", "row2_col2"]]
+                    [["row1_col1", "row1_col2"], ["row2_col1", "row2_col2"]],
                 ],
                 CONTEXT_COL_NAME: [{}, {}],
             }
@@ -44,7 +47,6 @@ class TestHNSWOpenAIEmbeddingRetriever(unittest.TestCase):
             Path("test_output").rmdir()
 
     def test_embedding_and_retrieving(self):
-
         # Run the embedding process
         self.retriever.embed_corpus(self.dataset_name, self.corpus)
 
@@ -66,6 +68,7 @@ class TestHNSWOpenAIEmbeddingRetriever(unittest.TestCase):
         new_identifier = self.retriever._get_corpus_identifier(self.dataset_name)
         self.assertNotEqual(new_identifier, self.corpus_identifier)
         self.assertIn("numrows_5", new_identifier)
+
 
 # Run the test
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Generator, List, Tuple, Union
 
 import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
@@ -16,6 +16,7 @@ from target_benchmark.dataset_loaders.AbsDatasetLoader import AbsDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
     DatasetConfigDataModel,
     NeedleInHaystackDatasetConfigDataModel,
+    Text2SQLDatasetConfigDataModel,
 )
 from target_benchmark.dictionary_keys import DATASET_NAME
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
@@ -82,6 +83,37 @@ def build_table_content_string(
     return "\n".join(table_content for table_content in tables)
 
 
+def construct_persistence_path(dir: Union[Path, None], dataset_name: str, top_k: float):
+    if not dir:
+        return None
+    final_path = dir / dataset_name / f"{top_k}.jsonl"
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    final_path.touch()
+    return final_path
+
+
+def update_query_batch(
+    query_batch: Dict[str, List],
+    start_idx: int,
+) -> Dict[str, List]:
+    updated_batch = {}
+    for key in query_batch:
+        updated_batch[key] = query_batch[key][start_idx:]
+    return updated_batch
+
+
+def append_results(
+    results: List[BaseModel],
+    path_to_persistence: Union[Path, None],
+):
+    if not path_to_persistence:
+        return
+    path_to_persistence.touch()
+    with open(path_to_persistence, "a") as file:
+        for retrieval_result in results:
+            file.write(retrieval_result.model_dump_json() + "\n")
+
+
 def load_data_model_from_persistence_file(
     path_to_persistence: Path,
     datamodel: type[BaseModel],
@@ -90,7 +122,35 @@ def load_data_model_from_persistence_file(
     with open(path_to_persistence, "r") as file:
         for line in file.readlines():
             loaded_models.append(datamodel.model_validate_json(line))
+    loaded_models.sort(lambda x: x.query_id)
     return loaded_models
+
+
+def get_num_lines_in_file(path: Path):
+    with open(path, "r") as file:
+        return sum(1 for _ in file)
+
+
+def generate_batches_from_file(
+    path_to_persistence: Union[Path, None],
+    batch_size: int,
+    datamodel: type[BaseModel],
+) -> Generator[List[BaseModel], None, None]:
+    if path_to_persistence:
+        # get total number of lines in a file
+        num_lines = get_num_lines_in_file(path_to_persistence)
+        loaded_models = []
+        with open(path_to_persistence, "r") as file:
+            for i, line in enumerate(file):
+                # check if we've reached the end of the previously written file
+                if i >= num_lines:
+                    break
+                loaded_models.append(datamodel.model_validate_json(line))
+                if len(loaded_models) >= batch_size:
+                    yield loaded_models
+                    loaded_models = []
+        if loaded_models:
+            yield loaded_models
 
 
 def find_resume_indices(
@@ -314,16 +374,21 @@ def validate_dataset_configs(constructed_config: Dict[str, DatasetConfigDataMode
     Current rules (more to be added potentially):
     - cannot be empty
     - cannot be only needle in haystack datasets
+    - cannot have NIH with text2sql (not tried but probably NIH datasets inserted into sqlite will not end well.)
     Returns:
         True if dataset configs are correctly constructed.
         Otherwise throw assertion error
     """
     num_non_nih = 0
     num_total = 0
+    num_text2sql = 0
     for dataset_name, config in constructed_config.items():
         if not isinstance(config, NeedleInHaystackDatasetConfigDataModel):
             num_non_nih += 1
+        if isinstance(config, Text2SQLDatasetConfigDataModel):
+            num_text2sql += 1
         num_total += 1
     assert num_total != 0, "No datasets configurated!"
     assert num_non_nih != 0, "Cannot have only Needle in Haystack datasets!"
+    assert not num_text2sql or (num_text2sql and num_non_nih >= num_total), "Cannot have T2SQL & NIH!"
     return True

@@ -32,7 +32,11 @@ from target_benchmark.dictionary_keys import (
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
-from target_benchmark.evaluators.utils import corpus_gen, find_tasks
+from target_benchmark.evaluators.utils import (
+    construct_dataset_name_for_eval,
+    corpus_gen,
+    find_tasks,
+)
 from target_benchmark.retrievers import (
     AbsCustomEmbeddingRetriever,
     AbsRetrieverBase,
@@ -300,7 +304,13 @@ class TARGET:
                     loader, Text2SQLDatasetLoader
                 ), f"data loader for dataset {name} is not a text to sql dataset."
             task.setup_database_dirs(task_dataloaders)
-        return task_dataloaders, nih_dataloaders
+
+        task_dataloaders_updated_name = {}
+        nih_dataloaders_lst = list(nih_dataloaders.values())
+        # update dataset identifier to include id for nih datasets
+        for dataloader in task_dataloaders.values():
+            task_dataloaders_updated_name[construct_dataset_name_for_eval(dataloader, nih_dataloaders_lst)] = dataloader
+        return task_dataloaders_updated_name, nih_dataloaders
 
     def setup_logger(self, persist_log: bool = True, log_file_path: str = None) -> logging.Logger:
         """
@@ -451,8 +461,8 @@ class TARGET:
         split: Literal["test", "train", "validation"] = "test",
         batch_size: int = 64,
         top_k: int = 5,
-        retrieval_results_file: Union[str, None] = None,
-        downstream_results_file: Union[str, None] = None,
+        retrieval_results_dir: Union[str, None] = None,
+        downstream_results_dir: Union[str, None] = None,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         # TODO: add resume
@@ -521,8 +531,9 @@ class TARGET:
 
             self.logger.info("Finished embedding all new corpus!")
 
-            path_to_retrieval_results = self._create_persistence_file(retrieval_results_file)
-            path_to_downstream_results = self._create_persistence_file(downstream_results_file)
+            path_to_retrieval_results = Path(retrieval_results_dir) if retrieval_results_dir else None
+            path_to_downstream_results = Path(downstream_results_dir) if downstream_results_dir else None
+
             # run the task!
             task_result = task.task_run(
                 retriever=retriever,
@@ -531,8 +542,8 @@ class TARGET:
                 batch_size=batch_size,
                 top_k=top_k,
                 client=client,
-                path_to_retrieval_results=path_to_retrieval_results,
-                path_to_downstream_results=path_to_downstream_results,
+                path_to_retrieval_results_dir=path_to_retrieval_results,
+                path_to_downstream_results_dir=path_to_downstream_results,
                 **kwargs,
             )
 

@@ -1,6 +1,7 @@
-from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
-from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 import unittest
+
+from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
+from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 
 
 class TestOTTQARetriever(unittest.TestCase):
@@ -31,30 +32,22 @@ class TestOTTQARetriever(unittest.TestCase):
     def test_corpus_keys(self):
         # Test to check if corpus keys are as expected
         expected_keys = ["database_id", "table_id", "table", "context"]
-        self.assertEqual(
-            set(self.fetaqa_loader.corpus.column_names), set(expected_keys)
-        )
+        self.assertEqual(set(self.fetaqa_loader.corpus.column_names), set(expected_keys))
 
     def test_single_retrieve(self):
         # Test the retrieve function
         query = self.fetaqa_loader.queries[0]["query"]
-        query_id = self.fetaqa_loader.queries[0]["query_id"]
+        self.fetaqa_loader.queries[0]["query_id"]
         table_id = self.fetaqa_loader.queries[0]["table_id"]
-        results = self.ottqa_retriever.retrieve(
-            query, self.fetaqa_loader.dataset_name, 10
-        )
-        print(
-            f"\nretrieving on query: {query}\n\ncorrect table: {table_id}\n\n actual results: {results}"
-        )
+        results = self.ottqa_retriever.retrieve(query, self.fetaqa_loader.dataset_name, 10)
+        print(f"\nretrieving on query: {query}\n\ncorrect table: {table_id}\n\n actual results: {results}")
         # Perform assertions on the results
         self.assertIsInstance(results, list)
         # More assertions depending on the expected structure of the results
 
     def test_query_table_id(self):
         # Test to check the query's table ID
-        expected_table_id = (
-            "totto_source/dev_json/example-2205.json"  # the expected table ID here
-        )
+        expected_table_id = "totto_source/dev_json/example-2205.json"  # the expected table ID here
         query_table_id = self.fetaqa_loader.queries[0]["table_id"]
         self.assertEqual(query_table_id, expected_table_id)
 
