@@ -34,12 +34,12 @@ export OPENAI_API_KEY=<your openai api key>
 Let's see how we can run evaluation on a baseline retriever. We'll use LlamaIndex as an example:
 
 ```python
-from target_benchmark.evaluators import TARGET, get_task_names
+from target_benchmark import Target
 # you can run `get_task_names()` to get all available tasks
 from target_benchmark.retrievers import LlamaIndexRetriever
 
 # specify a task and a dataset to run evaluations on.
-target_fetaqa = TARGET(("Table Retrieval Task", "fetaqa"))
+target_fetaqa = Target(("Table Retrieval Task", "fetaqa"))
 # create a new retriever object
 llamaindex_retriever = LlamaIndexRetriever()
 # run the evaluation!

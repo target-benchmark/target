@@ -4,7 +4,7 @@ from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_FETAQA_DATASET_CONFIG,
     DEFAULT_GITTABLES_DATASET_CONFIG,
 )
-from target_benchmark.evaluators import TARGET
+from target_benchmark import Target
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 from target_benchmark.tasks import TableRetrievalTask
 
@@ -37,7 +37,7 @@ class TestNIHTask(unittest.TestCase):
     def _create_target_evaluation(self, num_tables):
         gittables_config = DEFAULT_GITTABLES_DATASET_CONFIG.model_copy()
         gittables_config.num_tables = num_tables
-        return TARGET(
+        return Target(
             TableRetrievalTask(
                 {
                     "fetaqa": DEFAULT_FETAQA_DATASET_CONFIG,

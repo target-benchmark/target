@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from target_benchmark.dataset_loaders.LoadersDataModels import HFDatasetConfigDataModel
-from target_benchmark.evaluators import TARGET
+from target_benchmark import Target
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
@@ -19,10 +19,10 @@ class TestEvaluator(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_tasks=self.trt)
+        self.evaluator = Target(downstream_tasks=self.trt)
 
     def test_input_dataset_config(self):
-        target = TARGET(
+        target = Target(
             downstream_tasks=[
                 ("Text to SQL Task", "spider-test"),
                 ("Table Question Answering Task", ["fetaqa", "ottqa"]),
@@ -45,11 +45,11 @@ class TestEvaluator(unittest.TestCase):
         self.assertIsInstance(dataset_info["ottqa"], HFDatasetConfigDataModel)
 
     def test_duplicate_input_dataset_config(self):
-        TARGET(downstream_tasks=["Table Retrieval Task", self.trt])
+        Target(downstream_tasks=["Table Retrieval Task", self.trt])
         # check if warning was tracked in log
 
     def test_default_evaluator_creation(self):
-        TARGET()
+        Target()
         self.assertEqual(self.evaluator.get_loaded_tasks(), ["Table Retrieval Task"])
 
     def test_with_task_evaluator_creation(self):
@@ -90,7 +90,7 @@ class TestEvaluator(unittest.TestCase):
         )
 
     def test_basic_run_task(self):
-        with patch("target_benchmark.evaluators.TARGET.create_dataloaders") as mock_func:
+        with patch("target_benchmark.Target.create_dataloaders") as mock_func:
             mock_retriever = MagicMock()
             mock_retriever.__class__ = CustomEmbRetr
             mock_retriever.retrieve_batch.return_value = [
@@ -130,7 +130,7 @@ class TestEvaluator(unittest.TestCase):
                 self.assertEqual(value, actual_vals[key])
 
     def test_needle_in_haystack(self):
-        eval = TARGET(("Table Retrieval Task", ["fetaqa", "gittables"]))
+        eval = Target(("Table Retrieval Task", ["fetaqa", "gittables"]))
         tasks = eval.tasks
         self.assertIn("Table Retrieval Task", tasks)
         task = tasks["Table Retrieval Task"]

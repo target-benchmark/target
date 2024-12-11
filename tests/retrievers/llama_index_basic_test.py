@@ -1,6 +1,6 @@
 import unittest
 
-from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark import Target
 from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import (
     LlamaIndexRetriever,
 )
@@ -16,7 +16,7 @@ class TestLlamaIndexBasics(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_tasks=self.trt)
+        self.evaluator = Target(downstream_tasks=self.trt)
 
     def test_run_llama_on_dummy(self):
         llama = LlamaIndexRetriever()

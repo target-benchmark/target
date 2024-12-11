@@ -2,7 +2,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from target_benchmark.evaluators import TARGET
+from target_benchmark import Target
 from target_benchmark.retrievers.AbsCustomEmbeddingRetriever import (
     AbsCustomEmbeddingRetriever as CustomEmbRetr,
 )
@@ -34,7 +34,7 @@ class TestEvaluator(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_tasks=self.trt)
+        self.evaluator = Target(downstream_tasks=self.trt)
         self.retriever = DummyRetriever()
         self.retrieval_results_dir = Path(__file__).parent / "test_retrieval_files"
         self.fetaqa_out_path = self.retrieval_results_dir / "fetaqa"

@@ -8,7 +8,7 @@ from target_benchmark.dictionary_keys import (
     METADATA_DB_ID_KEY_NAME,
     METADATA_TABLE_ID_KEY_NAME,
 )
-from target_benchmark.evaluators import TARGET
+from target_benchmark import Target
 from target_benchmark.retrievers import OpenAIEmbedder
 from target_benchmark.tasks.TableRetrievalTask import TableRetrievalTask
 
@@ -84,7 +84,7 @@ class TestTaskRunWithStdRetriever(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         trt = TableRetrievalTask({"fetaqa": fetaqa_dummy_config}, True)
-        targ = TARGET(downstream_tasks=trt)
+        targ = Target(downstream_tasks=trt)
         results = targ.run(self.retriever)
         print(results)
 

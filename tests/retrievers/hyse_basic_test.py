@@ -1,6 +1,6 @@
 import unittest
 
-from target_benchmark.evaluators.TARGET import TARGET
+from target_benchmark import Target
 
 # from target_benchmark.retrievers.hyse.HySERetriever import HySERetriever
 from target_benchmark.tasks import TableRetrievalTask
@@ -15,7 +15,7 @@ class TestHyseBasics(unittest.TestCase):
             "query_type": "Table Question Answering",
         }
         self.trt = TableRetrievalTask({"fetaqa": self.fetaqa_dummy_config}, True)
-        self.evaluator = TARGET(downstream_tasks=self.trt)
+        self.evaluator = Target(downstream_tasks=self.trt)
 
     def test_run_hyse_on_dummy(self):
         pass
