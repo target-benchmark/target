@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Generator, List, Tuple, Union
+from typing import Any, Dict, Generator, List, Protocol, Tuple, Union
 
 import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
@@ -20,7 +20,73 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
 )
 from target_benchmark.dictionary_keys import DATASET_NAME
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
+from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.retrievers.utils import markdown_table_str
+
+
+class PreprocessTableCallable(Protocol):
+    def __call__(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+        **kwargs: Any,
+    ) -> str:
+        ...
+
+
+class PreprocessQueryCallable(Protocol):
+    def __call__(self, query_str: str, **kwargs) -> str:
+        ...
+
+
+class PostprocessGenerationCallable(Protocol):
+    def __call__(self, generation: Dict[str, str], **kwargs) -> Union[str, Tuple[str, str], List[str]]:
+        ...
+
+
+def default_preprocess_query(query_str: str, **kwargs) -> str:
+    """
+
+    Returns the same query string. default value of the `AbsTask._parallelize` function's `preprocess_query` parameter.
+
+    Parameters:
+        query_str (str): the query to preprocess
+    Returns:
+        the same query string unchanged.
+
+    """
+    return query_str
+
+
+def default_postprocess_generation(generation: Dict[str, str], **kwargs) -> str:
+    """
+
+    Returns content of the generator's response. default value of the `AbsTask._parallelize` function's `postprocess_generation` parameter.
+
+    Parameters:
+        generation (dict): generator response
+    Returns:
+        the content from the response
+
+    """
+    return generation["content"]
+
+
+def default_preprocess_table(
+    result: RetrievalResultDataModel, table_id_to_table: Dict[Tuple[str, str], List[List]], **kwargs
+) -> str:
+    """
+
+    Returns the markdown string of table. default value of the `AbsTask._parallelize` function's `preprocess_table` parameter.
+
+    Parameters:
+        result (RetrievalResultDataModel): retrieval result with the (table_id, db_id) identifiers
+        table_id_to_table (dict): mapping of table id to table nested lists
+    Returns:
+        formatted table content string of all (top k) retrieved tables.
+
+    """
+    return build_table_content_string(result.retrieval_results, table_id_to_table)
 
 
 def build_table_content_string(
