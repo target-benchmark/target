@@ -548,8 +548,10 @@ class TARGET:
             )
 
             # add the embedding duration & sizes statistics to the results
-            for dataset_name, results in task_result.items():
+            for dataset_name in task_result:
+                results = task_result[dataset_name]
                 results.embedding_statistics = embedding_stats[dataset_name]
+                task_result[dataset_name] = results.model_dump()
 
             all_results[task_name] = task_result
         self.logger.info("Finished running all tasks!")

@@ -265,6 +265,7 @@ class AbsTask(ABC):
         table_id_to_table: Dict[Tuple[str, str], List[List]],
         prev_downstream_results_gen: Generator[List[DownstreamGeneratedResultDataModel], None, None],
         path_to_downstream_results: Union[Path, None],
+        **kwargs,
     ):
         downstream_results = []
         try:
@@ -600,7 +601,7 @@ class AbsTask(ABC):
 
         Executes downstream task answer generation in parallel in order to speed up evals over downstream tasks. This function has the following workflow:
         - start a ThreadPoolExecutor
-        - create a generation task to be submitted to the executor for parrallel thread execution
+        - create a generation task to be submitted to the executor for parallel thread execution
         - for each table, you can use `preprocess_query` and `preprocess_table` to determin how to modify the raw retrieval results before passing them into generators
         - for each generated result, you can define a `postprocess_generation` to ensure that the generator returned results are updated correctly before being used to construct `DownstreamGeneratedResultDataModel`s
 
@@ -654,7 +655,8 @@ class AbsTask(ABC):
                         generated_results=generated_results,
                     ),
                 )
-        downstream_task_results.sort(key=lambda x: x.query_id)
+        qid_order = {qid: idx for idx, qid in enumerate(query_batch[QUERY_ID_COL_NAME])}
+        downstream_task_results.sort(key=lambda x: qid_order.get(x.query_id, float("inf")))
         return downstream_task_results
 
     @abstractmethod

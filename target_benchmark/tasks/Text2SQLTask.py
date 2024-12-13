@@ -9,7 +9,6 @@ from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatas
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     DATABASE_ID_COL_NAME,
-    DATASET_NAME,
     DIFFICULTY_COL_NAME,
 )
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerator
@@ -272,8 +271,8 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
-        if DATASET_NAME in kwargs:
-            self.current_dataset = kwargs[DATASET_NAME]
+        if "dataset_name_for_dir" in kwargs:
+            self.current_dataset = kwargs["dataset_name_for_dir"]
         if self.current_dataset not in self.database_dirs:
             raise ValueError(f"{self.current_dataset} does not have path to database files.")
         db_path = self.database_dirs[self.current_dataset]

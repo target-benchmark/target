@@ -23,7 +23,7 @@ from target_benchmark.tasks.TasksDataModels import TableQATaskPerformanceDataMod
 
 class QuestionAnsweringTask(AbsTask):
     AVAILABLE_METRICS = set(["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"])
-    DEFAULT_METRICS = set(["bleu", "sacrebleu", "rouge"])
+    DEFAULT_METRICS = set(["bertscore", "bleu", "sacrebleu", "rouge"])
 
     def __init__(
         self,
@@ -140,6 +140,12 @@ class QuestionAnsweringTask(AbsTask):
                     references=self.ref_answers,
                     lang="en",
                 )
+                precision = calculated_result["precision"]
+                calculated_result["precision"] = sum(precision) / len(precision)
+                recall = calculated_result["recall"]
+                calculated_result["recall"] = sum(recall) / len(recall)
+                f1 = calculated_result["f1"]
+                calculated_result["f1"] = sum(f1) / len(f1)
             else:
                 calculated_result = evaluator.compute(predictions=self.pred_answers, references=self.ref_answers)
             scores[metric_name] = calculated_result

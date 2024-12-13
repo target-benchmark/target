@@ -53,6 +53,7 @@ def run_eval_for_top_ks(
             top_k=top_k,
             retrieval_results_dir=retrieval_results_dir,
             downstream_results_dir=downstream_results_dir,
+            dataset_name_for_dir=dataset_name,
         )
         results.append(performance)
         print(performance)
@@ -67,10 +68,10 @@ def write_performances(results, dataset_name: str, retrieval_results_dir: str, d
             for result in results:
                 file.write(str(result) + "\n")
 
-    if retrieval_results_dir:
-        write_to_file(retrieval_results_dir)
     if downstream_results_dir:
         write_to_file(downstream_results_dir)
+    elif retrieval_results_dir:
+        write_to_file(retrieval_results_dir)
 
 
 def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appendix=None):
