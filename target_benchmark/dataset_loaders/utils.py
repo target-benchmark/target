@@ -171,12 +171,14 @@ def convert_nested_list_to(
         return array_of_arrays_to_df(nested_list)
 
 
-def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe"] = "nested array"):
+def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe", "dictionary"] = "nested array"):
     dummy_table = [["header"], ["content"]]
     expected_format = expected_format.lower()
     if "array" in expected_format:
         return dummy_table
     elif "dataframe" in expected_format or "pandas" in expected_format:
         return array_of_arrays_to_df(dummy_table)
+    elif expected_format == "dictionary":
+        return array_of_arrays_to_dict(dummy_table)
     else:
         return dummy_table
