@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Dict
 
 
 class AbsGenerator(ABC):
@@ -6,7 +7,7 @@ class AbsGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate(self, table_str: str, query: str) -> str:
+    def generate(self, table_str: str, query: str) -> Dict:
         """
         Generate a response with the generator.
 
