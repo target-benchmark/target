@@ -51,7 +51,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         for query_id, query_str in zip(queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]):
             result = client.search(
                 collection_name=dataset_name,
-                query_vector=self.embed_query(query_str, dataset_name, **kwargs),
+                query_vector=self.embed_query(query_str, dataset_name),
                 limit=top_k,
                 with_payload=True,
             )
