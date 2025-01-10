@@ -48,9 +48,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
                 f"missing key {CLIENT_KEY_NAME} in kwargs. must be included to use standardized embedding retriever."
             )
         client: QdrantClient = kwargs.get(CLIENT_KEY_NAME)
-        for query_id, query_str in zip(
-            queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]
-        ):
+        for query_id, query_str in zip(queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]):
             result = client.search(
                 collection_name=dataset_name,
                 query_vector=self.embed_query(query_str, dataset_name, **kwargs),
@@ -77,7 +75,6 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         self,
         query: str,
         dataset_name: str,
-        **kwargs,
     ) -> np.ndarray:
         """
         Given a query, return the query embedding for searching.
