@@ -81,12 +81,13 @@ To use this class, implement the following two methods:
 ```python
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 class YourRetriever(AbsCustomEmbeddingRetriever):
-    # you can specify a `expected_corpus_format`
-    # (ie nested array, dictionary, dataframe, etc.),
-    # the corpus tables will be converted to this format
+    # You can set a `expected_corpus_format`
+    # (ie nested array, dictionary, dataframe, etc.)
+    # in your `__init__` function.
+    # The corpus tables will be converted to this format
     # before passed into the `embed_corpus` function.
-    def __init__(self, expected_corpus_format: str = "nested array", **kwargs):
-        super().__init__(expected_corpus_format=expected_corpus_format)
+    def __init__(self, **kwargs):
+        super().__init__(expected_corpus_format="nested array")
 
     # returns a list of tuples, each being (database_id, table_id) of the retrieved table
     def retrieve(self, query: str, dataset_name: str, top_k: int) -> List[Tuple]:
@@ -127,8 +128,8 @@ To inherit from this class, you need to implement two methods:
 ```python
 from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 class YourRetriever(AbsStandardEmbeddingRetriever):
-    def __init__(self, expected_corpus_format: str = "nested array", **kwargs):
-        super().__init__(expected_corpus_format=expected_corpus_format)
+    def __init__(self, **kwargs):
+        super().__init__(expected_corpus_format="nested array")
 
     #return the embeddings for the query as a numpy array
     def embed_query(self, query: str, dataset_name: str,) -> np.ndarray:
@@ -175,15 +176,24 @@ The length of the lists will correspond to the batch size specified when calling
 Creating your customer generators for downstream tasks is also straightforward. You only need to implement one function,
 - **`generate`**
 	- **Parameters**:
-     - `table_str`: String of the retrieved table contents.
-     - `query`: The natural language query.
+        - `table_str`: String of the retrieved table contents.
+        - `query`: The natural language query.
+
+    - **Returns**::
+        - a dictionary for flexibility. the contained keys closely correlates to the configuration of the task that invokes the generator, as different tasks require different kinds of information.
+        - for text-2-sql tasks, the dictionary is expected to contain keys
+            - `sql_query`: for the generated sql
+            - `database_id`: id of the database to query. Why needed? if tables from multiple databases are passed into the generator's context, the generator will need to pick from one of the databases when creating the query.
+        - for other tasks, the dictionary is expected to contain key
+            - `content`: for the generated response.
+
 
 
 ```python
 from target_benchmark.generators import AbsGenerator
 class YourCustomGenerator(AbsGenerator):
     # returns the answer to the query
-    def generate(self, table_str: str, query: str) -> str:
+    def generate(self, table_str: str, query: str) -> Dict:
         pass
 ```
 
