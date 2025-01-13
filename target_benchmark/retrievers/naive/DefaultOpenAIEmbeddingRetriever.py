@@ -22,7 +22,6 @@ class OpenAIEmbedder(AbsStandardEmbeddingRetriever):
         self,
         query: str,
         dataset_name: str,
-        **kwargs,
     ) -> np.ndarray:
         emb = self.create_embedding(query)
         return np.array(emb)
