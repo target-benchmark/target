@@ -87,7 +87,9 @@ class AbsTask(ABC):
             self.task_name: str = task_name
         self.dataset_config: Dict[str, DatasetConfigDataModel] = self._construct_dataset_config(datasets_config)
 
-        self.task_generator = task_generator if task_generator is not None else DefaultGenerator()
+        self.task_generator = task_generator
+        if task_generator is None and task_name != "Table Retrieval Task":
+            self.task_generator = DefaultGenerator()
         self.total_queries_processed = 0
         self.num_overlap = 0
         self.total_tables = 0
