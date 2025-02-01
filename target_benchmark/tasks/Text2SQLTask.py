@@ -186,7 +186,6 @@ class Text2SQLTask(AbsTask):
         for db_id, table_ids in db_id_to_tables.items():
             table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
         return table_str
-        # return "\n".join(self._get_schema(self.current_dataset, id[0]) for id in result.retrieval_results)
 
     def _postprocess_generation(self, generation: Dict[str, str], **kwargs) -> Tuple[str, str]:
         return (

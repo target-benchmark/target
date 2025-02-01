@@ -608,12 +608,6 @@ class AbsTask(ABC):
         - for each generated result, you can define a `postprocess_generation` to ensure that the generator returned results are updated correctly before being used to construct `DownstreamGeneratedResultDataModel`s
 
         Parameters:
-            preprocess_table (Callable[[RetrievalResultDataModel, Dict], str]):
-                A callable to preprocess a table's raw string representation before passing it into the generator.
-            preprocess_query (Callable[[str], str]):
-                A callable to preprocess a query string before passing it into the generator.
-            postprocess_generation (Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]]):
-                A callable to postprocess the generator's raw output into the desired format.
             query_batch (Dict[str, List]):
                 A dictionary containing batched query data, including query IDs and query strings.
             retrieval_results (List[RetrievalResultDataModel]):
@@ -622,6 +616,12 @@ class AbsTask(ABC):
                 The name of the dataset being processed.
             table_id_to_table (Dict[Tuple[str, str], List[List]]):
                 A mapping from table IDs to their corresponding table data.
+            preprocess_table (Callable[[RetrievalResultDataModel, Dict], str]):
+                A callable to preprocess a table's raw string representation before passing it into the generator.
+            preprocess_query (Callable[[str], str]):
+                A callable to preprocess a query string before passing it into the generator.
+            postprocess_generation (Callable[[Dict[str, str]], Union[str, Tuple[str, str], List[str]]]):
+                A callable to postprocess the generator's raw output into the desired format.
 
         Returns:
             List[DownstreamGeneratedResultDataModel]:
@@ -676,6 +676,7 @@ class AbsTask(ABC):
             query_batch (Dict[str, List]): dictionaries, contains queries to generate answers for.
             retrieval_results (List[RetrievalResultDataModel]): retrieved tables.
             dataset_name (str): Name of the dataset.
+            table_id_to_table (Dict[Tuple[str, str], List[List]]): mapping between table id and the table contents.
 
         Returns:
             a list of downstream generated result data model objects, contains query id to generate answer.
