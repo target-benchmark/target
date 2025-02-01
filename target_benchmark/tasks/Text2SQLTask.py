@@ -214,38 +214,6 @@ class Text2SQLTask(AbsTask):
             preprocess_table=self._preprocess_table,
             postprocess_generation=self._postprocess_generation,
         )
-        # downstream_task_results = []
-        # for query_id, query_str, result in zip(
-        #     query_batch[QUERY_ID_COL_NAME],
-        #     query_batch[QUERY_COL_NAME],
-        #     retrieval_results,
-        # ):
-        #     # First, aggregate together all table_ids coming from the same db_id
-        #     db_id_to_tables: Dict[str, List[str]] = {}
-        #     for db_id, table_id in result.retrieval_results:
-        #         if db_id not in db_id_to_tables:
-        #             db_id_to_tables[db_id] = []
-        #         db_id_to_tables[db_id].append(table_id)
-        #     # Next, serialize the schema of those tables to a string
-        #     table_str = ""
-        #     for db_id, table_ids in db_id_to_tables.items():
-        #         table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
-        #     generated_sql = self.task_generator.generate(
-        #         table_str=table_str,
-        #         query=query_str,
-        #     )
-        #     downstream_task_results.append(
-        #         DownstreamGeneratedResultDataModel(
-        #             dataset_name=dataset_name,
-        #             query_id=query_id,
-        #             generated_results=(
-        #                 generated_sql["sql_query"],
-        #                 generated_sql["database_id"],
-        #             ),
-        #         ),
-        #     )
-
-        # return downstream_task_results
 
     def _update_downstream_task_metrics(
         self,
