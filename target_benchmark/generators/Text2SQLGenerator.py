@@ -12,6 +12,7 @@ from tenacity import (
 
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorPrompts import (
+    DEFAULT_LM,
     TEXT2SQL_SYSTEM_PROMPT,
     TEXT2SQL_USER_PROMPT_NO_FORMAT_INSTR,
 )
@@ -30,9 +31,11 @@ class Text2SQLGenerator(DefaultGenerator):
         self,
         system_message: str = TEXT2SQL_SYSTEM_PROMPT,
         user_message: str = TEXT2SQL_USER_PROMPT_NO_FORMAT_INSTR,
+        lm_model_name: str = DEFAULT_LM,
     ):
         super().__init__(system_message=system_message, user_message=user_message)
         self.user_message = user_message
+        self.model = lm_model_name
 
     @retry(
         reraise=True,
@@ -46,7 +49,7 @@ class Text2SQLGenerator(DefaultGenerator):
 
         client = OpenAI()
         table_info_completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini-2024-07-18",
+            model=self.model,
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant."},
                 {

@@ -16,12 +16,10 @@ from target_benchmark.generators.GeneratorPrompts import (
 
 class DefaultGenerator(AbsGenerator):
     def __init__(
-        self,
-        system_message: str = DEFAULT_SYSTEM_PROMPT,
-        user_message: str = QA_USER_PROMPT,
+        self, system_message: str = DEFAULT_SYSTEM_PROMPT, user_message: str = QA_USER_PROMPT, lm_model_name: str = DEFAULT_LM
     ):
         super().__init__()
-        self.language_model = ChatOpenAI(model=DEFAULT_LM, temperature=0.0)
+        self.language_model = ChatOpenAI(model=lm_model_name, temperature=0.0)
         self.chat_template = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(content=(system_message)),
