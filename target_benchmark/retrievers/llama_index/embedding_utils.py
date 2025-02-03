@@ -7,18 +7,21 @@ import pandas as pd
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Engine, MetaData, String, Table, inspect
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from target_benchmark.generators.GeneratorPrompts import DEFAULT_LM
 
 
 class TableInfo(BaseModel):
     """Information regarding a structured table."""
 
-    table_name: str = Field(
-        ..., description="table name (must be underscores and NO spaces)"
-    )
-    table_summary: str = Field(
-        ..., description="short, concise summary/caption of the table"
-    )
+    table_name: str = Field(..., description="table name (must be underscores and NO spaces)")
+    table_summary: str = Field(..., description="short, concise summary/caption of the table")
 
 
 prompt_str = """\
@@ -37,9 +40,7 @@ Table:
 Summary: """
 
 
-def get_table_info_with_index(
-    table_info_dir: str, db_id: str, table_name: str
-) -> Union[TableInfo, None]:
+def get_table_info_with_index(table_info_dir: str, db_id: str, table_name: str) -> Union[TableInfo, None]:
     results_gen = Path(table_info_dir).glob(f"{db_id}_{table_name}.json")
     results_list = list(results_gen)
     if len(results_list) == 0:
@@ -64,7 +65,7 @@ class DuplicateTableNameError(Exception):
 def get_table_info_from_lm(df_str: str, names_tried: set, existing_names: Dict):
     client = OpenAI()
     table_info_completion = client.beta.chat.completions.parse(
-        model="gpt-4o-mini-2024-07-18",
+        model=DEFAULT_LM,
         messages=[
             {"role": "system", "content": "You are a helpful AI assistant."},
             {
@@ -80,9 +81,7 @@ def get_table_info_from_lm(df_str: str, names_tried: set, existing_names: Dict):
     if message.parsed.table_name in existing_names:
         # duplicate table names, try again
         names_tried.add(message.parsed.table_name)
-        raise DuplicateTableNameError(
-            f"Table name {message.parsed.table_name} is a duplicate."
-        )
+        raise DuplicateTableNameError(f"Table name {message.parsed.table_name} is a duplicate.")
     return message
 
 
@@ -97,9 +96,7 @@ def construct_table_info(
     if isinstance(database_id, int):
         database_id = str(database_id)
     cleaned_db_id = re.sub(r"[^a-zA-Z0-9_]", "_", database_id)
-    table_info = get_table_info_with_index(
-        table_info_dir, database_id, cleaned_table_name
-    )
+    table_info = get_table_info_with_index(table_info_dir, database_id, cleaned_table_name)
 
     # check if
     # - table info has been constructed already
@@ -128,9 +125,7 @@ def sanitize_column_name(col_name):
 
 
 # Function to create a table from a DataFrame using SQLAlchemy
-def create_table_from_dataframe(
-    df: pd.DataFrame, table_name: str, engine: Engine, metadata_obj: MetaData
-) -> None:
+def create_table_from_dataframe(df: pd.DataFrame, table_name: str, engine: Engine, metadata_obj: MetaData) -> None:
     # Use inspector to check if the table already exists
     inspector = inspect(engine)
     if inspector.has_table(table_name):

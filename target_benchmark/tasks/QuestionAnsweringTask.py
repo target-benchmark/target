@@ -6,11 +6,7 @@ from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigData
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     QUESTION_ANSWERING_DATASETS,
 )
-from target_benchmark.dictionary_keys import (
-    ANSWER_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
-)
+from target_benchmark.dictionary_keys import ANSWER_COL_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorPrompts import (
@@ -23,12 +19,11 @@ from target_benchmark.generators.GeneratorsDataModels import (
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import TableQATaskPerformanceDataModel
-from target_benchmark.tasks.utils import build_table_content_string
 
 
 class QuestionAnsweringTask(AbsTask):
     AVAILABLE_METRICS = set(["bertscore", "bleu", "bleurt", "sacrebleu", "rouge", "meteor"])
-    DEFAULT_METRICS = set(["bleu", "sacrebleu", "rouge"])
+    DEFAULT_METRICS = set(["bertscore", "bleu", "sacrebleu", "rouge"])
 
     def __init__(
         self,
@@ -90,24 +85,12 @@ class QuestionAnsweringTask(AbsTask):
         currently just markdown reps of table strings
         All downstreams tasks should fill out this method. ideally uses the retrieval results to generate the downstream answer, and return the performance of the downstream generation.
         """
-        return [
-            DownstreamGeneratedResultDataModel(
-                dataset_name=dataset_name,
-                query_id=query_id,
-                generated_results=self.task_generator.generate(
-                    table_str=build_table_content_string(
-                        result.retrieval_results,
-                        table_id_to_table,
-                    ),
-                    query=query_str,
-                )["content"],
-            )
-            for query_id, query_str, result in zip(
-                query_batch[QUERY_ID_COL_NAME],
-                query_batch[QUERY_COL_NAME],
-                retrieval_results,
-            )
-        ]
+        return self._parallelize(
+            query_batch,
+            retrieval_results,
+            dataset_name,
+            table_id_to_table,
+        )
 
     def _update_downstream_task_metrics(
         self,
@@ -139,6 +122,12 @@ class QuestionAnsweringTask(AbsTask):
                     references=self.ref_answers,
                     lang="en",
                 )
+                precision = calculated_result["precision"]
+                calculated_result["precision"] = sum(precision) / len(precision)
+                recall = calculated_result["recall"]
+                calculated_result["recall"] = sum(recall) / len(recall)
+                f1 = calculated_result["f1"]
+                calculated_result["f1"] = sum(f1) / len(f1)
             else:
                 calculated_result = evaluator.compute(predictions=self.pred_answers, references=self.ref_answers)
             scores[metric_name] = calculated_result

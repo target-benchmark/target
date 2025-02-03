@@ -1,5 +1,5 @@
-import sqlite3
 import re
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -9,10 +9,7 @@ from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatas
 from target_benchmark.dictionary_keys import (
     ANSWER_COL_NAME,
     DATABASE_ID_COL_NAME,
-    DATASET_NAME,
     DIFFICULTY_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
 )
 from target_benchmark.generators import AbsGenerator, Text2SQLGenerator
 from target_benchmark.generators.GeneratorPrompts import NO_CONTEXT_TABLE_PROMPT
@@ -154,21 +151,47 @@ class Text2SQLTask(AbsTask):
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         # Fetch and print the schema of each table
-        table_schemas = cur.execute(f"SELECT name, sql FROM sqlite_schema WHERE type='table' AND name IN ({','.join('?' * len(table_ids))})", table_ids).fetchall()
+        table_schemas = cur.execute(
+            f"SELECT name, sql FROM sqlite_schema WHERE type='table' AND name IN ({','.join('?' * len(table_ids))})", table_ids
+        ).fetchall()
         schema_str = f"\nDatabase Name: {db_id}\nSchema:"
 
         def normalize_schema(schema: str) -> str:
             # Make sure our commas only come after newlines - not the inverse
-            schema = re.sub(r'\n,', r',\n', schema)
+            schema = re.sub(r"\n,", r",\n", schema)
             # Remove any indentation after the newlines
-            schema = re.sub(r'\n\s+(?=[^\s])', r'\n', schema)
+            schema = re.sub(r"\n\s+(?=[^\s])", r"\n", schema)
             # Make sure we have tabs after each newline - just not the last one (with a r-paren after it)
-            schema = re.sub(r'\n(?=[^\)])', r'\n\t', schema)
+            schema = re.sub(r"\n(?=[^\)])", r"\n\t", schema)
             return schema
 
         for _, schema in table_schemas:
             schema_str += f"\n\n{normalize_schema(schema)}"
         return schema_str + "\n\n---\n"
+
+    def _preprocess_table(
+        self,
+        result: RetrievalResultDataModel,
+        table_id_to_table: Dict[Tuple[str, str], List[List]],
+        **kwargs,
+    ):
+        # First, aggregate together all table_ids coming from the same db_id
+        db_id_to_tables: Dict[str, List[str]] = {}
+        for db_id, table_id in result.retrieval_results:
+            if db_id not in db_id_to_tables:
+                db_id_to_tables[db_id] = []
+            db_id_to_tables[db_id].append(table_id)
+        # Next, serialize the schema of those tables to a string
+        table_str = ""
+        for db_id, table_ids in db_id_to_tables.items():
+            table_str += self._get_schema(dataset_name=self.current_dataset, db_id=db_id, table_ids=table_ids)
+        return table_str
+
+    def _postprocess_generation(self, generation: Dict[str, str], **kwargs) -> Tuple[str, str]:
+        return (
+            generation["sql_query"],
+            generation["database_id"],
+        )
 
     def _get_downstream_task_results(
         self,
@@ -182,43 +205,14 @@ class Text2SQLTask(AbsTask):
         """
         if not self.current_dataset:
             self.current_dataset = dataset_name
-
-        downstream_task_results = []
-        for query_id, query_str, result in zip(
-            query_batch[QUERY_ID_COL_NAME],
-            query_batch[QUERY_COL_NAME],
-            retrieval_results,
-        ):
-            # First, aggregate together all table_ids coming from the same db_id
-            db_id_to_tables: Dict[str, List[str]] = {}
-            for db_id, table_id in result.retrieval_results:
-                if db_id not in db_id_to_tables:
-                    db_id_to_tables[db_id] = []
-                db_id_to_tables[db_id].append(table_id)
-            # Next, serialize the schema of those tables to a string
-            table_str = ""
-            for db_id, table_ids in db_id_to_tables.items():
-                table_str += self._get_schema(
-                    dataset_name=self.current_dataset,
-                    db_id=db_id,
-                    table_ids=table_ids
-                )
-            generated_sql = self.task_generator.generate(
-                table_str=table_str,
-                query=query_str,
-            )
-            downstream_task_results.append(
-                DownstreamGeneratedResultDataModel(
-                    dataset_name=dataset_name,
-                    query_id=query_id,
-                    generated_results=(
-                        generated_sql["sql_query"],
-                        generated_sql["database_id"],
-                    ),
-                ),
-            )
-
-        return downstream_task_results
+        return self._parallelize(
+            query_batch=query_batch,
+            retrieval_results=retrieval_results,
+            dataset_name=dataset_name,
+            table_id_to_table=table_id_to_table,
+            preprocess_table=self._preprocess_table,
+            postprocess_generation=self._postprocess_generation,
+        )
 
     def _update_downstream_task_metrics(
         self,
@@ -244,8 +238,8 @@ class Text2SQLTask(AbsTask):
         Calculate downstream task metrics for the fact verification task.
         Metrics computed: accuracy, f1, precision, and recall.
         """
-        if DATASET_NAME in kwargs:
-            self.current_dataset = kwargs[DATASET_NAME]
+        if "dataset_name_for_dir" in kwargs:
+            self.current_dataset = kwargs["dataset_name_for_dir"]
         if self.current_dataset not in self.database_dirs:
             raise ValueError(f"{self.current_dataset} does not have path to database files.")
         db_path = self.database_dirs[self.current_dataset]

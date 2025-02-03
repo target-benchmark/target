@@ -1,56 +1,66 @@
+from json import JSONDecodeError
 from typing import Dict
 
-from langchain.output_parsers import ResponseSchema, StructuredOutputParser
-from langchain_core.messages import SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from openai import OpenAI
+from pydantic import BaseModel, Field
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorPrompts import (
+    DEFAULT_LM,
     TEXT2SQL_SYSTEM_PROMPT,
-    TEXT2SQL_USER_PROMPT,
+    TEXT2SQL_USER_PROMPT_NO_FORMAT_INSTR,
 )
+
+
+class Text2SQLResponse(BaseModel):
+    """Information regarding a structured table."""
+
+    chain_of_thought_reasoning: str = Field(..., description="Your thought process on how you arrived at the final SQL query.")
+    sql_query: str = Field(..., description="the sql query you write.")
+    database_id: str = Field(..., description="the database id of the database you chose to query from.")
 
 
 class Text2SQLGenerator(DefaultGenerator):
     def __init__(
         self,
         system_message: str = TEXT2SQL_SYSTEM_PROMPT,
-        user_message: str = TEXT2SQL_USER_PROMPT,
+        user_message: str = TEXT2SQL_USER_PROMPT_NO_FORMAT_INSTR,
+        lm_model_name: str = DEFAULT_LM,
     ):
         super().__init__(system_message=system_message, user_message=user_message)
+        self.user_message = user_message
+        self.model = lm_model_name
 
-        response_schemas = [
-            ResponseSchema(
-                name="chain_of_thought_reasoning",
-                description="Your thought process on how you arrived at the final SQL query.",
-            ),
-            ResponseSchema(name="sql_query", description="the sql query you write."),
-            ResponseSchema(
-                name="database_id",
-                description="the database id of the database you chose to query from.",
-            ),
-        ]
-
-        self.output_parser = StructuredOutputParser.from_response_schemas(
-            response_schemas
-        )
-
-        self.chat_template = ChatPromptTemplate(
-            messages=[
-                SystemMessage(content=(system_message)),
-                HumanMessagePromptTemplate.from_template(user_message),
-            ],
-            input_variables=["table_str", "query_str"],
-            partial_variables={
-                "format_instructions": self.output_parser.get_format_instructions()
-            },
-        )
-        self.chain = self.chat_template | self.language_model | self.output_parser
-
+    @retry(
+        reraise=True,
+        retry=retry_if_exception_type(exception_types=JSONDecodeError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=32),
+    )
     def generate(self, table_str: str, query: str) -> Dict:
-        # Note: currently text 2 sql generator takes in a database schema string
-        # in the `table_str` input. In order to modify this, you can change the
-        # `_get_downstream_task_results` method of the text 2 sql task. More
-        # details can be found in the docs.
+        # Note: currently text 2 sql generator takes in a string containting schemas
+        # of the retrieved tables.
 
-        return self._invoke_chain(table_str, query)
+        client = OpenAI()
+        table_info_completion = client.beta.chat.completions.parse(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant."},
+                {
+                    "role": "user",
+                    "content": self.user_message.format(table_str=table_str, query_str=query),
+                },
+            ],
+            response_format=Text2SQLResponse,
+        )
+        message = table_info_completion.choices[0].message
+        if not message.parsed:
+            raise JSONDecodeError
+
+        return message.parsed.model_dump()

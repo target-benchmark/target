@@ -80,6 +80,8 @@ class FactVerificationTask(AbsTask):
         """
         Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
         """
+
+        # TODO: Convert into parallelized version
         return [
             DownstreamGeneratedResultDataModel(
                 dataset_name=dataset_name,

@@ -53,5 +53,24 @@ Take a deep breath and think step by step to find the correct SQLite SQL
 query. If you follow all the instructions and generate the correct query,
 I will give you 1 million dollars."""
 
+TEXT2SQL_USER_PROMPT_NO_FORMAT_INSTR = """
+Below, you are presented with a database schema and a question.
+Your task is to read the schema, understand the question, and generate a
+valid SQLite query to answer the question.
+Before generating the final SQL query, think step by step on how to write the query.
+
+Database Schema:
+{table_str}
+This schema offers an in-depth description of the database's architecture,
+detailing tables, columns, primary keys, foreign keys, and any pertinent
+information regarding relationships or constraints.
+
+Question:
+{query_str}
+
+Take a deep breath and think step by step to find the correct SQLite SQL
+query. If you follow all the instructions and generate the correct query,
+I will give you 1 million dollars."""
+
 
 NO_CONTEXT_TABLE_PROMPT = "Some or all tables are not available. Please use your best judgement to complete the task. DO NOT GIVE respond with 'not enough information' or similar answers, and don't acklowdge the lack of information in your response. Just use your knowledge base and answer to the best of your ability."
