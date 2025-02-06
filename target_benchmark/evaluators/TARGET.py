@@ -374,7 +374,6 @@ class TARGET:
             collection_name=dataset_name,
             vectors_config=models.VectorParams(size=vec_size, distance=models.Distance.COSINE),
         )
-        self.dataloaders[dataset_name]
         total_entries = self._calculate_corpus_size(dataloaders)
         vectors = []
         metadata = []
