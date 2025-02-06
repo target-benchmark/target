@@ -374,7 +374,7 @@ class TARGET:
             collection_name=dataset_name,
             vectors_config=models.VectorParams(size=vec_size, distance=models.Distance.COSINE),
         )
-        cur_dataloader = self.dataloaders[dataset_name]
+        self.dataloaders[dataset_name]
         total_entries = self._calculate_corpus_size(dataloaders)
         vectors = []
         metadata = []
@@ -383,7 +383,7 @@ class TARGET:
         # TODO: support batching
         with tqdm(total=total_entries, desc="Embedding Tables...") as pbar:
             for dataloader in dataloaders:
-                for entry in cur_dataloader.convert_corpus_table_to(retriever.get_expected_corpus_format()):
+                for entry in dataloader.convert_corpus_table_to(retriever.get_expected_corpus_format()):
                     entry = {key: value[0] for key, value in entry.items()}
                     table_embedding = retriever.embed_corpus(dataset_name, entry)
                     vectors.append(table_embedding)
