@@ -25,8 +25,8 @@ class StellaEmbeddingRetriever(AbsStandardEmbeddingRetriever):
 
     def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> np.ndarray:
         table = corpus_entry[TABLE_COL_NAME]
-        num_rows_to_include = len(table)
-        if self.num_rows:
+        num_rows_to_include = len(table) - 1
+        if self.num_rows is not None:
             num_rows_to_include = self.num_rows
         table_str = markdown_table_str(table, num_rows=num_rows_to_include)
 
