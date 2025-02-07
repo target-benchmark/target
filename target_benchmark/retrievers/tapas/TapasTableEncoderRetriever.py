@@ -34,4 +34,7 @@ class TapasTableEncoderRetriever(AbsStandardEmbeddingRetriever):
         return self._create_embedding(table=pd.DataFrame(), query=query)
 
     def embed_corpus(self, dataset_name: str, corpus_entry: Dict):
-        return self._create_embedding(table=corpus_entry[TABLE_COL_NAME], query="")
+        table: pd.DataFrame = corpus_entry[TABLE_COL_NAME]
+        if self.num_rows is not None:
+            table = table.head(self.num_rows)
+        return self._create_embedding(table=table, query="")
