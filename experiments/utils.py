@@ -7,6 +7,7 @@ from target_benchmark.retrievers import (
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
     OTTQARetriever,
+    StellaEmbeddingRetriever,
 )
 
 
@@ -90,6 +91,8 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return OTTQARetriever(encoding="bm25", withtitle=False)
     elif "bm25_with_title" in retriever_name:
         return OTTQARetriever(encoding="bm25", withtitle=True)
+    elif "stella" in retriever_name:
+        return StellaEmbeddingRetriever(num_rows=num_rows)
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 
