@@ -7,9 +7,6 @@ from transformers import TapasModel, TapasTokenizer
 from target_benchmark.dictionary_keys import TABLE_COL_NAME
 from target_benchmark.retrievers import AbsStandardEmbeddingRetriever
 
-# high performing lightweight embedding model from NovaSearch
-# https://huggingface.co/NovaSearch/stella_en_400M_v5
-
 
 class TapasTableEncoderRetriever(AbsStandardEmbeddingRetriever):
     def __init__(
