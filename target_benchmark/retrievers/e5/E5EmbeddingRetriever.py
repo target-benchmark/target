@@ -21,7 +21,7 @@ class E5EmbeddingRetriever(AbsStandardEmbeddingRetriever):
         self.model = SentenceTransformer("intfloat/multilingual-e5-large-instruct", trust_remote_code=True).cuda()
 
     def embed_query(self, query: str, dataset_name: str) -> np.ndarray:
-        return self.model.encode(query, convert_to_tensor=True, normalize_embeddings=True)
+        return self.model.encode(query, convert_to_tensor=True, normalize_embeddings=True).cpu().numpy()
 
     def embed_corpus(self, dataset_name: str, corpus_entry: Dict) -> np.ndarray:
         table = corpus_entry[TABLE_COL_NAME]
@@ -32,4 +32,4 @@ class E5EmbeddingRetriever(AbsStandardEmbeddingRetriever):
 
         if self.num_rows and num_rows_to_include != self.num_rows:
             print(f"truncated input due to context length constraints, included {num_rows_to_include} rows")
-        return self.model.encode(table_str, convert_to_tensor=True, normalize_embeddings=True)
+        return self.model.encode(table_str, convert_to_tensor=True, normalize_embeddings=True).cpu().numpy()
