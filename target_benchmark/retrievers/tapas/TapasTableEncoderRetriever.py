@@ -15,8 +15,8 @@ class TapasTableEncoderRetriever(AbsStandardEmbeddingRetriever):
     ):
         super().__init__("pandas")
         self.num_rows = num_rows
-        self.model = TapasModel.from_pretrained("google/tapas-base")
-        self.tokenizer = TapasTokenizer.from_pretrained("google/tapas-base", drop_rows_to_fit=True)
+        self.model = TapasModel.from_pretrained("google/tapas-large")
+        self.tokenizer = TapasTokenizer.from_pretrained("google/tapas-large", drop_rows_to_fit=True)
         self.model.eval()
 
     def _create_embedding(self, table: pd.DataFrame, query: str) -> np.ndarray:
@@ -34,4 +34,4 @@ class TapasTableEncoderRetriever(AbsStandardEmbeddingRetriever):
         table: pd.DataFrame = corpus_entry[TABLE_COL_NAME]
         if self.num_rows is not None:
             table = table.head(self.num_rows)
-        return self._create_embedding(table=table, query="")
+        return self._create_embedding(table=table.astype(str), query="")
