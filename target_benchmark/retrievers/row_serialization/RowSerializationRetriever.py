@@ -38,7 +38,6 @@ class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
                 limit=search_limit,
                 with_payload=True,
             )
-            print(result)
             while len(results_dict) < top_k and idx < len(result):
                 scored_point = result[idx]
                 table_id = (
@@ -60,49 +59,55 @@ class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
         )
         metadata = []
         vectors = []
+        num_entries = 0
         for entry in corpus:
-            entry = {key: value[0] for key, value in entry.items()}
-            # serialize table into a list of strings
-            serialized_table = self._serialize_table(entry)
-            # encode the table
-            table_embedding = self.model.encode(serialized_table)
+            for db_id, table_id, table in zip(
+                entry[DATABASE_ID_COL_NAME],
+                entry[TABLE_ID_COL_NAME],
+                entry[TABLE_COL_NAME],
+            ):
+                num_entries += 1
+                # serialize table into a list of strings
+                serialized_table = self._serialize_table(table)
+                # encode the table
+                table_embedding = self.model.encode(serialized_table)
 
-            # check how many duplicate metadata entries are needed
-            num_metadata = 1
-            if table_embedding.ndim == 1:
-                table_embedding = np.expand_dims(table_embedding, axis=0)
-            else:
-                num_metadata = table_embedding.shape[0]
+                # check how many duplicate metadata entries are needed
+                num_metadata = 1
+                if table_embedding.ndim == 1:
+                    table_embedding = np.expand_dims(table_embedding, axis=0)
+                else:
+                    num_metadata = table_embedding.shape[0]
 
-            # shape of table_embedding: <num_vectors x dim of vector>
-            vectors.append(table_embedding)
-            # for all vectors corresponding to the same table,
-            # you need the same metadata entry
-            metadata.extend(
-                [
-                    {
-                        METADATA_TABLE_ID_KEY_NAME: entry[TABLE_ID_COL_NAME],
-                        METADATA_DB_ID_KEY_NAME: entry[DATABASE_ID_COL_NAME],
-                    }
-                ]
-                * num_metadata
-            )
+                # shape of table_embedding: <num_vectors x dim of vector>
+                vectors.append(table_embedding)
+                # for all vectors corresponding to the same table,
+                # you need the same metadata entry
+                metadata.extend(
+                    [
+                        {
+                            METADATA_TABLE_ID_KEY_NAME: table_id,
+                            METADATA_DB_ID_KEY_NAME: db_id,
+                        }
+                    ]
+                    * num_metadata
+                )
 
         vectors = np.concatenate(vectors, axis=0)
         assert vectors.shape[0] == len(
             metadata
         ), f"Mismatch between vectors shape and the metadata entries! Shape: {vectors.shape[0]}, Metadata entries: {len(metadata)}"
+        print(f"number of vectors: {vectors.shape[0]}, number of corpus entries: {num_entries}")
         self.client.upload_collection(
             dataset_name,
             vectors=vectors,
             payload=metadata,
         )
 
-    def _serialize_table(self, corpus_entry: Dict) -> List[str]:
-        table = corpus_entry[TABLE_COL_NAME]  # get the table as a nested array
+    def _serialize_table(self, table: List[List]) -> List[str]:
         serialized_rows = []  # keep an array, each element will be a serialized row
         headers = table[0]  # grab table column names
-        for row in corpus_entry[TABLE_COL_NAME][1:]:
+        for row in table[1:]:
             assert len(headers) == len(row)
             row_str = ""  # build the table string
             for col_name, cell_value in zip(headers, row):
