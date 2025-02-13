@@ -9,5 +9,6 @@ from target_benchmark.retrievers.naive.DefaultOpenAIEmbeddingRetriever import Op
 from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
 from target_benchmark.retrievers.stella.StellaEmbeddingRetriever import StellaEmbeddingRetriever
+from target_benchmark.retrievers.row_serialization.RowSerializationRetriever import RowSerializationRetriever
 
-__all__ = [AbsCustomEmbeddingRetriever, AbsStandardEmbeddingRetriever, HNSWOpenAIEmbeddingRetriever, NoContextRetriever, OpenAIEmbedder, OTTQARetriever, LlamaIndexRetriever, StellaEmbeddingRetriever]
+__all__ = [AbsCustomEmbeddingRetriever, AbsStandardEmbeddingRetriever, HNSWOpenAIEmbeddingRetriever, NoContextRetriever, OpenAIEmbedder, OTTQARetriever, LlamaIndexRetriever, StellaEmbeddingRetriever, RowSerializationRetriever]

@@ -14,28 +14,31 @@ from target_benchmark.dictionary_keys import (
 )
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 
-file_dir = Path(__file__).parent / "storage"
+file_dir = Path(__file__).parent / "data"
 
 
 class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
     def __init__(self, embeddings_dir: str = str(file_dir)):
         super().__init__("nested array")
         self.model = SentenceTransformer("dunzhang/stella_en_400M_v5", trust_remote_code=True).cuda()
-        self.client = QdrantClient(Path(embeddings_dir))
+        self.embeddings_dir = embeddings_dir
+        self.client = QdrantClient(path=self.embeddings_dir)
         self.emb_dims = self.model.get_sentence_embedding_dimension()
 
     def retrieve(self, query: str, dataset_name: str, top_k: int, **kwargs) -> List[Tuple]:
-        num_points = self.client.count(collection_name=dataset_name, exact=True)
+        assert self.client.collection_exists(dataset_name)
+        num_points = self.client.count(collection_name=dataset_name, exact=True).count
         results_dict = {}
         search_limit = top_k
         idx = 0
         while len(results_dict) < top_k and search_limit <= num_points:
             result = self.client.search(
                 collection_name=dataset_name,
-                query_vector=self.embed_query(query, dataset_name),
+                query_vector=self.model.encode(query, prompt_name="s2p_query"),
                 limit=search_limit,
                 with_payload=True,
             )
+            print(result)
             while len(results_dict) < top_k and idx < len(result):
                 scored_point = result[idx]
                 table_id = (
@@ -45,7 +48,7 @@ class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
                 if table_id not in results_dict:
                     results_dict[table_id] = idx
                 idx += 1
-            search_limit *= 2
+            search_limit = min(search_limit * 2, num_points)
         return sorted(results_dict, key=results_dict.get)
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]):
@@ -60,7 +63,7 @@ class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
         for entry in corpus:
             entry = {key: value[0] for key, value in entry.items()}
             # serialize table into a list of strings
-            serialized_table = self._serialize_table(entry[TABLE_COL_NAME])
+            serialized_table = self._serialize_table(entry)
             # encode the table
             table_embedding = self.model.encode(serialized_table)
 
