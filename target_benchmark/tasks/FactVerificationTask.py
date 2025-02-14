@@ -4,11 +4,7 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from target_benchmark.dataset_loaders.LoadersDataModels import DatasetConfigDataModel
 from target_benchmark.dataset_loaders.TargetDatasetConfig import FACT_VER_DATASETS
-from target_benchmark.dictionary_keys import (
-    ANSWER_COL_NAME,
-    QUERY_COL_NAME,
-    QUERY_ID_COL_NAME,
-)
+from target_benchmark.dictionary_keys import ANSWER_COL_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
 from target_benchmark.generators.DefaultGenerator import DefaultGenerator
 from target_benchmark.generators.GeneratorPrompts import (
@@ -23,7 +19,6 @@ from target_benchmark.tasks.AbsTask import AbsTask
 from target_benchmark.tasks.TasksDataModels import (
     FactVerificationTaskPerformanceDataModel,
 )
-from target_benchmark.tasks.utils import build_table_content_string
 
 
 class FactVerificationTask(AbsTask):
@@ -82,24 +77,30 @@ class FactVerificationTask(AbsTask):
         """
 
         # TODO: Convert into parallelized version
-        return [
-            DownstreamGeneratedResultDataModel(
-                dataset_name=dataset_name,
-                query_id=query_id,
-                generated_results=self.task_generator.generate(
-                    table_str=build_table_content_string(
-                        result.retrieval_results,
-                        table_id_to_table,
-                    ),
-                    query=query_str,
-                )["content"],
-            )
-            for query_id, query_str, result in zip(
-                query_batch[QUERY_ID_COL_NAME],
-                query_batch[QUERY_COL_NAME],
-                retrieval_results,
-            )
-        ]
+        return self._parallelize(
+            query_batch=query_batch,
+            retrieval_results=retrieval_results,
+            dataset_name=dataset_name,
+            table_id_to_table=table_id_to_table,
+        )
+        # return [
+        #     DownstreamGeneratedResultDataModel(
+        #         dataset_name=dataset_name,
+        #         query_id=query_id,
+        #         generated_results=self.task_generator.generate(
+        #             table_str=build_table_content_string(
+        #                 result.retrieval_results,
+        #                 table_id_to_table,
+        #             ),
+        #             query=query_str,
+        #         )["content"],
+        #     )
+        #     for query_id, query_str, result in zip(
+        #         query_batch[QUERY_ID_COL_NAME],
+        #         query_batch[QUERY_COL_NAME],
+        #         retrieval_results,
+        #     )
+        # ]
 
     def _update_downstream_task_metrics(
         self,
