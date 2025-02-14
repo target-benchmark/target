@@ -1,5 +1,6 @@
 import shutil
 import unittest
+from pathlib import Path
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
@@ -10,7 +11,7 @@ from target_benchmark.retrievers import RowSerializationRetriever
 
 class TestRowSerializationEmbeddingRetriever(unittest.TestCase):
     def setUp(self):
-        self.retriever = RowSerializationRetriever()
+        self.retriever = RowSerializationRetriever(str(Path(__file__).parent / "data"))
         self.dataloader = HFDatasetLoader(**DEFAULT_DUMMY_DATASET_CONFIG.model_dump())
         self.dataloader.load()
 

@@ -18,12 +18,14 @@ file_dir = Path(__file__).parent / "data"
 
 
 class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
-    def __init__(self, embeddings_dir: str = str(file_dir)):
+    def __init__(self, embeddings_dir: str = str(file_dir), batch_size=256):
         super().__init__("nested array")
         self.model = SentenceTransformer("dunzhang/stella_en_400M_v5", trust_remote_code=True).cuda()
         self.embeddings_dir = embeddings_dir
+        Path(self.embeddings_dir).mkdir(parents=True, exist_ok=True)
         self.client = QdrantClient(path=self.embeddings_dir)
         self.emb_dims = self.model.get_sentence_embedding_dimension()
+        self.batch_size = batch_size
 
     def retrieve(self, query: str, dataset_name: str, top_k: int, **kwargs) -> List[Tuple]:
         assert self.client.collection_exists(dataset_name)
