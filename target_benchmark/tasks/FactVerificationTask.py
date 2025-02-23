@@ -83,24 +83,25 @@ class FactVerificationTask(AbsTask):
             dataset_name=dataset_name,
             table_id_to_table=table_id_to_table,
         )
-        # return [
-        #     DownstreamGeneratedResultDataModel(
-        #         dataset_name=dataset_name,
-        #         query_id=query_id,
-        #         generated_results=self.task_generator.generate(
-        #             table_str=build_table_content_string(
-        #                 result.retrieval_results,
-        #                 table_id_to_table,
-        #             ),
-        #             query=query_str,
-        #         )["content"],
-        #     )
-        #     for query_id, query_str, result in zip(
+        # downstream_results = []
+        # for query_id, query_str, result in zip(
         #         query_batch[QUERY_ID_COL_NAME],
         #         query_batch[QUERY_COL_NAME],
         #         retrieval_results,
+        #     ):
+        #         downstream_results.append(DownstreamGeneratedResultDataModel(
+        #             dataset_name=dataset_name,
+        #             query_id=query_id,
+        #             generated_results=self.task_generator.generate(
+        #                 table_str=build_table_content_string(
+        #                     result.retrieval_results,
+        #                     table_id_to_table,
+        #                 ),
+        #                 query=query_str,
+        #             )["content"],
+        #         )
         #     )
-        # ]
+        # return downstream_results
 
     def _update_downstream_task_metrics(
         self,
