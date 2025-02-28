@@ -3,7 +3,8 @@ from typing import Dict
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential
+from openai import RateLimitError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from target_benchmark.dictionary_keys import CONTENT_KEY_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
@@ -30,8 +31,9 @@ class DefaultGenerator(AbsGenerator):
 
     @retry(
         reraise=True,
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=32),
+        retry=retry_if_exception_type(RateLimitError),
+        stop=stop_after_attempt(10),
+        wait=wait_fixed(5),
     )
     def _invoke_chain(self, table_str: str, query: str):
         return self.chain.invoke({"table_str": table_str, "query_str": query})
