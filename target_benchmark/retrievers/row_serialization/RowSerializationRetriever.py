@@ -28,6 +28,14 @@ class RowSerializationRetriever(AbsCustomEmbeddingRetriever):
         self.batch_size = batch_size
 
     def retrieve(self, query: str, dataset_name: str, top_k: int, **kwargs) -> List[Tuple]:
+        # retrieve function will need to ensure that the top k **TABLES** will be retrieved,
+        # not just the top k rows. the general flow is as follows:
+        # - get the number of vectors from the collection
+        # - keep searching until we collect k distinct tables from the rows retrieved.
+        # - add the table id to which the row belongs to the `results_dict`
+        # - to each table id in the dict, the value is the index (`idx`) that it appeared in the research results.
+        # - sort the `results_dict` by the value. since the search results are ordered by similarity,
+        #   we ensure the returned list of table ids is ordered by similarity.
         assert self.client.collection_exists(dataset_name)
         num_points = self.client.count(collection_name=dataset_name, exact=True).count
         results_dict = {}
