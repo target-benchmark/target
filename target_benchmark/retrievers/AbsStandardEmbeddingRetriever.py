@@ -75,6 +75,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         self,
         query: str,
         dataset_name: str,
+        **kwargs
     ) -> np.ndarray:
         """
         Given a query, return the query embedding for searching.

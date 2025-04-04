@@ -1,8 +1,5 @@
 from typing import Dict
 
-from langchain_core.messages import SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
-from langchain_openai import ChatOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from target_benchmark.dictionary_keys import CONTENT_KEY_NAME
@@ -18,6 +15,10 @@ class DefaultGenerator(AbsGenerator):
     def __init__(
         self, system_message: str = DEFAULT_SYSTEM_PROMPT, user_message: str = QA_USER_PROMPT, lm_model_name: str = DEFAULT_LM
     ):
+        from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import SystemMessage
+
         super().__init__()
         self.language_model = ChatOpenAI(model=lm_model_name, temperature=0.0)
         self.chat_template = ChatPromptTemplate.from_messages(
