@@ -14,8 +14,6 @@ import json
 
 import pexpect
 
-from target_benchmark.retrievers.ottqa.drqa import drqa_tokenizers
-
 from .tokenizer import Tokenizer, Tokens
 
 
@@ -27,6 +25,7 @@ class CoreNLPTokenizer(Tokenizer):
             classpath: Path to the corenlp directory of jars
             mem: Java heap memory
         """
+        from target_benchmark.retrievers.ottqa.drqa import drqa_tokenizers
         self.classpath = (
             kwargs.get("classpath") or drqa_tokenizers.DEFAULTS["corenlp_classpath"]
         )

@@ -2,10 +2,6 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
-from llama_index.core import SQLDatabase, VectorStoreIndex
-from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
-from llama_index.core.query_pipeline import InputComponent
-from llama_index.core.query_pipeline import QueryPipeline as QP
 from sqlalchemy import MetaData, create_engine
 
 from target_benchmark.dictionary_keys import (
@@ -70,6 +66,9 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         return answers
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict]) -> None:
+        from llama_index.core import SQLDatabase, VectorStoreIndex
+        from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
+
         table_infos = []
         metadata_obj = MetaData()
 
@@ -120,6 +119,9 @@ class LlamaIndexRetriever(AbsCustomEmbeddingRetriever):
         self.object_indices[dataset_name] = obj_index
 
     def construct_query_pipeline(self, dataset_name: str, top_k: int):
+        from llama_index.core.query_pipeline import InputComponent
+        from llama_index.core.query_pipeline import QueryPipeline as QP
+
         query_pipeline = QP(verbose=False)
         query_pipeline.add_modules(
             module_dict={
