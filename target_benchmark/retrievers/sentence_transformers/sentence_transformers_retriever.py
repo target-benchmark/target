@@ -41,6 +41,13 @@ class SentenceTransformersRetriever(AbsStandardEmbeddingRetriever):
 # https://huggingface.co/NovaSearch/stella_en_400M_v5
 class StellaEmbeddingRetriever(SentenceTransformersRetriever):
 
+    def __init__(self, num_rows: Union[int, None] = None, **kwargs):
+        super().__init__(
+            model_name_or_path="NovaSearch/stella_en_400M_v5",
+            num_rows=num_rows,
+            **kwargs
+        )
+
     # Override the default `embed_query` from subclassed `SentenceTransformersRetriever`
     #   to add the unique `prompt_name` arg
     def embed_query(self, query: str, dataset_name: str) -> np.ndarray:
