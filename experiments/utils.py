@@ -7,6 +7,7 @@ from target_benchmark.retrievers import (
     E5EmbeddingRetriever,
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
+    NoContextRetriever,
     OTTQARetriever,
     StellaEmbeddingRetriever,
 )
@@ -94,6 +95,8 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return OTTQARetriever(encoding="bm25", withtitle=True)
     elif "stella" in retriever_name:
         return StellaEmbeddingRetriever(num_rows=num_rows)
+    elif "no_context" in retriever_name:
+        return NoContextRetriever()
     elif "e5" in retriever_name:
         return E5EmbeddingRetriever(num_rows=num_rows)
     else:
