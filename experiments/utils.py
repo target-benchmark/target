@@ -9,6 +9,7 @@ from target_benchmark.retrievers import (
     LlamaIndexRetriever,
     NoContextRetriever,
     OTTQARetriever,
+    RowSerializationRetriever,
     StellaEmbeddingRetriever,
 )
 
@@ -99,6 +100,8 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return NoContextRetriever()
     elif "e5" in retriever_name:
         return E5EmbeddingRetriever(num_rows=num_rows)
+    elif "row_serial" in retriever_name:
+        return RowSerializationRetriever()
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 

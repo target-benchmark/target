@@ -101,7 +101,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
         idx_path, db_table_ids_path = self._construct_persistence_paths(corpus_identifier)
 
         if idx_path.exists() and db_table_ids_path.exists():
-            print("using previously constructed index")
+            print(f"using previously constructed index at: {idx_path}")
             return
 
         embedded_corpus = self._embed_corpus_parallel(corpus)
@@ -133,7 +133,7 @@ class HNSWOpenAIEmbeddingRetriever(AbsCustomEmbeddingRetriever):
     def _process_table(self, db_id: str, table_id: str, table: List[List[str]]) -> Tuple[Tuple[str, str], str]:
         tup_id = (db_id, table_id)
         num_rows_to_include = len(table)
-        if self.num_rows:
+        if self.num_rows is not None:
             num_rows_to_include = self.num_rows
         while num_rows_to_include >= 0:
             table_str = markdown_table_str(table, num_rows=num_rows_to_include)
