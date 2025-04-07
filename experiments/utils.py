@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
+    E5EmbeddingRetriever,
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
     NoContextRetriever,
@@ -96,6 +97,8 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return StellaEmbeddingRetriever(num_rows=num_rows)
     elif "no_context" in retriever_name:
         return NoContextRetriever()
+    elif "e5" in retriever_name:
+        return E5EmbeddingRetriever(num_rows=num_rows)
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 
