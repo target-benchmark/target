@@ -4,10 +4,10 @@ from typing import List, Tuple
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
-    E5EmbeddingRetriever,
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
     OTTQARetriever,
+    SentenceTransformersRetriever,
     StellaEmbeddingRetriever,
 )
 
@@ -95,7 +95,7 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
     elif "stella" in retriever_name:
         return StellaEmbeddingRetriever(num_rows=num_rows)
     elif "e5" in retriever_name:
-        return E5EmbeddingRetriever(num_rows=num_rows)
+        return SentenceTransformersRetriever(model_name_or_path="intfloat/multilingual-e5-large-instruct", num_rows=num_rows)
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 
