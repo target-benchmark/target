@@ -31,8 +31,9 @@ class DefaultGenerator(AbsGenerator):
 
     @retry(
         reraise=True,
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=32),
+        retry=retry_if_exception_type(RateLimitError),
+        stop=stop_after_attempt(10),
+        wait=wait_fixed(5),
     )
     def _invoke_chain(self, table_str: str, query: str):
         return self.chain.invoke({"table_str": table_str, "query_str": query})

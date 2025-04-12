@@ -8,6 +8,8 @@ from target_benchmark.retrievers.context.NoContextRetriever import NoContextRetr
 from target_benchmark.retrievers.naive.DefaultOpenAIEmbeddingRetriever import OpenAIEmbedder
 from target_benchmark.retrievers.ottqa.OTTQARetriever import OTTQARetriever
 from target_benchmark.retrievers.llama_index.LlamaIndexRetriever import LlamaIndexRetriever
+from target_benchmark.retrievers.row_serialization.RowSerializationRetriever import RowSerializationRetriever
 from target_benchmark.retrievers.sentence_transformers.sentence_transformers_retriever import SentenceTransformersRetriever, StellaEmbeddingRetriever
 
-__all__ = [AbsCustomEmbeddingRetriever, AbsStandardEmbeddingRetriever, HNSWOpenAIEmbeddingRetriever, NoContextRetriever, OpenAIEmbedder, OTTQARetriever, LlamaIndexRetriever, StellaEmbeddingRetriever, SentenceTransformersRetriever]
+__all__ = [AbsCustomEmbeddingRetriever, AbsStandardEmbeddingRetriever, RowSerializationRetriever, HNSWOpenAIEmbeddingRetriever, NoContextRetriever, OpenAIEmbedder, OTTQARetriever, LlamaIndexRetriever, StellaEmbeddingRetriever, SentenceTransformersRetriever]
+

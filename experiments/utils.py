@@ -7,7 +7,9 @@ from target_benchmark.retrievers import (
     SentenceTransformersRetriever,
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
+    NoContextRetriever,
     OTTQARetriever,
+    RowSerializationRetriever,
     StellaEmbeddingRetriever,
 )
 
@@ -94,8 +96,12 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
         return OTTQARetriever(encoding="bm25", withtitle=True)
     elif "stella" in retriever_name:
         return StellaEmbeddingRetriever(num_rows=num_rows)
+    elif "no_context" in retriever_name:
+        return NoContextRetriever()
     elif "e5" in retriever_name:
         return SentenceTransformersRetriever("intfloat/multilingual-e5-large-instruct", num_rows=num_rows)
+    elif "row_serial" in retriever_name:
+        return RowSerializationRetriever()
     else:
         raise ValueError(f"Passed in retriever {retriever_name} not yet supported")
 

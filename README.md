@@ -206,3 +206,68 @@ qa_task = QuestionAnsweringTask(task_generator=YourGenerator())
 target_evaluator = TARGET(downstream_tasks=qa_task)
 ```
 Note that here instead of specifying the task by its name, we are passing in a task object instead with the generator set to our created custom generator.
+
+## Using the Evaluation Scripts
+You can run the evaluation scripts in the `experiments` folder to run baselines retrievers included in the TARGET paper on all tasks.
+
+### Command-Line Arguments
+
+- **`--retriever_name`**  
+  **Type:** `str`  
+  **Description:** Name of the retriever. Available options include:
+  - `llamaindex`
+  - `hnsw_openai`
+  - `tfidf_no_title`
+  - `tfidf_with_title`
+  - `bm25_no_title`
+  - `bm25_with_title`
+  - `stella`
+  - `e5`
+  - `row_serial`
+
+- **`--num_rows`**  
+  **Type:** `int`  
+  **Default:** `100`  
+  **Description:** Num rows to include for Dense Table Embedding models
+
+- **`--persist`**  
+  **Action:** `store_true`  
+  **Default:** `False`  
+  **Description:** Whether to persist the data. Defaults to False.
+
+- **`--retrieval_results_dir`**  
+  **Type:** `str`  
+  **Default:** `None`  
+  **Description:** Folder to persist retrieval results.
+
+- **`--downstream_results_dir`**  
+  **Type:** `str`  
+  **Default:** `None`  
+  **Description:** Folder to persist downstream results.
+
+- **`--top_ks`**  
+  **Type:** `str` (later converted to a list of integers)  
+  **Default:** `"1 5 10 25 50"`  
+  **Description:** Space separated list of top ks. for example '1 3 5 10'.
+
+- **`--num_nih_tables`**  
+  **Type:** `int`  
+  **Default:** `None`  
+  **Description:** Number of tables to include from the NIH dataset.
+
+---
+
+### Usage Example
+
+Below is an example command on how to run the script with arguments:
+
+```bash
+python experiments/retrieval_evals.py \
+  --retriever_name stella \
+  --num_rows 150 \
+  --persist \
+  --retrieval_results_dir "./results/retrieval" \
+  --downstream_results_dir "./results/downstream" \
+  --top_ks "1 5 10" \
+  --num_nih_tables 50
+```

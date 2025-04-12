@@ -98,7 +98,8 @@ def build_table_content_string(
         if retrieved_table_id not in table_id_to_table:
             return NO_CONTEXT_TABLE_PROMPT
         else:
-            tables.add(markdown_table_str(table_id_to_table[retrieved_table_id]))
+            table_str = f"table name: {str(retrieved_table_id)}\n" + markdown_table_str(table_id_to_table[retrieved_table_id])
+            tables.add(table_str)
     return "\n".join(table_content for table_content in tables)
 
 
