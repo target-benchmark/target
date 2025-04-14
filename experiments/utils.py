@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from target_benchmark.evaluators import TARGET
 from target_benchmark.retrievers import (
-    E5EmbeddingRetriever,
+    SentenceTransformersRetriever,
     HNSWOpenAIEmbeddingRetriever,
     LlamaIndexRetriever,
     NoContextRetriever,
@@ -99,7 +99,7 @@ def initialize_retriever(retriever_name: str, num_rows: int = None, out_dir_appe
     elif "no_context" in retriever_name:
         return NoContextRetriever()
     elif "e5" in retriever_name:
-        return E5EmbeddingRetriever(num_rows=num_rows)
+        return SentenceTransformersRetriever("intfloat/multilingual-e5-large-instruct", num_rows=num_rows)
     elif "row_serial" in retriever_name:
         return RowSerializationRetriever()
     else:

@@ -15,8 +15,6 @@ from multiprocessing.pool import ThreadPool
 import numpy as np
 import scipy.sparse as sp
 
-from target_benchmark.retrievers.ottqa.drqa import drqa_tokenizers
-
 from . import utils
 
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +36,8 @@ class BM25DocRanker(object):
             tfidf_path: path to saved model file
             strict: fail on empty queries or continue (and return empty result)
         """
+        from target_benchmark.retrievers.ottqa.drqa import drqa_tokenizers
+
         # Load from disk
         tfidf_path = tfidf_path
         logger.info("Loading %s" % tfidf_path)
