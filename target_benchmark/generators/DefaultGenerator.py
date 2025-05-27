@@ -1,6 +1,7 @@
 from typing import Dict
 
-from tenacity import retry, stop_after_attempt, wait_exponential
+from openai import RateLimitError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from target_benchmark.dictionary_keys import CONTENT_KEY_NAME
 from target_benchmark.generators.AbsGenerator import AbsGenerator
@@ -15,9 +16,12 @@ class DefaultGenerator(AbsGenerator):
     def __init__(
         self, system_message: str = DEFAULT_SYSTEM_PROMPT, user_message: str = QA_USER_PROMPT, lm_model_name: str = DEFAULT_LM
     ):
-        from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
-        from langchain_openai import ChatOpenAI
         from langchain_core.messages import SystemMessage
+        from langchain_core.prompts import (
+            ChatPromptTemplate,
+            HumanMessagePromptTemplate,
+        )
+        from langchain_openai import ChatOpenAI
 
         super().__init__()
         self.language_model = ChatOpenAI(model=lm_model_name, temperature=0.0)
