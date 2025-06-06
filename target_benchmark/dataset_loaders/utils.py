@@ -184,3 +184,12 @@ def get_dummy_table_of_format(
         return array_of_arrays_to_dict(dummy_table)
     else:
         return dummy_table
+
+
+def convert_tables_by_format(tables: List[Dict], format: InMemoryDataFormat) -> List:
+    if format == InMemoryDataFormat.DF:
+        tables = list(map(array_of_arrays_to_df, tables))
+    elif format == InMemoryDataFormat.JSON:
+        tables = list(map(array_of_arrays_to_dict, tables))
+    else:
+        return tables

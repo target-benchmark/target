@@ -8,8 +8,7 @@ from datasets import Dataset
 from target_benchmark.dataset_loaders.utils import (
     InMemoryDataFormat,
     QueryType,
-    array_of_arrays_to_df,
-    array_of_arrays_to_dict,
+    convert_tables_by_format,
     enforce_split_literal,
     set_in_memory_data_format,
     set_query_type,
@@ -114,8 +113,14 @@ class AbsDatasetLoader(ABC):
             nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def _convert_corpus_to_dict(self) -> dict:
-        return self.corpus.to_dict()
+    def _preprocess_corpus_batch(
+        self,
+        batch: List[Dict],
+        format: InMemoryDataFormat,
+        **kwargs,
+    ) -> Dict[List]:
+        batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
+        return batch
 
     def get_corpus_iter(
         self,
@@ -148,12 +153,7 @@ class AbsDatasetLoader(ABC):
             corpus = corpus.select(idx)
 
         for batch in corpus.iter(batch_size=batch_size):
-            tables = batch[TABLE_COL_NAME]
-            if in_memory_format == InMemoryDataFormat.DF:
-                tables = list(map(array_of_arrays_to_df, tables))
-            elif in_memory_format == InMemoryDataFormat.JSON:
-                tables = list(map(array_of_arrays_to_dict, tables))
-            batch[TABLE_COL_NAME] = tables
+            batch = self._preprocess_corpus_batch(batch=batch, format=in_memory_format)
             yield batch
 
         # converted_corpus = self._convert_corpus_to_dict()

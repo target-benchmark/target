@@ -69,7 +69,7 @@ class Text2SQLTask(AbsTask):
         return str(Text2SQLTask.AVAILABLE_METRICS)
 
     def setup_database_dirs(self, dataloaders: Dict[str, Text2SQLDatasetLoader]):
-        self.database_dirs = {name: loader.path_to_database_dir for name, loader in dataloaders.items()}
+        self.database_dirs = {name: loader.get_path_to_database() for name, loader in dataloaders.items()}
 
     @classmethod
     def _get_default_dataset_config(cls) -> Dict[str, DatasetConfigDataModel]:

@@ -1,4 +1,4 @@
-import json
+import ast
 import time
 from pathlib import Path
 from typing import Dict, List, Literal
@@ -6,8 +6,16 @@ from typing import Dict, List, Literal
 from huggingface_hub import snapshot_download
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
-from target_benchmark.dataset_loaders.utils import write_table_to_path
-from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
+from target_benchmark.dataset_loaders.DatasetLoaderEnums import InMemoryDataFormat
+from target_benchmark.dataset_loaders.utils import (
+    convert_tables_by_format,
+    write_table_to_path,
+)
+from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
@@ -21,15 +29,6 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         data_directory: str = None,
         **kwargs,
     ):
-        if "spider" in dataset_name:
-            self.dataset_name_short = "spider"
-        elif "bird" in dataset_name:
-            self.dataset_name_short = "bird"
-        else:
-            raise AssertionError(
-                "we don't allow customized text2sql datasets yet. try one of the splits of spider or bird instead"
-            )
-
         super().__init__(
             dataset_name=dataset_name,
             hf_corpus_dataset_path=hf_corpus_dataset_path,
@@ -40,16 +39,16 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             query_type="Text to SQL",
             kwargs=kwargs,
         )
-        self.corpus: Dict = None
         self.path_to_database_dir: str = None
 
     def _load_corpus(self) -> None:
+        super()._load_corpus()
         path_to_data_dir = snapshot_download(repo_id=self.hf_corpus_dataset_path, repo_type="dataset")
         time.sleep(0.5)
-        path_to_context = Path(path_to_data_dir, f"{self.dataset_name_short}-corpus-{self.split}.json")
         self.path_to_database_dir = Path(path_to_data_dir, f"{self.split}_database")
-        with open(path_to_context, "r") as file:
-            self.corpus = json.load(file)
+
+    def get_path_to_database(self) -> Path:
+        return self.path_to_database_dir
 
     def persist_corpus_to(self, format: Literal["csv", "json"], path: str = None) -> None:
         """
@@ -84,8 +83,22 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def _convert_corpus_to_dict(self):
-        return self.corpus.copy()
+    def _preprocess_corpus_batch(
+        self,
+        batch: List[Dict],
+        format: InMemoryDataFormat,
+        **kwargs,
+    ) -> Dict[List]:
+        try:
+            batch[TABLE_COL_NAME] = ast.literal_eval(batch[TABLE_COL_NAME])
+        except Exception as e:
+            raise RuntimeError(f"got error when evaling the table contents: {e}")
+        try:
+            batch[CONTEXT_COL_NAME] = ast.literal_eval(batch[CONTEXT_COL_NAME])
+        except Exception:
+            pass
+        batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
+        return batch
 
     def get_corpus(self) -> List[Dict]:
         """
