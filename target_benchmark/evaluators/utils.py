@@ -31,7 +31,7 @@ def construct_dataset_name_for_eval(non_nih_dataset: AbsDatasetLoader, nih_datas
 
 def corpus_gen(dataloaders: List[AbsDatasetLoader], corpus_format: str, batch_size: int):
     for dataloader in dataloaders:
-        yield from dataloader.convert_corpus_table_to(corpus_format, batch_size)
+        yield from dataloader.get_corpus_iter(corpus_format, batch_size)
 
 
 def find_subclasses(package, cls) -> Dict[str, Type[AbsTask]]:

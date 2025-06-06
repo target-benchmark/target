@@ -84,8 +84,8 @@ def set_in_memory_data_format(string_rep: str) -> InMemoryDataFormat:
         return InMemoryDataFormat.ARRAY
     elif InMemoryDataFormat.DF.value in cleaned or "pandas" in cleaned:
         return InMemoryDataFormat.DF
-    elif InMemoryDataFormat.DICTIONARY.value in cleaned:
-        return InMemoryDataFormat.DICTIONARY
+    elif InMemoryDataFormat.JSON.value in cleaned:
+        return InMemoryDataFormat.JSON
     raise ValueError(
         f"the input formate {string_rep} did not match any available formats! try 'array', 'dataframe', or 'json'."
     )
@@ -171,14 +171,16 @@ def convert_nested_list_to(
         return array_of_arrays_to_df(nested_list)
 
 
-def get_dummy_table_of_format(expected_format: Literal["array", "nested array", "pandas", "dataframe", "dictionary"] = "nested array"):
+def get_dummy_table_of_format(
+    expected_format: Literal["array", "nested array", "pandas", "dataframe", "json"] = "nested array"
+):
     dummy_table = [["header"], ["content"]]
     expected_format = expected_format.lower()
     if "array" in expected_format:
         return dummy_table
     elif "dataframe" in expected_format or "pandas" in expected_format:
         return array_of_arrays_to_df(dummy_table)
-    elif expected_format == "dictionary":
+    elif expected_format == "json":
         return array_of_arrays_to_dict(dummy_table)
     else:
         return dummy_table

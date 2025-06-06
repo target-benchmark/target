@@ -382,7 +382,7 @@ class TARGET:
         # TODO: support batching
         with tqdm(total=total_entries, desc="Embedding Tables...") as pbar:
             for dataloader in dataloaders:
-                for entry in dataloader.convert_corpus_table_to(retriever.get_expected_corpus_format()):
+                for entry in dataloader.get_corpus_iter(retriever.get_expected_corpus_format()):
                     entry = {key: value[0] for key, value in entry.items()}
                     table_embedding = retriever.embed_corpus(dataset_name, entry)
                     vectors.append(table_embedding)
