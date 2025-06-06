@@ -6,7 +6,6 @@ from typing import Dict, Iterable, List, Literal, Optional, Tuple
 from datasets import Dataset
 
 from target_benchmark.dataset_loaders.utils import (
-    InMemoryDataFormat,
     QueryType,
     convert_tables_by_format,
     enforce_split_literal,
@@ -113,15 +112,6 @@ class AbsDatasetLoader(ABC):
             nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def _preprocess_corpus_batch(
-        self,
-        batch: List[Dict],
-        format: InMemoryDataFormat,
-        **kwargs,
-    ) -> Dict[List]:
-        batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
-        return batch
-
     def get_corpus_iter(
         self,
         output_format: str = "nested array",
@@ -144,7 +134,7 @@ class AbsDatasetLoader(ABC):
         if not self.corpus:
             raise RuntimeError("Corpus has not been loaded!")
 
-        in_memory_format = set_in_memory_data_format(output_format)
+        set_in_memory_data_format(output_format)
         # Shuffle the dataset (set a seed for reproducibility if needed)
         corpus = self.corpus
         if num_tables is not None:
@@ -153,7 +143,7 @@ class AbsDatasetLoader(ABC):
             corpus = corpus.select(idx)
 
         for batch in corpus.iter(batch_size=batch_size):
-            batch = self._preprocess_corpus_batch(batch=batch, format=in_memory_format)
+            batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
             yield batch
 
         # converted_corpus = self._convert_corpus_to_dict()

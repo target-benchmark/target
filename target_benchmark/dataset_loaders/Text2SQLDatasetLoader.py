@@ -1,18 +1,20 @@
-import ast
+import json
+import random
 import time
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 
 from huggingface_hub import snapshot_download
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
-from target_benchmark.dataset_loaders.DatasetLoaderEnums import InMemoryDataFormat
 from target_benchmark.dataset_loaders.utils import (
     convert_tables_by_format,
+    set_in_memory_data_format,
     write_table_to_path,
 )
 from target_benchmark.dictionary_keys import (
     CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
 )
@@ -29,6 +31,9 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         data_directory: str = None,
         **kwargs,
     ):
+        # NOTE: due to hf dataset typing constraints, we are unable to put text2sql
+        # corpus into hf datasets. so expect a dictionary when getting `.corpus`
+
         super().__init__(
             dataset_name=dataset_name,
             hf_corpus_dataset_path=hf_corpus_dataset_path,
@@ -40,11 +45,14 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             kwargs=kwargs,
         )
         self.path_to_database_dir: str = None
+        self.corpus: Dict = None
 
     def _load_corpus(self) -> None:
-        super()._load_corpus()
         path_to_data_dir = snapshot_download(repo_id=self.hf_corpus_dataset_path, repo_type="dataset")
         time.sleep(0.5)
+        path_to_context = Path(path_to_data_dir, f"corpus-{self.split}.json")
+        with open(path_to_context, "r") as file:
+            self.corpus = json.load(file)
         self.path_to_database_dir = Path(path_to_data_dir, f"{self.split}_database")
 
     def get_path_to_database(self) -> Path:
@@ -83,29 +91,44 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def _preprocess_corpus_batch(
+    def get_corpus_iter(
         self,
-        batch: List[Dict],
-        format: InMemoryDataFormat,
-        **kwargs,
-    ) -> Dict[List]:
-        try:
-            batch[TABLE_COL_NAME] = ast.literal_eval(batch[TABLE_COL_NAME])
-        except Exception as e:
-            raise RuntimeError(f"got error when evaling the table contents: {e}")
-        try:
-            batch[CONTEXT_COL_NAME] = ast.literal_eval(batch[CONTEXT_COL_NAME])
-        except Exception:
-            pass
-        batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
-        return batch
+        output_format: str = "nested array",
+        batch_size: int = 1,
+        num_tables: Optional[int] = None,
+        seed: Optional[int] = 42,
+    ):
+        if not self.corpus:
+            raise RuntimeError("Corpus has not been loaded!")
+
+        in_memory_format = set_in_memory_data_format(output_format)
+        corpus = self.corpus.copy()
+        if num_tables is not None:
+            assert (
+                num_tables <= self.get_corpus_size()
+            ), f"number of tables ({num_tables}) to sample cannot exceed the number of tables in the corpus ({self.get_corpus_size()})"
+            random.seed(seed)
+            idx = random.choices([i for i in range(self.get_corpus_size())], k=num_tables)
+            for key, value in corpus.items():
+                corpus[key] = [value[i] for i in idx]
+        for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
+            batch = {}
+            # Use list comprehensions to extract each column
+            batch[TABLE_COL_NAME] = convert_tables_by_format(
+                tables=corpus[TABLE_COL_NAME][i : i + batch_size],
+                format=in_memory_format,
+            )
+            batch[DATABASE_ID_COL_NAME] = corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
+            batch[TABLE_ID_COL_NAME] = corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+            batch[CONTEXT_COL_NAME] = corpus[CONTEXT_COL_NAME][i : i + batch_size]
+            yield batch
 
     def get_corpus(self) -> List[Dict]:
         """
         get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
 
         Returns:
-            a Dataset object
+            a Dictionary object
 
         Raises:
             a runtime error if corpus has not been loaded yet.
