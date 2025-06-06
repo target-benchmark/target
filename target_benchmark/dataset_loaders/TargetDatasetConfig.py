@@ -33,37 +33,21 @@ DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     query_type="Other",
 )
 
-DEFAULT_SPIDER_TEST_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
-    dataset_name="spider-test",
-    hf_corpus_dataset_path="target-benchmark/spider-corpus-test",
-    hf_queries_dataset_path="target-benchmark/spider-queries-test",
+DEFAULT_SPIDER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
+    dataset_name="spider",
+    hf_corpus_dataset_path="target-benchmark/spider-corpus",
+    hf_queries_dataset_path="target-benchmark/spider-queries",
     query_type="Text to SQL",
     split="test",
-)
-
-DEFAULT_SPIDER_TRAIN_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
-    dataset_name="spider-train",
-    hf_corpus_dataset_path="target-benchmark/spider-corpus-train",
-    hf_queries_dataset_path="target-benchmark/spider-queries-train",
-    query_type="Text to SQL",
-    split="train",
-)
-
-DEFAULT_SPIDER_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
-    dataset_name="spider-validation",
-    hf_corpus_dataset_path="target-benchmark/spider-corpus-validation",
-    hf_queries_dataset_path="target-benchmark/spider-queries-validation",
-    query_type="Text to SQL",
-    split="train",
 )
 
 
 DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="bird-validation",
-    split="validation",
     hf_corpus_dataset_path="target-benchmark/bird-corpus-validation",
     hf_queries_dataset_path="target-benchmark/bird-queries-validation",
     query_type="Text to SQL",
+    split="validation",
 )
 
 DEFAULT_GITTABLES_DATASET_CONFIG = NeedleInHaystackDatasetConfigDataModel(
@@ -90,12 +74,11 @@ FACT_VER_DATASETS = {
 }
 
 TEXT_2_SQL_DATASETS = {
-    DEFAULT_SPIDER_TEST_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_TEST_DATASET_CONFIG,
+    DEFAULT_SPIDER_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_DATASET_CONFIG,
     DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
 }
 
 QUESTION_ANSWERING_DATASETS = {
-    # this is for testing!!
     DEFAULT_FETAQA_DATASET_CONFIG.dataset_name: DEFAULT_FETAQA_DATASET_CONFIG,
     DEFAULT_OTTQA_DATASET_CONFIG.dataset_name: DEFAULT_OTTQA_DATASET_CONFIG,
 }
