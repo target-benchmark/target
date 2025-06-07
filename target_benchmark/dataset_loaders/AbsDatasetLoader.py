@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
 from datasets import Dataset
+from deprecated import deprecated
 
 from target_benchmark.dataset_loaders.utils import (
     QueryType,
@@ -111,6 +112,21 @@ class AbsDatasetLoader(ABC):
             table_name = Path(entry[TABLE_ID_COL_NAME])
             nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
+
+    @deprecated(reason="you should use `get_corpus_iter` instead")
+    def convert_corpus_table_to(
+        self,
+        output_format: str = "nested array",
+        batch_size: int = 1,
+        num_tables: Optional[int] = None,
+        seed: Optional[int] = 42,
+    ) -> Iterable[Dict]:
+        yield from self.get_corpus_iter(
+            output_format=output_format,
+            batch_size=batch_size,
+            num_tables=num_tables,
+            seed=seed,
+        )
 
     def get_corpus_iter(
         self,
