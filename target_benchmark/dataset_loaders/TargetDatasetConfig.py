@@ -5,6 +5,9 @@ from target_benchmark.dataset_loaders.LoadersDataModels import (
     NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
+from target_benchmark.dataset_loaders.NeedleInHaystackDataLoader import (
+    NeedleInHaystackDataLoader,
+)
 from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 
 DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
@@ -87,14 +90,14 @@ QUESTION_ANSWERING_DATASETS = {
 
 TABLE_RETRIEVAL_DATASETS = FACT_VER_DATASETS | TEXT_2_SQL_DATASETS | QUESTION_ANSWERING_DATASETS
 
-ALL_DATASETS = TABLE_RETRIEVAL_DATASETS | NEEDLE_IN_HAYSTACK_DATASETS
 
-
-def get_default_dataset(config: DatasetConfigDataModel) -> HFDatasetLoader | Text2SQLDatasetLoader:
+def get_default_dataset(config: DatasetConfigDataModel) -> HFDatasetLoader | NeedleInHaystackDataLoader | Text2SQLDatasetLoader:
     config = config.model_copy(deep=True)
     if config.dataset_name in TEXT_2_SQL_DATASETS:
         return Text2SQLDatasetLoader(**config.model_dump())
-    elif config.dataset_name in ALL_DATASETS:
+    elif config.dataset_name in NEEDLE_IN_HAYSTACK_DATASETS:
+        return NeedleInHaystackDataLoader(**config.model_dump())
+    elif config.dataset_name in TABLE_RETRIEVAL_DATASETS:
         return HFDatasetLoader(**config.model_dump())
     else:
         raise ValueError(f"{config.dataset_name} is not a TARGET default dataset.")
