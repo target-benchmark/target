@@ -17,4 +17,4 @@ class PersistenceDataFormat(Enum):
 class InMemoryDataFormat(Enum):
     ARRAY = "array"
     DF = "dataframe"
-    DICTIONARY = "dictionary"
+    JSON = "json"

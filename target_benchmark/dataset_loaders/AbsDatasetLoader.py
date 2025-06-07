@@ -1,22 +1,20 @@
+import random
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Tuple
+from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
 from datasets import Dataset
+from deprecated import deprecated
 
 from target_benchmark.dataset_loaders.utils import (
-    InMemoryDataFormat,
     QueryType,
-    array_of_arrays_to_df,
-    array_of_arrays_to_dict,
+    convert_tables_by_format,
     enforce_split_literal,
-    get_random_tables,
     set_in_memory_data_format,
     set_query_type,
     write_table_to_path,
 )
 from target_benchmark.dictionary_keys import (
-    CONTEXT_COL_NAME,
     DATABASE_ID_COL_NAME,
     TABLE_COL_NAME,
     TABLE_ID_COL_NAME,
@@ -115,14 +113,27 @@ class AbsDatasetLoader(ABC):
             nested_array = entry[TABLE_COL_NAME]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def _convert_corpus_to_dict(self):
-        return self.corpus.to_dict()
-
+    @deprecated(reason="you should use `get_corpus_iter` instead")
     def convert_corpus_table_to(
         self,
         output_format: str = "nested array",
         batch_size: int = 1,
-        num_tables: int = None,
+        num_tables: Optional[int] = None,
+        seed: Optional[int] = 42,
+    ) -> Iterable[Dict]:
+        yield from self.get_corpus_iter(
+            output_format=output_format,
+            batch_size=batch_size,
+            num_tables=num_tables,
+            seed=seed,
+        )
+
+    def get_corpus_iter(
+        self,
+        output_format: str = "nested array",
+        batch_size: int = 1,
+        num_tables: Optional[int] = None,
+        seed: Optional[int] = 42,
     ) -> Iterable[Dict]:
         """
         convert the corpus table to a specific format in memory.
@@ -139,33 +150,43 @@ class AbsDatasetLoader(ABC):
         if not self.corpus:
             raise RuntimeError("Corpus has not been loaded!")
 
-        in_memory_format = set_in_memory_data_format(output_format)
+        set_in_memory_data_format(output_format)
+        # Shuffle the dataset (set a seed for reproducibility if needed)
+        corpus = self.corpus
+        if num_tables is not None:
+            random.seed(seed)
+            idx = random.choices([i for i in range(self.get_corpus_size())], k=num_tables)
+            corpus = corpus.select(idx)
 
-        converted_corpus = self._convert_corpus_to_dict()
-
-        if in_memory_format == InMemoryDataFormat.DF:
-            df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
-            converted_corpus[TABLE_COL_NAME] = df_tables
-        elif in_memory_format == InMemoryDataFormat.DICTIONARY:
-            dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
-            converted_corpus[TABLE_COL_NAME] = dict_tables
-        count_tables = num_tables or self.num_tables
-        if count_tables is not None:
-            converted_corpus = get_random_tables(converted_corpus, max(0, min(count_tables, self.get_corpus_size())))
-        for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
-            batch = {}
-            # Use list comprehensions to extract each column
-            batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
-            batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
-            batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
+        for batch in corpus.iter(batch_size=batch_size):
+            batch[TABLE_COL_NAME] = convert_tables_by_format(batch[TABLE_COL_NAME], format=format)
             yield batch
+
+        # converted_corpus = self._convert_corpus_to_dict()
+
+        # if in_memory_format == InMemoryDataFormat.DF:
+        #     df_tables = list(map(array_of_arrays_to_df, self.corpus[TABLE_COL_NAME]))
+        #     converted_corpus[TABLE_COL_NAME] = df_tables
+        # elif in_memory_format == InMemoryDataFormat.JSON:
+        #     dict_tables = list(map(array_of_arrays_to_dict, self.corpus[TABLE_COL_NAME]))
+        #     converted_corpus[TABLE_COL_NAME] = dict_tables
+        # count_tables = num_tables or self.num_tables
+        # if count_tables is not None:
+        #     converted_corpus = get_random_tables(converted_corpus, max(0, min(count_tables, self.get_corpus_size())))
+        # for i in range(0, len(converted_corpus[TABLE_COL_NAME]), batch_size):
+        #     batch = {}
+        #     # Use list comprehensions to extract each column
+        #     batch[TABLE_COL_NAME] = converted_corpus[TABLE_COL_NAME][i : i + batch_size]
+        #     batch[DATABASE_ID_COL_NAME] = converted_corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
+        #     batch[TABLE_ID_COL_NAME] = converted_corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+        #     batch[CONTEXT_COL_NAME] = converted_corpus[CONTEXT_COL_NAME][i : i + batch_size]
+        #     yield batch
 
     def get_table_id_to_table(
         self,
     ) -> Dict[Tuple[str, str], List[List]]:
         mapping_dict = {}
-        for entry in self.convert_corpus_table_to():
+        for entry in self.get_corpus_iter():
             for database_id, table_id, table in zip(
                 entry[DATABASE_ID_COL_NAME],
                 entry[TABLE_ID_COL_NAME],
