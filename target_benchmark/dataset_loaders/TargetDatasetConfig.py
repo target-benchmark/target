@@ -1,9 +1,11 @@
 from target_benchmark.dataset_loaders.HFDatasetLoader import HFDatasetLoader
 from target_benchmark.dataset_loaders.LoadersDataModels import (
+    DatasetConfigDataModel,
     HFDatasetConfigDataModel,
     NeedleInHaystackDatasetConfigDataModel,
     Text2SQLDatasetConfigDataModel,
 )
+from target_benchmark.dataset_loaders.Text2SQLDatasetLoader import Text2SQLDatasetLoader
 
 DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="fetaqa",
@@ -11,15 +13,12 @@ DEFAULT_FETAQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     hf_queries_dataset_path="target-benchmark/fetaqa-queries",
     query_type="Table Question Answering",
 )
-DEFAULT_FETAQA_DATASET = HFDatasetLoader(**DEFAULT_FETAQA_DATASET_CONFIG.model_dump())
-
 DEFAULT_TABFACT_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="tabfact",
     hf_corpus_dataset_path="target-benchmark/tabfact-corpus",
     hf_queries_dataset_path="target-benchmark/tabfact-queries",
     query_type="Fact Verification",
 )
-DEFAULT_TABFACT_DATASET = HFDatasetLoader(**DEFAULT_TABFACT_DATASET_CONFIG.model_dump())
 
 DEFAULT_OTTQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="ottqa",
@@ -28,7 +27,6 @@ DEFAULT_OTTQA_DATASET_CONFIG = HFDatasetConfigDataModel(
     query_type="Table Question Answering",
     split="validation",
 )
-DEFAULT_OTTQA_DATASET = HFDatasetLoader(**DEFAULT_OTTQA_DATASET_CONFIG.model_dump())
 
 DEFAULT_INFAGENTDA_DATASET_CONFIG = HFDatasetConfigDataModel(
     dataset_name="infiagentda",
@@ -44,7 +42,6 @@ DEFAULT_SPIDER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     query_type="Text to SQL",
     split="test",
 )
-DEFAULT_SPIDER_DATASET = HFDatasetLoader(**DEFAULT_SPIDER_DATASET_CONFIG.model_dump())
 
 
 DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
@@ -54,7 +51,6 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     query_type="Text to SQL",
     split="validation",
 )
-DEFAULT_BIRD_DATASET = HFDatasetLoader(**DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.model_dump())
 
 DEFAULT_GITTABLES_DATASET_CONFIG = NeedleInHaystackDatasetConfigDataModel(
     dataset_name="gittables",
@@ -90,3 +86,41 @@ QUESTION_ANSWERING_DATASETS = {
 }
 
 TABLE_RETRIEVAL_DATASETS = FACT_VER_DATASETS | TEXT_2_SQL_DATASETS | QUESTION_ANSWERING_DATASETS
+
+
+def get_default_dataset(config: DatasetConfigDataModel) -> HFDatasetLoader | Text2SQLDatasetLoader:
+    config = config.model_copy(deep=True)
+    if config.dataset_name in TEXT_2_SQL_DATASETS:
+        return Text2SQLDatasetLoader(**config.model_dump())
+    elif config.dataset_name in TABLE_RETRIEVAL_DATASETS:
+        return HFDatasetLoader(**config.model_dump())
+    else:
+        raise ValueError(f"{config.dataset_name} is not a TARGET default dataset.")
+
+
+def get_default_bird_dataset() -> Text2SQLDatasetLoader:
+    return get_default_dataset(DEFAULT_BIRD_VALIDATION_DATASET_CONFIG)
+
+
+def get_default_spider_dataset() -> Text2SQLDatasetLoader:
+    return get_default_dataset(DEFAULT_SPIDER_DATASET_CONFIG)
+
+
+def get_default_tabfact_dataset() -> HFDatasetLoader:
+    return get_default_dataset(DEFAULT_TABFACT_DATASET_CONFIG)
+
+
+def get_default_fetaqa_dataset() -> HFDatasetLoader:
+    return get_default_dataset(DEFAULT_FETAQA_DATASET_CONFIG)
+
+
+def get_default_ottqa_dataset() -> HFDatasetLoader:
+    return get_default_dataset(DEFAULT_OTTQA_DATASET_CONFIG)
+
+
+def get_default_gittables_dataset() -> HFDatasetLoader:
+    return get_default_dataset(DEFAULT_GITTABLES_DATASET_CONFIG)
+
+
+def get_default_infiagentda_dataset() -> HFDatasetLoader:
+    return get_default_dataset(DEFAULT_INFAGENTDA_DATASET_CONFIG)
