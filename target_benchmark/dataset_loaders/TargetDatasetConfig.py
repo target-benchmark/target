@@ -56,7 +56,7 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
 DEFAULT_BEAVER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="beaver",
     hf_corpus_dataset_path="target-benchmark/beaver-corpus",
-    hf_queries_dataset_path="target-benchmark/beaver-corpus",
+    hf_queries_dataset_path="target-benchmark/beaver-queries",
     split="test",
 )
 
