@@ -42,7 +42,6 @@ DEFAULT_SPIDER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="spider",
     hf_corpus_dataset_path="target-benchmark/spider-corpus",
     hf_queries_dataset_path="target-benchmark/spider-queries",
-    query_type="Text to SQL",
     split="test",
 )
 
@@ -51,8 +50,14 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="bird-validation",
     hf_corpus_dataset_path="target-benchmark/bird-corpus-validation",
     hf_queries_dataset_path="target-benchmark/bird-queries-validation",
-    query_type="Text to SQL",
     split="validation",
+)
+
+DEFAULT_BEAVER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
+    dataset_name="beaver",
+    hf_corpus_dataset_path="target-benchmark/beaver-corpus",
+    hf_queries_dataset_path="target-benchmark/beaver-corpus",
+    split="test",
 )
 
 DEFAULT_GITTABLES_DATASET_CONFIG = NeedleInHaystackDatasetConfigDataModel(
@@ -81,6 +86,7 @@ FACT_VER_DATASETS = {
 TEXT_2_SQL_DATASETS = {
     DEFAULT_SPIDER_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_DATASET_CONFIG,
     DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
+    DEFAULT_BEAVER_DATASET_CONFIG.dataset_name: DEFAULT_BEAVER_DATASET_CONFIG,
 }
 
 QUESTION_ANSWERING_DATASETS = {
@@ -109,6 +115,10 @@ def get_default_bird_dataset() -> Text2SQLDatasetLoader:
 
 def get_default_spider_dataset() -> Text2SQLDatasetLoader:
     return get_default_dataset(DEFAULT_SPIDER_DATASET_CONFIG)
+
+
+def get_default_beaver_dataset() -> Text2SQLDatasetLoader:
+    return get_default_dataset(DEFAULT_BEAVER_DATASET_CONFIG)
 
 
 def get_default_tabfact_dataset() -> HFDatasetLoader:

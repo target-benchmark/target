@@ -1,23 +1,12 @@
-import json
-import random
 import time
 from pathlib import Path
-from typing import Dict, List, Literal, Optional
+from typing import Dict, Literal
 
 from huggingface_hub import snapshot_download
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
-from target_benchmark.dataset_loaders.utils import (
-    convert_tables_by_format,
-    set_in_memory_data_format,
-    write_table_to_path,
-)
-from target_benchmark.dictionary_keys import (
-    CONTEXT_COL_NAME,
-    DATABASE_ID_COL_NAME,
-    TABLE_COL_NAME,
-    TABLE_ID_COL_NAME,
-)
+from target_benchmark.dataset_loaders.utils import write_table_to_path
+from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
@@ -48,11 +37,9 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
         self.corpus: Dict = None
 
     def _load_corpus(self) -> None:
+        super()._load_corpus()
         path_to_data_dir = snapshot_download(repo_id=self.hf_corpus_dataset_path, repo_type="dataset")
         time.sleep(0.5)
-        path_to_context = Path(path_to_data_dir, f"corpus-{self.split}.json")
-        with open(path_to_context, "r") as file:
-            self.corpus = json.load(file)
         self.path_to_database_dir = Path(path_to_data_dir, f"{self.split}_database")
 
     def get_path_to_database(self) -> Path:
@@ -91,74 +78,74 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
 
-    def get_corpus_iter(
-        self,
-        output_format: str = "nested array",
-        batch_size: int = 1,
-        num_tables: Optional[int] = None,
-        seed: Optional[int] = 42,
-    ):
-        if not self.corpus:
-            raise RuntimeError("Corpus has not been loaded!")
+    # def get_corpus_iter(
+    #     self,
+    #     output_format: str = "nested array",
+    #     batch_size: int = 1,
+    #     num_tables: Optional[int] = None,
+    #     seed: Optional[int] = 42,
+    # ):
+    #     if not self.corpus:
+    #         raise RuntimeError("Corpus has not been loaded!")
 
-        in_memory_format = set_in_memory_data_format(output_format)
-        corpus = self.corpus.copy()
-        if num_tables is not None:
-            assert (
-                num_tables <= self.get_corpus_size()
-            ), f"number of tables ({num_tables}) to sample cannot exceed the number of tables in the corpus ({self.get_corpus_size()})"
-            random.seed(seed)
-            idx = random.choices([i for i in range(self.get_corpus_size())], k=num_tables)
-            for key, value in corpus.items():
-                corpus[key] = [value[i] for i in idx]
-        for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
-            batch = {}
-            # Use list comprehensions to extract each column
-            batch[TABLE_COL_NAME] = convert_tables_by_format(
-                tables=corpus[TABLE_COL_NAME][i : i + batch_size],
-                format=in_memory_format,
-            )
-            batch[DATABASE_ID_COL_NAME] = corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
-            batch[TABLE_ID_COL_NAME] = corpus[TABLE_ID_COL_NAME][i : i + batch_size]
-            batch[CONTEXT_COL_NAME] = corpus[CONTEXT_COL_NAME][i : i + batch_size]
-            yield batch
+    #     in_memory_format = set_in_memory_data_format(output_format)
+    #     corpus = self.corpus.copy()
+    #     if num_tables is not None:
+    #         assert (
+    #             num_tables <= self.get_corpus_size()
+    #         ), f"number of tables ({num_tables}) to sample cannot exceed the number of tables in the corpus ({self.get_corpus_size()})"
+    #         random.seed(seed)
+    #         idx = random.choices([i for i in range(self.get_corpus_size())], k=num_tables)
+    #         for key, value in corpus.items():
+    #             corpus[key] = [value[i] for i in idx]
+    #     for i in range(0, len(self.corpus[TABLE_COL_NAME]), batch_size):
+    #         batch = {}
+    #         # Use list comprehensions to extract each column
+    #         batch[TABLE_COL_NAME] = convert_tables_by_format(
+    #             tables=corpus[TABLE_COL_NAME][i : i + batch_size],
+    #             format=in_memory_format,
+    #         )
+    #         batch[DATABASE_ID_COL_NAME] = corpus[DATABASE_ID_COL_NAME][i : i + batch_size]
+    #         batch[TABLE_ID_COL_NAME] = corpus[TABLE_ID_COL_NAME][i : i + batch_size]
+    #         batch[CONTEXT_COL_NAME] = corpus[CONTEXT_COL_NAME][i : i + batch_size]
+    #         yield batch
 
-    def get_corpus(self) -> List[Dict]:
-        """
-        get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
+    # def get_corpus(self) -> List[Dict]:
+    #     """
+    #     get the corpus of the loaded dataset. if the dataset has not been loaded, raise an error.
 
-        Returns:
-            a Dictionary object
+    #     Returns:
+    #         a HF Dataset object
 
-        Raises:
-            a runtime error if corpus has not been loaded yet.
+    #     Raises:
+    #         a runtime error if corpus has not been loaded yet.
 
-        """
-        if not self.corpus:
-            raise RuntimeError("Corpus datasets have not been loaded!")
-        return self.corpus
+    #     """
+    #     if not self.corpus:
+    #         raise RuntimeError("Corpus datasets have not been loaded!")
+    #     return self.corpus
 
-    def get_corpus_size(self) -> int:
-        """
-        Get the number of tables in the corpus.
+    # def get_corpus_size(self) -> int:
+    #     """
+    #     Get the number of tables in the corpus.
 
-        Returns:
-            number of tables.
+    #     Returns:
+    #         number of tables.
 
-        Raises:
-            a runtime error if corpus has not been loaded yet.
-        """
-        if not self.corpus:
-            raise RuntimeError("Corpus datasets have not been loaded!")
-        return len(self.corpus[TABLE_COL_NAME])
+    #     Raises:
+    #         a runtime error if corpus has not been loaded yet.
+    #     """
+    #     if not self.corpus:
+    #         raise RuntimeError("Corpus datasets have not been loaded!")
+    #     return len(self.corpus[TABLE_COL_NAME])
 
-    def get_corpus_header(self) -> List[str]:
-        """
-        returns the header of this dataset's corpus
+    # def get_corpus_header(self) -> List[str]:
+    #     """
+    #     returns the header of this dataset's corpus
 
-        Returns:
-            a dictionary containing the headers of the corpus
-        """
-        if not self.corpus:
-            raise RuntimeError("Corpus datasets have not been loaded!")
-        return list(self.corpus.keys())
+    #     Returns:
+    #         a dictionary containing the headers of the corpus
+    #     """
+    #     if not self.corpus:
+    #         raise RuntimeError("Corpus datasets have not been loaded!")
+    #     return list(self.corpus.keys())
