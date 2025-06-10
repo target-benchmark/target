@@ -24,7 +24,7 @@ class TestEvaluator(unittest.TestCase):
     def test_input_dataset_config(self):
         target = TARGET(
             downstream_tasks=[
-                ("Text to SQL Task", "spider-test"),
+                ("Text to SQL Task", "spider"),
                 ("Table Question Answering Task", ["fetaqa", "ottqa"]),
                 self.trt,
             ]
@@ -40,8 +40,8 @@ class TestEvaluator(unittest.TestCase):
             ),
         )
         dataset_info = target.dataset_info
-        self.assertSetEqual(set(dataset_info.keys()), set(["spider-test", "fetaqa", "ottqa"]))
-        self.assertEqual(dataset_info["spider-test"].split, "test")
+        self.assertSetEqual(set(dataset_info.keys()), set(["spider", "fetaqa", "ottqa"]))
+        self.assertEqual(dataset_info["spider"].split, "test")
         self.assertIsInstance(dataset_info["ottqa"], HFDatasetConfigDataModel)
 
     def test_duplicate_input_dataset_config(self):
