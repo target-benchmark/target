@@ -7,18 +7,15 @@ from typing import Dict, Iterable, List, Tuple, Any, Optional
 from scipy.spatial.distance import cosine
 from dataclasses import dataclass
 from transformers import AutoModel, AutoTokenizer
+from tqdm import tqdm
 
-try:
-    from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-except ImportError:
-    OpenAIEmbeddings = None
-    ChatOpenAI = None
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from sentence_transformers import SentenceTransformer
 
 from target_benchmark.retrievers import AbsCustomEmbeddingRetriever
 
 cur_dir_path = Path(__file__).parent.resolve()
 data_path = cur_dir_path / "data/"
-
 
 @dataclass
 class BeamState:
@@ -45,7 +42,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
 
         Args:
             model: Embedding model name
-            embedding_type: "openai" or "custom"
+            embedding_type: "openai", "custom", or "sentence-transformers"
             use_rewriting: Use query rewriting
             beam_size: Number of beams
             max_hops: Maximum number of hops
@@ -80,7 +77,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         if dataset_name not in self.corpus_embeddings:
             dataset_persistence_path = data_path / dataset_name
             if not dataset_persistence_path.exists():
-                raise ValueError(f"Corpus for dataset '{dataset_name}' has not been embedded! Run embed_corpus first.")
+                raise ValueError(f"Need to embed corpus first!")
             self._load_embeddings(dataset_name)
         
         try:
@@ -89,7 +86,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             else:
                 return self._single_hop_retrieval(query, dataset_name, top_k)
         except Exception as e:
-            print(f"Error during MURRE retrieval: {e}")
+            print(f"Error: {e}")
             return []
 
     def embed_corpus(self, dataset_name: str, corpus: Iterable[Dict[str, Any]]) -> None:
@@ -151,7 +148,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         embeddings_path = dataset_persistence_path / "embeddings.json"
         
         if not embeddings_path.exists():
-            raise ValueError(f"No embeddings file found for dataset '{dataset_name}'! Run embed_corpus first.")
+            raise ValueError(f"No embeddings file found for dataset '{dataset_name}'")
         
         with open(embeddings_path, 'r') as f:
             self.corpus_embeddings[dataset_name] = json.load(f)
@@ -160,8 +157,11 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         if self.embedding_client is not None:
             return
             
+        # TODO: if possible, add support for other embedding types
         if self.embedding_type == "openai":
             self._init_openai_embeddings()
+        elif self.embedding_type == "sentence-transformers":
+            self._init_sentence_transformer_embeddings()
         else:
             self._init_custom_embeddings()
 
@@ -181,19 +181,20 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         )
 
     def _init_openai_embeddings(self) -> None:
-        """Initialize OpenAI embedding client"""
-        
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OpenAI API key not found! Please set OPENAI_API_KEY environment variable.")
         
         self.embedding_client = OpenAIEmbeddings(
             model=self.model,
-            openai_api_key=api_key
+            openai_api_key=api_key,
+            chunk_size=1
         )
 
+    def _init_sentence_transformer_embeddings(self) -> None:
+        self.embedding_client = SentenceTransformer(self.model)
+
     def _init_custom_embeddings(self) -> None:
-        """Initialize custom embedding model"""
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model)
             self.embedding_model = AutoModel.from_pretrained(self.model)
@@ -214,17 +215,24 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             raise ValueError(f"Failed to load custom embedding model: {e}")
 
     def _get_embeddings_batch(self, texts: List[str], is_query: bool = True) -> List[List[float]]:
-        """Get batch embeddings using configured client"""
         if self.embedding_type == "openai":
+            all_embeddings = []
+            # TODO: add support for other batch sizes in __init__
+            batch_size = 256  
+            for i in tqdm(range(0, len(texts), batch_size), desc="Embedding texts"):
+                batch_texts = texts[i:i + batch_size]
             if is_query:
-                return [self.embedding_client.embed_query(text) for text in texts]
+                    all_embeddings.extend([self.embedding_client.embed_query(text) for text in batch_texts])
             else:
-                return self.embedding_client.embed_documents(texts)
+                    all_embeddings.extend(self.embedding_client.embed_documents(batch_texts))
+            return all_embeddings
+        elif self.embedding_type == "sentence-transformers":
+            embeddings = self.embedding_client.encode(texts, show_progress_bar=True)
+            return embeddings.tolist()
         else:
             return self._get_custom_embeddings_batch(texts, is_query)
 
     def _get_custom_embeddings_batch(self, texts: List[str], is_query: bool) -> List[List[float]]:
-        """Get batch embeddings using custom model"""
         try:
             if self.use_specb:
                 tokens = self._tokenize_with_specb(texts, is_query)
@@ -382,6 +390,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         try:
             retrieved_info = "\n".join(retrieved_table_strings)
             
+            # TODO: perhaps extract this to config file
             prompt = f"""Given a user question and previously retrieved tables, rewrite the question by REMOVING information that is already covered by the retrieved tables.
 
             Previously Retrieved Tables:
@@ -401,7 +410,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             response = self.rewriter_client.invoke(messages)
             rewritten_query = response.content.strip()
             
-            # Check for early stopping
+            # check for early stopping
             if any(signal in rewritten_query.lower() for signal in ["none", "no additional"]):
                 return ""
             
