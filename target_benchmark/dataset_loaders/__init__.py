@@ -10,4 +10,5 @@ from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     get_default_tabfact_dataset,
     get_default_gittables_dataset,
     get_default_infiagentda_dataset,
+    get_default_beaver_dataset,
 )

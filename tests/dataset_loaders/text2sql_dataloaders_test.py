@@ -42,7 +42,7 @@ class T2SDataloadersTest(unittest.TestCase):
         corpus_headers = spider_loader.get_corpus_header()
         queries = spider_loader.get_queries()
         queries_headers = spider_loader.get_queries_header()
-        self.assertIsInstance(corpus, Dict)
+        self.assertIsInstance(corpus, Dataset)
         self.assertSetEqual(set(corpus_headers), set(["table", "table_id", "database_id", "context"]))
         self.assertIsInstance(corpus["context"][0], Dict)
         self.assertIn("foreign_keys", corpus["context"][0])
@@ -54,17 +54,6 @@ class T2SDataloadersTest(unittest.TestCase):
             set(queries_headers),
             set(["query", "answer", "table_id", "database_id", "query_id", "difficulty"]),
         )
-
-    def test_text2sql(self):
-        spider_loader = Text2SQLDatasetLoader(**DEFAULT_SPIDER_DATASET_CONFIG.model_dump())
-        spider_loader._load_corpus()
-        # spider_loader._download_bird()
-        self.assertIsNotNone(spider_loader.corpus)
-        self.assertIsInstance(spider_loader.corpus, dict)
-        self.assertIn("table", spider_loader.corpus)
-        self.assertIn("context", spider_loader.corpus)
-        self.assertIn("table_id", spider_loader.corpus)
-        self.assertIn("database_id", spider_loader.corpus)
 
     def test_convert_to_format(self):
         spider_loader = Text2SQLDatasetLoader(**DEFAULT_SPIDER_DATASET_CONFIG.model_dump())
