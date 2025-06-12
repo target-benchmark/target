@@ -8,6 +8,7 @@ from target_benchmark.dataset_loaders.AbsDatasetLoader import QueryType
 from target_benchmark.dataset_loaders.TargetDatasetConfig import (
     DEFAULT_SPIDER_DATASET_CONFIG,
     get_default_beaver_dataset,
+    get_default_bird_dataset,
 )
 
 
@@ -54,6 +55,26 @@ class T2SDataloadersTest(unittest.TestCase):
             set(queries_headers),
             set(["query", "answer", "table_id", "database_id", "query_id", "difficulty"]),
         )
+
+    def test_default_bird(self):
+        bird_loader = get_default_bird_dataset()
+        self.assertEqual(bird_loader.query_type, QueryType.TEXT_2_SQL)
+        self.assertEqual(bird_loader.dataset_name, "bird")
+
+        bird_loader.load()
+        corpus = bird_loader.get_corpus()
+        corpus_headers = bird_loader.get_corpus_header()
+        queries = bird_loader.get_queries()
+        queries_headers = bird_loader.get_queries_header()
+
+        self.assertIsInstance(corpus, Dataset)
+        self.assertSetEqual(set(corpus_headers), set(["table", "table_id", "database_id", "context"]))
+
+        self.assertIsInstance(queries, Dataset)
+        self.assertTrue(set(["query", "answer", "table_id", "database_id", "query_id", "difficulty"]) <= set(queries_headers))
+
+        database_dir = bird_loader.get_path_to_database()
+        self.assertTrue("validation_database" in str(database_dir))
 
     def test_convert_to_format(self):
         spider_loader = Text2SQLDatasetLoader(**DEFAULT_SPIDER_DATASET_CONFIG.model_dump())

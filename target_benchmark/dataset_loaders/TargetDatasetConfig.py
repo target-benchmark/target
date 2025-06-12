@@ -53,6 +53,15 @@ DEFAULT_BIRD_VALIDATION_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     split="validation",
 )
 
+
+DEFAULT_BIRD_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
+    dataset_name="bird",
+    hf_corpus_dataset_path="target-benchmark/bird-corpus",
+    hf_queries_dataset_path="target-benchmark/bird-queries",
+    split="validation",
+)
+
+
 DEFAULT_BEAVER_DATASET_CONFIG = Text2SQLDatasetConfigDataModel(
     dataset_name="beaver",
     hf_corpus_dataset_path="target-benchmark/beaver-corpus",
@@ -85,7 +94,7 @@ FACT_VER_DATASETS = {
 
 TEXT_2_SQL_DATASETS = {
     DEFAULT_SPIDER_DATASET_CONFIG.dataset_name: DEFAULT_SPIDER_DATASET_CONFIG,
-    DEFAULT_BIRD_VALIDATION_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_VALIDATION_DATASET_CONFIG,
+    DEFAULT_BIRD_DATASET_CONFIG.dataset_name: DEFAULT_BIRD_DATASET_CONFIG,
     DEFAULT_BEAVER_DATASET_CONFIG.dataset_name: DEFAULT_BEAVER_DATASET_CONFIG,
 }
 
@@ -110,7 +119,7 @@ def get_default_dataset(config: DatasetConfigDataModel) -> HFDatasetLoader | Nee
 
 
 def get_default_bird_dataset() -> Text2SQLDatasetLoader:
-    return get_default_dataset(DEFAULT_BIRD_VALIDATION_DATASET_CONFIG)
+    return get_default_dataset(DEFAULT_BIRD_DATASET_CONFIG)
 
 
 def get_default_spider_dataset() -> Text2SQLDatasetLoader:
