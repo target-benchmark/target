@@ -36,7 +36,8 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
                  use_rewriting: bool = False,
                  beam_size: int = 3,
                  max_hops: int = 2,
-                 rewriter_model: str = "gpt-4o-mini"):
+                 rewriter_model: str = "gpt-4o-mini",
+                 embedding_batch_size: int = 10):
         """
         Initialize MurreRetriever
 
@@ -47,6 +48,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             beam_size: Number of beams
             max_hops: Maximum number of hops
             rewriter_model: LLM for query rewriting
+            embedding_batch_size: Batch size for embedding API calls (default: 10)
         """
         super().__init__(expected_corpus_format="nested array")
         
@@ -56,6 +58,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         self.beam_size = beam_size
         self.max_hops = max_hops
         self.rewriter_model = rewriter_model
+        self.embedding_batch_size = embedding_batch_size
         self.embedding_client = None
         self.rewriter_client = None
         self.tokenizer = None
@@ -97,6 +100,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         
         all_table_texts = []
         all_table_ids = []
+        all_table_data = []
         
         for batch_dict in corpus:
             batch_db_ids = batch_dict.get("database_id", [])
@@ -119,6 +123,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
                 table_str = self._convert_table_to_string(table_content)
                 all_table_texts.append(table_str)
                 all_table_ids.append((db_id, table_name))
+                all_table_data.append(table_content)
 
         if not all_table_texts:
             print(f"Warning: No tables found or processed for dataset {dataset_name}.")
@@ -130,6 +135,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             "ids": all_table_ids,
             "embeddings": all_embeddings,
             "table_strings": all_table_texts,
+            "table_data": all_table_data,
             "config": {
                 "model": self.model,
                 "embedding_type": self.embedding_type
@@ -217,8 +223,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
     def _get_embeddings_batch(self, texts: List[str], is_query: bool = True) -> List[List[float]]:
         if self.embedding_type == "openai":
             all_embeddings = []
-            # TODO: add support for other batch sizes in __init__
-            batch_size = 256  
+            batch_size = 5
             for i in tqdm(range(0, len(texts), batch_size), desc="Embedding texts"):
                 batch_texts = texts[i:i + batch_size]
             if is_query:
@@ -279,12 +284,24 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         
         return " \\n ".join(string_rows)
 
+    def _convert_table_to_schema_only(self, table_data: Any) -> str:
+        """Convert table data to schema-only representation (no data rows)"""
+        if not table_data or not isinstance(table_data, list):
+            return str(table_data)
+
+        # Only include the first row (column headers/schema)
+        if len(table_data) > 0:
+            return " | ".join(map(str, table_data[0]))
+        
+        return str(table_data)
+
     def _beam_search_retrieval(self, query: str, dataset_name: str, top_k: int) -> List[Tuple[str, str]]:
         """Multi-hop beam search retrieval"""
         stored_corpus = self.corpus_embeddings[dataset_name]
         table_ids = stored_corpus["ids"]
         corpus_embeddings = stored_corpus["embeddings"]
         table_strings = stored_corpus["table_strings"]
+        table_data = stored_corpus.get("table_data", [])
 
         if not table_ids or not corpus_embeddings:
             return []
@@ -327,9 +344,17 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
                     rewritten_query = beam.current_query
                     if self.use_rewriting:
                         self._ensure_rewriter_client()
+                        # Use schema-only format for rewriter
+                        if table_data and table_idx < len(table_data):
+                            schema_only_string = self._convert_table_to_schema_only(table_data[table_idx])
+                        else:
+                            # Fallback to full table string if no raw data available
+                            schema_only_string = table_strings[table_idx]
+                        
                         rewritten_query = self._rewrite_query(
                             beam.current_query, 
-                            [table_strings[table_idx]]
+                            [schema_only_string],
+                            dataset_name
                         )
                     
                     new_beams.append(BeamState(
@@ -385,13 +410,21 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         top_indices = np.argsort(similarities)[::-1][:top_k]
         return [table_ids[i] for i in top_indices]
 
-    def _rewrite_query(self, query: str, retrieved_table_strings: List[str]) -> str:
-        """Rewrite query by removing information about retrieved tables"""
+    def _load_prompt_template(self, dataset_name: str) -> str:
+        """Load prompt template from file based on dataset name"""
         try:
-            retrieved_info = "\n".join(retrieved_table_strings)
-            
-            # TODO: perhaps extract this to config file
-            prompt = f"""Given a user question and previously retrieved tables, rewrite the question by REMOVING information that is already covered by the retrieved tables.
+            if dataset_name == "spider-test":
+                prompt_path = cur_dir_path / "prompt" / "spider-test" / "rewrite.txt"
+            elif dataset_name == "bird-validation":
+                prompt_path = cur_dir_path / "prompt" / "bird-validation" / "rewrite.txt"
+            else:
+                prompt_path = cur_dir_path / "prompt" / "default" / "rewrite.txt"
+                
+            with open(prompt_path, 'r') as f:
+                return f.read().strip()
+                
+        except FileNotFoundError as e:
+            return """Given a user question and previously retrieved tables, rewrite the question by REMOVING information that is already covered by the retrieved tables.
 
             Previously Retrieved Tables:
             {retrieved_info}
@@ -401,6 +434,18 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             Task: Rewrite the question to focus on information NOT covered by the retrieved tables. If all necessary information is already covered, respond with "None".
 
             Rewritten Question (or "None"):"""
+
+    def _rewrite_query(self, query: str, retrieved_table_strings: List[str], dataset_name: str = None) -> str:
+        """Rewrite query by removing information about retrieved tables"""
+        try:
+            retrieved_info = "\n".join(retrieved_table_strings)
+            
+            prompt_template = self._load_prompt_template(dataset_name)
+            
+            if dataset_name in ["spider-test", "bird-validation"]:
+                prompt = prompt_template.format(question=query, database=retrieved_info)
+            else:
+                prompt = prompt_template.format(retrieved_info=retrieved_info, query=query)
             
             messages = [
                 ("system", "You are a helpful assistant for multi-hop table retrieval."),

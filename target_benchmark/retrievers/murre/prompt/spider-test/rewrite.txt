@@ -1,0 +1,46 @@
+Given the following SQL tables, your job is to complete the possible left SQL tables given a user's request.
+Return None if no left SQL tables according to the user's request.
+
+Question: Which models are lighter than 3500 but not built by the 'Ford Motor Company'?
+Database: car_1.model list(model id, maker, model) \n car_1.cars data(id, mpg, cylinders, edispl, horsepower, weight, accelerate, year) \n car_1.car names(make id, model, make)
+Completing Tables: car_1.car makers(id, maker, full name, country)
+
+Question: Which employee received the biggest bonus? Give me the employee name.
+Database: employee_hire_evaluation.evaluation(employee id, year awarded, bonus) \n employee_hire_evaluation.employee(employee id, name, age, city)
+Completing Tables: None
+
+Question: What is the lowest grade of students who do not have any friends?
+Database: network_1.friend(student id, friend id) \n network_1.high schooler(id, name, grade)
+Completing Tables: None
+
+Question: Which airlines have a flight with destination airport AHD?
+Database: flight_2.flights(airline, flight number, source airport, destination airport)
+Completing Tables: flight_2.airlines(airline id, airline name, abbreviation, country)
+
+Question: What are the first names of all players, and their average rankings?
+Database: wta_1.players(player id, first name, last name, hand, birth date, country code) \n wta_1.rankings(ranking date, ranking, player id, ranking points, tours)
+Completing Tables: None
+
+Question: What are the codes of template types that are not used for any document?
+Database: cre_Doc_Template_Mgt.templates(template id, version number, template type code, date effective from, date effective to, template details)
+Completing Tables: cre_Doc_Template_Mgt.documents(document id, template id, document name, document description, other details)
+
+Question: Find the semester when both Master students and Bachelor students got enrolled in.
+Database: student_transcripts_tracking.student enrolment(student enrolment id, degree program id, semester id, student id, other details)
+Completing Tables: student_transcripts_tracking.degree programs(degree program id, department id, degree summary name, degree summary description)
+
+Question: What are the names of cities in Europe for which English is not the official language?
+Database: world_1.countrylanguage(countrycode, language, is official, percentage)
+Completing Tables: world_1.city(id, name, country code, district, population)
+
+Question: Show the name of the teacher for the math course.
+Database: course_teach.teacher(teacher id, name, age, hometown) \n course_teach.course(course id, staring date, course)
+Completing Tables: course_teach.course arrange(course id, teacher id, grade)
+
+Quetsion: What are the ids of the students who do not own cats as pets?
+Database: pets_1.has pet(student id, pet id) \n pets_1.student(student id, last name, first name, age, sex, major, advisor, city code)
+Completing Tables: pets_1.pets(pet id, pet type, pet age, weight)
+
+Question: {question}
+Database: {database}
+Completing Tables: 
