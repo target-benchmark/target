@@ -1,10 +1,2 @@
-Given a user question and previously retrieved tables, rewrite the question by REMOVING information that is already covered by the retrieved tables.
-
-Previously Retrieved Tables:
-{retrieved_info}
-
-Original Question: {query}
-
-Task: Rewrite the question to focus on information NOT covered by the retrieved tables. If all necessary information is already covered, respond with "None".
-
-Rewritten Question (or "None"): 
+Given the following SQL tables, your job is to complete the possible left SQL tables given a user's request.
+Return None if no left SQL tables according to the user's request.

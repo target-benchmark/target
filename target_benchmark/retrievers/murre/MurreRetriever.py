@@ -284,14 +284,18 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
         
         return " \\n ".join(string_rows)
 
-    def _convert_table_to_schema_only(self, table_data: Any) -> str:
-        """Convert table data to schema-only representation (no data rows)"""
+    def _convert_table_to_schema_only(self, table_data: Any, db_id: str = None, table_name: str = None) -> str:
+        """Convert table data to schema-only representation (no data rows) in MURRE format: database.table(columns)"""
         if not table_data or not isinstance(table_data, list):
             return str(table_data)
 
-        # Only include the first row (column headers/schema)
         if len(table_data) > 0:
-            return " | ".join(map(str, table_data[0]))
+            columns = ", ".join(map(str, table_data[0]))
+            
+            if db_id and table_name:
+                return f"{db_id}.{table_name}({columns})"
+            else:
+                return columns
         
         return str(table_data)
 
@@ -344,11 +348,14 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
                     rewritten_query = beam.current_query
                     if self.use_rewriting:
                         self._ensure_rewriter_client()
-                        # Use schema-only format for rewriter
+
                         if table_data and table_idx < len(table_data):
-                            schema_only_string = self._convert_table_to_schema_only(table_data[table_idx])
+
+                            db_id, table_name = table_ids[table_idx] if table_idx < len(table_ids) else (None, None)
+                            schema_only_string = self._convert_table_to_schema_only(
+                                table_data[table_idx], db_id, table_name
+                            )
                         else:
-                            # Fallback to full table string if no raw data available
                             schema_only_string = table_strings[table_idx]
                         
                         rewritten_query = self._rewrite_query(
