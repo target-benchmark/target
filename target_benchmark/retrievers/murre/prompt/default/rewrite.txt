@@ -1,0 +1,2 @@
+Given the following SQL tables, your job is to complete the possible left SQL tables given a user's request.
+Return None if no left SQL tables according to the user's request.
