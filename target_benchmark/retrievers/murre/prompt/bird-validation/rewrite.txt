@@ -1,0 +1,42 @@
+Given the following SQL tables, your job is to complete the possible left SQL tables given a user's request.
+Return None if no left SQL tables according to the user's request.
+
+Quetsion: What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?
+Database: financial.client(client_id, gender, birth_date, location of branch) \n financial.loan(loan_id, account_id, date, amount, duration, monthly payments, status)
+Completing Tables: financial.account(account id, location of branch, frequency, date) \n financial.disp(disposition id, client_id, account_id, type)
+
+Question: How many members did attend the event 'Community Theater' in 2019?
+Database: student_club.Attendance(link to event, link to member)
+Completing Tables: student_club.Event(event id, event name, event date, type, notes, location, status)
+
+Question: What's the Italian name of the set of cards with "Ancestor's Chosen" is in?
+Database: card_games.cards(unique id number identifying the cards, artist, ascii Name, availability, border Color, card Kingdom Foil Id, card Kingdom Id, color Identity, color Indicator, colors, converted Mana Cost) \n card_games.set_translations(id, language, set code, translation)
+Completing Tables: None
+
+Question: Which user have only one post history per post and having at least 1000 views?
+Database: codebase_community.postHistory(Id, Post History Type Id, Post Id, Creation Date, User Id, Text, Comment, User Display Name)
+Completing Tables: codebase_community.users(Id, Reputation, Creation Date, Display Name, Website Url, Location, Views, UpVotes, DownVotes, Account Id, Profile Image Url)
+
+Question: Among the atoms that contain element carbon, which one does not contain compound carcinogenic?
+Database: toxicology.atom(atom id, molecule id, element) \n toxicology.molecule(molecule id, label)
+Completing Tables: None
+
+Question: What is the percentage of the customers who used EUR in 2012/8/25?
+Database: debit_card_specializing.customers(CustomerID, client segment, Currency)
+Completing Tables: debit_card_specializing.transactions_1k(Transaction ID, Date, Time, Customer ID, Card ID, Gas Station ID, Product ID, Amount, Price)
+
+Question: For the drivers who took part in the race in 1983/7/16, what's their race completion rate?
+Database: formula_1.results(Result ID, race ID, driver ID, constructor Id, number, grid, position, points, laps, time, milliseconds, fastest lap, rank, status Id) \n formula_1.races(race ID, year, round, Circuit Id, name, date, time, url)
+Completing Tables: None
+
+Question: Please list the leagues from Germany.
+Database: european_football_2.League(id, country id, name)
+Completing Tables: european_football_2.Country(id, name)
+
+Question: Please list the zip code of all the charter schools in Fresno County Office of Education.
+Database: california_schools.schools(CDSCode, National Center for Educational Statistics school district identification number, National Center for Educational Statistics school identification number, StatusType, County, District, School, Street, street address, City, Zip, State, MailStreet, Charter)
+Completing Tables: california_schools.frpm(CDSCode, Academic Year, County Code, District Code, School Code, County Name, District Name, School Name, District Type, School Type, Educational Option Type, Charter School (Y/N), Charter School Number, Charter Funding Type, IRC, Enrollment (K-12))
+
+Question: {question}
+Database: {database}
+Completing Tables: 
