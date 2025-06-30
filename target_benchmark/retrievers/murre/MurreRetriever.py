@@ -84,7 +84,7 @@ class MurreRetriever(AbsCustomEmbeddingRetriever):
             self._load_embeddings(dataset_name)
         
         try:
-            if self.beam_size > 1:
+            if self.max_hops > 1:
                 return self._beam_search_retrieval(query, dataset_name, top_k)
             else:
                 return self._single_hop_retrieval(query, dataset_name, top_k)
