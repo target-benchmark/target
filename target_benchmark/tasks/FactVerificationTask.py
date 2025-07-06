@@ -76,32 +76,12 @@ class FactVerificationTask(AbsTask):
         Given the query and the retrieval results, generate downstream task results. Uses fact verification tasks's default generator to accept or refute the claim, or say there's not enough information.
         """
 
-        # TODO: Convert into parallelized version
         return self._parallelize(
             query_batch=query_batch,
             retrieval_results=retrieval_results,
             dataset_name=dataset_name,
             table_id_to_table=table_id_to_table,
         )
-        # downstream_results = []
-        # for query_id, query_str, result in zip(
-        #         query_batch[QUERY_ID_COL_NAME],
-        #         query_batch[QUERY_COL_NAME],
-        #         retrieval_results,
-        #     ):
-        #         downstream_results.append(DownstreamGeneratedResultDataModel(
-        #             dataset_name=dataset_name,
-        #             query_id=query_id,
-        #             generated_results=self.task_generator.generate(
-        #                 table_str=build_table_content_string(
-        #                     result.retrieval_results,
-        #                     table_id_to_table,
-        #                 ),
-        #                 query=query_str,
-        #             )["content"],
-        #         )
-        #     )
-        # return downstream_results
 
     def _update_downstream_task_metrics(
         self,

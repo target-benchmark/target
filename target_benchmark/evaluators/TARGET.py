@@ -462,9 +462,10 @@ class TARGET:
         top_k: int = 5,
         retrieval_results_dir: Union[str, None] = None,
         downstream_results_dir: Union[str, None] = None,
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
-        # TODO: add resume
         """
         Call this function to run the tasks! Woohoo!!!
 
@@ -543,6 +544,8 @@ class TARGET:
                 client=client,
                 path_to_retrieval_results_dir=path_to_retrieval_results,
                 path_to_downstream_results_dir=path_to_downstream_results,
+                flexible_k=flexible_k,
+                flexible_k_multiplier=flexible_k_multiplier,
                 **kwargs,
             )
 

@@ -216,6 +216,8 @@ class AbsTask(ABC):
         top_k: int,
         prev_retrieval_results_gen: Generator[List[RetrievalResultDataModel], None, None],
         path_to_retrieval_results: Union[Path, None],
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> tuple[list[RetrievalResultDataModel], float, float, int]:
         """
@@ -242,10 +244,12 @@ class AbsTask(ABC):
             updated_batch = update_query_batch(query_batch, num_prev_res)
             # call retriever to get new results
             retrieval_results_new, process_duration, wall_clock_duration = self._get_retrieval_results(
-                retriever,
-                updated_batch,
-                dataset_name,
-                top_k,
+                retriever=retriever,
+                query_batch=updated_batch,
+                dataset_name=dataset_name,
+                top_k=top_k,
+                flexible_k=flexible_k,
+                flexible_k_multiplier=flexible_k_multiplier,
                 **kwargs,
             )
 
@@ -299,6 +303,8 @@ class AbsTask(ABC):
         top_k: int = 5,
         path_to_retrieval_results_dir: Union[Path, None] = None,
         path_to_downstream_results_dir: Union[Path, None] = None,
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> Dict[str, TaskResultsDataModel]:
         """
@@ -362,6 +368,8 @@ class AbsTask(ABC):
                     top_k=top_k,
                     prev_retrieval_results_gen=prev_retrieval_res_gen,
                     path_to_retrieval_results=path_to_retrieval_results,
+                    flexible_k=flexible_k,
+                    flexible_k_multiplier=flexible_k_multiplier,
                     **kwargs,
                 )
 
@@ -471,6 +479,8 @@ class AbsTask(ABC):
         query_batch: Dict[str, List],
         dataset_name: str,
         top_k: int,
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> Tuple[List[RetrievalResultDataModel], float, float]:
         """
@@ -485,6 +495,7 @@ class AbsTask(ABC):
         Returns:
             A list of retrieval result data models, each containing the top k results for a query.
         """
+
         start_process_time = time.process_time()
         start_wall_clock_time = time.time()
         if isinstance(retriever, StandardizedEmbRetr):
@@ -494,10 +505,18 @@ class AbsTask(ABC):
                 queries=query_batch,
                 dataset_name=dataset_name,
                 top_k=top_k,
+                flexible_k=flexible_k,
+                flexible_k_multiplier=flexible_k_multiplier,
                 client=kwargs.get(CLIENT_KEY_NAME),
             )
         elif isinstance(retriever, CustomEmbRetr):
-            retrieval_results = retriever.retrieve_batch(queries=query_batch, dataset_name=dataset_name, top_k=top_k)
+            retrieval_results = retriever.retrieve_batch(
+                queries=query_batch,
+                dataset_name=dataset_name,
+                top_k=top_k,
+                flexible_k=flexible_k,
+                flexible_k_multiplier=flexible_k_multiplier,
+            )
         else:
             raise ValueError(
                 f"retriever passed in doesn't inherit from the base retriever classes! (is of type {type(retriever)})"
@@ -545,6 +564,7 @@ class AbsTask(ABC):
         total_retrieval_duration_process: float,
         total_retrieval_duration_wall_clock: float,
         num_queries_retrieved: int,
+        flexible_k: bool = False,
     ) -> RetrievalPerformanceDataModel:
         """
         Calculate the retrieval performance after the table retrieval has been completed.
@@ -567,9 +587,9 @@ class AbsTask(ABC):
             avg_dur_wall_clock = round(retrieval_duration_wall_clock / num_queries_retrieved, 5)
 
         if self.total_queries_processed != 0:
-            # TODO: update recall calculation once text 2 sql in db retrieval is done
             performace = RetrievalPerformanceDataModel(
                 k=top_k,
+                flexible_k=flexible_k,
                 # TODO: what is meant to be captured by accuracy?
                 accuracy=self.num_overlap / self.total_tables,
                 recall=self.num_overlap / self.total_tables,

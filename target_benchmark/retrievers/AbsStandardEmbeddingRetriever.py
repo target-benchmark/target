@@ -10,6 +10,7 @@ from target_benchmark.dictionary_keys import (
     METADATA_TABLE_ID_KEY_NAME,
     QUERY_COL_NAME,
     QUERY_ID_COL_NAME,
+    TABLE_ID_COL_NAME,
 )
 from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
@@ -40,6 +41,8 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         queries: Dict[str, List],
         dataset_name: str,
         top_k: int,
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
@@ -48,7 +51,12 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
                 f"missing key {CLIENT_KEY_NAME} in kwargs. must be included to use standardized embedding retriever."
             )
         client: QdrantClient = kwargs.get(CLIENT_KEY_NAME)
-        for query_id, query_str in zip(queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]):
+        for idx in len(queries[QUERY_ID_COL_NAME]):
+            query_id = queries[QUERY_ID_COL_NAME][idx]
+            query_str = queries[QUERY_COL_NAME][idx]
+            num_gold_tables = len(queries[TABLE_ID_COL_NAME][idx])
+            if flexible_k:
+                top_k = num_gold_tables * flexible_k_multiplier
             result = client.search(
                 collection_name=dataset_name,
                 query_vector=self.embed_query(query_str, dataset_name),
@@ -71,12 +79,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
         return retrieval_results
 
     @abstractmethod
-    def embed_query(
-        self,
-        query: str,
-        dataset_name: str,
-        **kwargs
-    ) -> np.ndarray:
+    def embed_query(self, query: str, dataset_name: str, **kwargs) -> np.ndarray:
         """
         Given a query, return the query embedding for searching.
 

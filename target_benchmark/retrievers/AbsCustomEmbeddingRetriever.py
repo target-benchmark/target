@@ -1,7 +1,11 @@
 from abc import abstractmethod
 from typing import Dict, Iterable, List, Tuple
 
-from target_benchmark.dictionary_keys import QUERY_COL_NAME, QUERY_ID_COL_NAME
+from target_benchmark.dictionary_keys import (
+    QUERY_COL_NAME,
+    QUERY_ID_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 from target_benchmark.retrievers.AbsRetrieverBase import AbsRetrieverBase
 from target_benchmark.retrievers.RetrieversDataModels import RetrievalResultDataModel
 
@@ -26,19 +30,22 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         queries: Dict[str, List],
         dataset_name: str,
         top_k: int,
+        flexible_k: bool = False,
+        flexible_k_multiplier: int = 2,
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
-        for query_id, query_str in zip(
-            queries[QUERY_ID_COL_NAME], queries[QUERY_COL_NAME]
-        ):
+        for idx in len(queries[QUERY_ID_COL_NAME]):
+            query_id = queries[QUERY_ID_COL_NAME][idx]
+            query_str = queries[QUERY_COL_NAME][idx]
+            num_gold_tables = len(queries[TABLE_ID_COL_NAME][idx])
+            if flexible_k:
+                top_k = num_gold_tables * flexible_k_multiplier
             retrieval_results.append(
                 RetrievalResultDataModel(
                     dataset_name=dataset_name,
                     query_id=query_id,
-                    retrieval_results=self.retrieve(
-                        query_str, dataset_name, top_k, **kwargs
-                    ),
+                    retrieval_results=self.retrieve(query_str, dataset_name, top_k, **kwargs),
                 )
             )
         return retrieval_results
