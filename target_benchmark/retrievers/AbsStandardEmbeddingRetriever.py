@@ -51,7 +51,7 @@ class AbsStandardEmbeddingRetriever(AbsRetrieverBase):
                 f"missing key {CLIENT_KEY_NAME} in kwargs. must be included to use standardized embedding retriever."
             )
         client: QdrantClient = kwargs.get(CLIENT_KEY_NAME)
-        for idx in len(queries[QUERY_ID_COL_NAME]):
+        for idx in range(len(queries[QUERY_ID_COL_NAME])):
             query_id = queries[QUERY_ID_COL_NAME][idx]
             query_str = queries[QUERY_COL_NAME][idx]
             num_gold_tables = len(queries[TABLE_ID_COL_NAME][idx])

@@ -35,7 +35,7 @@ class AbsCustomEmbeddingRetriever(AbsRetrieverBase):
         **kwargs,
     ) -> List[RetrievalResultDataModel]:
         retrieval_results = []
-        for idx in len(queries[QUERY_ID_COL_NAME]):
+        for idx in range(len(queries[QUERY_ID_COL_NAME])):
             query_id = queries[QUERY_ID_COL_NAME][idx]
             query_str = queries[QUERY_COL_NAME][idx]
             num_gold_tables = len(queries[TABLE_ID_COL_NAME][idx])
