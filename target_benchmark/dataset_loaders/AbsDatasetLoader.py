@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
-from datasets import Dataset
+from datasets import Dataset, disable_progress_bars, enable_progress_bars
 from deprecated import deprecated
 
 from target_benchmark.dataset_loaders.utils import (
@@ -267,6 +267,13 @@ class AbsDatasetLoader(ABC):
         if not self.queries:
             raise RuntimeError("Queries datasets have not been loaded!")
         return self.queries.num_rows
+
+    def get_query_answer(self, query: str) -> dict:
+        assert self.queries, "Queries datasets have not been loaded!"
+        disable_progress_bars()
+        ans_row = self.queries.filter(lambda x: x["query"] == query)[0]
+        enable_progress_bars()
+        return ans_row
 
     def get_corpus_header(self) -> List[str]:
         """
