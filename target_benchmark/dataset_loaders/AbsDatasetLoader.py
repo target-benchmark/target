@@ -150,7 +150,7 @@ class AbsDatasetLoader(ABC):
         if not self.corpus:
             raise RuntimeError("Corpus has not been loaded!")
 
-        set_in_memory_data_format(output_format)
+        format = set_in_memory_data_format(output_format)
         # Shuffle the dataset (set a seed for reproducibility if needed)
         corpus = self.corpus
         if num_tables is not None:

@@ -333,8 +333,12 @@ class AbsTask(ABC):
 
         for dataset_name, dataset_loader in dataset_loaders.items():
             # construct the path to persistence files
-            path_to_retrieval_results = construct_persistence_path(path_to_retrieval_results_dir, dataset_name, top_k)
-            path_to_downstream_results = construct_persistence_path(path_to_downstream_results_dir, dataset_name, top_k)
+            path_to_retrieval_results = construct_persistence_path(
+                path_to_retrieval_results_dir, dataset_name, top_k, flexible_k, flexible_k_multiplier
+            )
+            path_to_downstream_results = construct_persistence_path(
+                path_to_downstream_results_dir, dataset_name, top_k, flexible_k, flexible_k_multiplier
+            )
 
             # construct generators
             prev_retrieval_res_gen = generate_batches_from_file(

@@ -103,10 +103,19 @@ def build_table_content_string(
     return "\n".join(table_content for table_content in tables)
 
 
-def construct_persistence_path(dir: Union[Path, None], dataset_name: str, top_k: float):
+def construct_persistence_path(
+    dir: Union[Path, None],
+    dataset_name: str,
+    top_k: float,
+    flexible_k: bool,
+    flexible_k_multiplier: int,
+):
     if not dir:
         return None
-    final_path = dir / dataset_name / f"{top_k}.jsonl"
+    if not flexible_k:
+        final_path = dir / dataset_name / f"{top_k}.jsonl"
+    else:
+        final_path = dir / dataset_name / f"flexible_{flexible_k_multiplier}x.jsonl"
     final_path.parent.mkdir(parents=True, exist_ok=True)
     final_path.touch()
     return final_path

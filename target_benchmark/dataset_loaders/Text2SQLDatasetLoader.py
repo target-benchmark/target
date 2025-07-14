@@ -6,7 +6,12 @@ from huggingface_hub import snapshot_download
 
 from target_benchmark.dataset_loaders import HFDatasetLoader
 from target_benchmark.dataset_loaders.utils import write_table_to_path
-from target_benchmark.dictionary_keys import TABLE_COL_NAME, TABLE_ID_COL_NAME
+from target_benchmark.dictionary_keys import (
+    CONTEXT_COL_NAME,
+    DATABASE_ID_COL_NAME,
+    TABLE_COL_NAME,
+    TABLE_ID_COL_NAME,
+)
 
 
 class Text2SQLDatasetLoader(HFDatasetLoader):
@@ -33,7 +38,7 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             query_type="Text to SQL",
             kwargs=kwargs,
         )
-        self.path_to_database_dir: str = None
+        self.path_to_database_dir: Path = None
         self.corpus: Dict = None
 
     def _load_corpus(self) -> None:
@@ -77,6 +82,15 @@ class Text2SQLDatasetLoader(HFDatasetLoader):
             table_name = Path(self.corpus[TABLE_ID_COL_NAME][i])
             nested_array = self.corpus[TABLE_ID_COL_NAME][i]
             write_table_to_path(format, table_name, split_path, nested_array)
+
+    def _construct_path_to_db_file(self, database_id: str) -> str:
+        return str(self.path_to_database_dir / database_id / f"{database_id}.sqlite")
+
+    def get_corpus_iter(self, output_format="nested array", batch_size=1, num_tables=None, seed=42):
+        for batch in super().get_corpus_iter(output_format, batch_size, num_tables, seed):
+            for context, database_id in zip(batch[CONTEXT_COL_NAME], batch[DATABASE_ID_COL_NAME]):
+                context["relational_db_file"] = self._construct_path_to_db_file(database_id=database_id)
+            yield batch
 
     # def get_corpus_iter(
     #     self,
